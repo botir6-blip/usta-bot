@@ -151,6 +151,10 @@ async def choose_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["region"] = region
     await update.message.reply_text("Шаҳар / туманни танланг 👇", reply_markup=kb_from_list(REGIONS[region]))
 
+async def find_city(update, context):
+    if context.user_data.get("mode") != "find":
+        return
+
 async def choose_city(update: Update, context: ContextTypes.DEFAULT_TYPE):
     city = update.message.text
     d = context.user_data
@@ -257,3 +261,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
