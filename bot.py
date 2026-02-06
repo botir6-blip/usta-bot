@@ -319,7 +319,7 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.Regex("^🔍 Уста топиш$"), start_find))
     app.add_handler(MessageHandler(filters.Regex("^👷"), start_register))
-    app.add_handler(MessageHandler(filters.CONTACT), get_phone))
+    app.add_handler(MessageHandler(filters.CONTACT, get_phone))
 
     app.add_handler(MessageHandler(filters.Regex("^(🔧|⚡|🧱|🧹)"), service_handler))
     app.add_handler(MessageHandler(filters.Regex("^(Қарши|Самарқанд|Тошкент|Бухоро)$"), city_handler))
@@ -335,4 +335,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
