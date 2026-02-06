@@ -223,27 +223,29 @@ async def find_city(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = f"🔎 {service} — {city} бўйича усталар:\n\n"
 
+    # old rating data ni тозалаймиз
+    context.user_data = {
+        k: v for k, v in context.user_data.items()
+        if not k.startswith("rate_")
+    }
+
     for i, (mid, name, phone, avg, cnt) in enumerate(results, 1):
-    stars = "⭐" * round(avg) if avg > 0 else "⭐ йўқ"
-    text += (
-        f"{i}. 👷 {name}\n"
-        f"📞 {phone}\n"
-        f"⭐ Рейтинг: {stars} ({cnt} та баҳо)\n\n"
-    )
+        stars = "⭐" * round(avg) if avg > 0 else "⭐ йўқ"
+        text += (
+            f"{i}. 👷 {name}\n"
+            f"📞 {phone}\n"
+            f"⭐ Рейтинг: {stars} ({cnt} та баҳо)\n\n"
+        )
 
-    context.user_data[f"rate_{i}"] = mid
+        # rating учун master_id сақлаймиз
+        context.user_data[f"rate_{i}"] = mid
 
-    keyboard = [[f"⭐ Баҳо бериш {i+1}"] for i in range(len(results))]
+    keyboard = [[f"⭐ Баҳо бериш {i}"] for i in range(1, len(results) + 1)]
     keyboard.append(["⬅️ Орқага"])
 
     await update.message.reply_text(
-    text,
-    reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-)
-
-    await update.message.reply_text(
         text,
-        reply_markup=MAIN_MENU
+        reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     )
 
 # =======================
@@ -426,6 +428,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
