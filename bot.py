@@ -106,6 +106,9 @@ async def back(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # FIND MASTER FLOW
 # =======================
 async def usta_topish(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.clear()
+    context.user_data["mode"]
+    = "find"
     await update.message.reply_text(
         "Қайси хизмат керак?",
         reply_markup=SERVICE_MENU
@@ -119,6 +122,13 @@ async def find_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=CITY_MENU
     )
 
+async def service_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    mode = context.user_data.get("mode")
+
+    if mode == "find":
+        await find_service(update, context)
+    elif mode == "register":
+        await register_service(update, context)
 
 async def find_city(update: Update, context: ContextTypes.DEFAULT_TYPE):
     service = context.user_data.get("find_service")
@@ -143,6 +153,10 @@ async def find_city(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # REGISTER MASTER FLOW
 # =======================
 async def register_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.clear()
+    context.user_data["mode"]
+= "register"
+
     keyboard = [[KeyboardButton("📞 Телефон рақамни юбориш", request_contact=True)]]
     await update.message.reply_text(
         "Уста сифатида рўйхатдан ўтиш учун телефон юборинг 👇",
@@ -216,22 +230,15 @@ def main():
 
     # find master
     app.add_handler(MessageHandler(filters.Regex("^🔍 Уста топиш$"), usta_topish))
+    
     app.add_handler(MessageHandler(
-        filters.Regex("^(🔧 Сантехник|⚡ Электрик|🧱 Қурилиш|🧹 Уй тозалаш)$"),
-        find_service
-    ))
-    app.add_handler(MessageHandler(
-        filters.Regex("^(Қарши|Самарқанд|Тошкент|Бухоро)$"),
-        find_city
-    ))
+    filters.Regex("^(🔧 Сантехник|⚡ Электрик|🧱 Қурилиш|🧹 Уй тозалаш)$"),
+    service_router
+))
 
     # register master
     app.add_handler(MessageHandler(filters.Regex("^👷 Уста сифатида рўйхатдан ўтиш$"), register_start))
     app.add_handler(MessageHandler(filters.CONTACT, register_phone))
-    app.add_handler(MessageHandler(
-        filters.Regex("^(🔧 Сантехник|⚡ Электрик|🧱 Қурилиш|🧹 Уй тозалаш)$"),
-        register_service
-    ))
     app.add_handler(MessageHandler(
         filters.Regex("^(Қарши|Самарқанд|Тошкент|Бухоро)$"),
         register_city
@@ -243,3 +250,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
