@@ -35,15 +35,11 @@ def init_db():
     conn.commit()
     conn.close()
 
-def delete_master(telegram_id):
-    conn = sqlite3.connect("usta.db")
-    cursor = conn.cursor()
-    cursor.execute(
-        "DELETE FROM masters WHERE telegram_id = ?",
-        (telegram_id,)
-    )
-    conn.commit()
-    conn.close()
+async def city_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if context.user_data.get("mode") == "find":
+        await find_city(update, context)
+    else:
+        await register_city(update, context)
 
 def find_masters(service, city):
     conn = sqlite3.connect("usta.db")
@@ -188,6 +184,16 @@ async def register_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=REGISTER_SERVICE_MENU
     )
 
+async def unregister_master(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+
+    delete_master(user.id)
+
+    context.user_data.clear()
+    await update.message.reply_text(
+        "❌ Сиз уста сифатида рўйхатдан чиқдингиз.",
+        reply_markup=MAIN_MENU
+    )
 
 async def register_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["service"] = update.message.text
@@ -253,9 +259,7 @@ def main():
     app.add_handler(MessageHandler(filters.Regex("^(🔧 Сантехник|⚡ Электрик|🧱 Қурилиш|🧹 Уй тозалаш)$"), service_router))
 
     # city select (find / register)
-    app.add_handler(MessageHandler(filters.Regex("^(Қарши|Самарқанд|Тошкент|Бухоро)$"),
-        lambda u, c: find_city(u, c) if c.user_data.get("mode") == "find" else register_city(u, c)    )
-)
+    app.add_handler(MessageHandler(filters.Regex("^(Қарши|Самарқанд|Тошкент|Бухоро)$"), city_router))
 
     # register master
     app.add_handler(MessageHandler(filters.Regex("^👷 Уста сифатида рўйхатдан ўтиш$"), register_start))
@@ -269,6 +273,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
