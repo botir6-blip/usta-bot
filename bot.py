@@ -229,24 +229,18 @@ def main():
     # find master
     app.add_handler(MessageHandler(filters.Regex("^🔍 Уста топиш$"), usta_topish))
     
-    app.add_handler(MessageHandler(
-    filters.Regex("^(🔧 Сантехник|⚡ Электрик|🧱 Қурилиш|🧹 Уй тозалаш)$"),
-    service_router
-))
+    app.add_handler(MessageHandler(filters.Regex("^(🔧 Сантехник|⚡ Электрик|🧱 Қурилиш|🧹 Уй тозалаш)$"), service_router))
 
     # register master
     app.add_handler(MessageHandler(filters.Regex("^👷 Уста сифатида рўйхатдан ўтиш$"), register_start))
     app.add_handler(MessageHandler(filters.CONTACT, register_phone))
-    app.add_handler(MessageHandler(
-        filters.Regex("^(Қарши|Самарқанд|Тошкент|Бухоро)$"),
-        register_city
-    ))
-
+    
     print("🤖 Bot ishga tushdi...")
     app.run_polling()
 
 
 if __name__ == "__main__":
     main()
+
 
 
