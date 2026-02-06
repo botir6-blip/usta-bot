@@ -29,7 +29,9 @@ def init_db():
             name TEXT,
             phone TEXT,
             service TEXT,
-            city TEXT
+            city TEXT,
+            rating REAL DEFAULT 0,
+            rating_count INTEGER DEFAULT 0
         )
     """)
     conn.commit()
@@ -45,9 +47,10 @@ def find_masters(service, city):
     conn = sqlite3.connect("usta.db")
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT name, phone
+        SELECT telegram_id, name, phone, rating, rating_count
         FROM masters
         WHERE LOWER(service)=LOWER(?) AND LOWER(city)=LOWER(?)
+        ORDER BY rating DESC
     """, (service, city))
     rows = cursor.fetchall()
     conn.close()
@@ -64,6 +67,35 @@ def get_master_by_telegram_id(telegram_id):
     row = cursor.fetchone()
     conn.close()
     return row
+
+def add_rating(telegram_id, new_rating):
+    conn = sqlite3.connect("usta.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT rating, rating_count
+        FROM masters
+        WHERE telegram_id = ?
+    """, (telegram_id,))
+    row = cursor.fetchone()
+
+    if not row:
+        conn.close()
+        return
+
+    old_rating, count = row
+    total = old_rating * count + new_rating
+    count += 1
+    avg = total / count
+
+    cursor.execute("""
+        UPDATE masters
+        SET rating = ?, rating_count = ?
+        WHERE telegram_id = ?
+    """, (avg, count, telegram_id))
+
+    conn.commit()
+    conn.close()
 
 # =======================
 # MENUS
@@ -100,6 +132,15 @@ REGISTER_SERVICE_MENU = ReplyKeyboardMarkup(
     [
         ["🔧 Сантехник", "⚡ Электрик"],
         ["🧱 Қурилиш", "🧹 Уй тозалаш"],
+    ],
+    resize_keyboard=True
+)
+
+RATING_MENU = ReplyKeyboardMarkup(
+    [
+        ["⭐ 1", "⭐ 2", "⭐ 3"],
+        ["⭐ 4", "⭐ 5"],
+        ["⬅️ Орқага"],
     ],
     resize_keyboard=True
 )
@@ -162,8 +203,14 @@ async def find_city(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     else:
         text = f"🔎 {service} — {city} бўйича усталар:\n\n"
-        for i, (name, phone) in enumerate(results, 1):
-            text += f"{i}. 👷 {name}\n📞 {phone}\n\n"
+
+for i, (tid, name, phone, rating, count) in enumerate(results, 1):
+    stars = "⭐" * round(rating) if rating > 0 else "⭐ йўқ"
+    text += (
+        f"{i}. 👷 {name}\n"
+        f"📞 {phone}\n"
+        f"⭐ Рейтинг: {stars} ({count} та баҳо)\n\n"
+    )
 
         await update.message.reply_text(text, reply_markup=MAIN_MENU)
 
@@ -313,6 +360,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
