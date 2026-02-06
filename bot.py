@@ -154,12 +154,6 @@ async def usta_topish(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["mode"] = "find"
     await update.message.reply_text("Қайси хизмат керак?", reply_markup=SERVICE_MENU)
 
-
-async def service_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["service"] = update.message.text
-    await update.message.reply_text("Қайси шаҳар?", reply_markup=CITY_MENU)
-
-
 async def find_city(update: Update, context: ContextTypes.DEFAULT_TYPE):
     service = context.user_data.get("service")
     city = update.message.text
@@ -217,6 +211,12 @@ async def register_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["service"] = update.message.text
     await update.message.reply_text("Қайси шаҳарда ишлайсиз?", reply_markup=CITY_MENU)
 
+async def register_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if context.user_data.get("mode") != "register":
+        return
+
+    context.user_data["service"] = update.message.text
+    await update.message.reply_text("Қайси шаҳарда ишлайсиз?", reply_markup=CITY_MENU)
 
 async def register_city(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -307,7 +307,8 @@ def main():
     app.add_handler(MessageHandler(filters.Regex("^⬅️ Орқага$"), back))
 
     app.add_handler(MessageHandler(filters.Regex("^🔍 Уста топиш$"), usta_topish))
-    app.add_handler(MessageHandler(filters.Regex("^(🔧|⚡|🧱|🧹)"), service_router))
+    app.add_handler(MessageHandler(filters.Regex("^(🔧|⚡|🧱|🧹)"), find_service))
+
     app.add_handler(MessageHandler(filters.Regex("^(Қарши|Самарқанд|Тошкент|Бухоро)$"), find_city))
 
     app.add_handler(MessageHandler(filters.Regex("^👷 Уста сифатида рўйхатдан ўтиш$"), register_start))
@@ -326,3 +327,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
