@@ -107,13 +107,12 @@ async def back(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # =======================
 async def usta_topish(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
-    context.user_data["mode"]
-    = "find"
+    context.user_data["mode"] = "find"
+
     await update.message.reply_text(
         "Қайси хизмат керак?",
         reply_markup=SERVICE_MENU
     )
-
 
 async def find_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["find_service"] = update.message.text
@@ -154,8 +153,7 @@ async def find_city(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # =======================
 async def register_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
-    context.user_data["mode"]
-= "register"
+    context.user_data["mode"] = "register"
 
     keyboard = [[KeyboardButton("📞 Телефон рақамни юбориш", request_contact=True)]]
     await update.message.reply_text(
@@ -250,4 +248,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
