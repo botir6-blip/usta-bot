@@ -35,6 +35,15 @@ def init_db():
     conn.commit()
     conn.close()
 
+def delete_master(telegram_id):
+    conn = sqlite3.connect("usta.db")
+    cursor = conn.cursor()
+    cursor.execute(
+        "DELETE FROM masters WHERE telegram_id = ?",
+        (telegram_id,)
+    )
+    conn.commit()
+    conn.close()
 
 def find_masters(service, city):
     conn = sqlite3.connect("usta.db")
@@ -56,6 +65,7 @@ MAIN_MENU = ReplyKeyboardMarkup(
     [
         ["🔍 Уста топиш"],
         ["👷 Уста сифатида рўйхатдан ўтиш"],
+        ["❌ Рўйхатдан чиқиш"],
     ],
     resize_keyboard=True
 )
@@ -187,6 +197,15 @@ async def register_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=CITY_MENU
     )
 
+def delete_master(telegram_id):
+    conn = sqlite3.connect("usta.db")
+    cursor = conn.cursor()
+    cursor.execute(
+        "DELETE FROM masters WHERE telegram_id = ?",
+        (telegram_id,)
+    )
+    conn.commit()
+    conn.close()
 
 async def register_city(update: Update, context: ContextTypes.DEFAULT_TYPE):
     city = update.message.text
@@ -241,13 +260,16 @@ def main():
     # register master
     app.add_handler(MessageHandler(filters.Regex("^👷 Уста сифатида рўйхатдан ўтиш$"), register_start))
     app.add_handler(MessageHandler(filters.CONTACT, register_phone))
-    
+    # unregister master
+    app.add_handler(MessageHandler(filters.Regex("^❌ Рўйхатдан чиқиш$"), unregister_master))
+
     print("🤖 Bot ishga tushdi...")
     app.run_polling()
 
 
 if __name__ == "__main__":
     main()
+
 
 
 
