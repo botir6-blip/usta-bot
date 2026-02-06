@@ -1,3 +1,4 @@
+import os
 import sqlite3
 from telegram import (
     Update,
@@ -13,7 +14,7 @@ from telegram.ext import (
     filters,
 )
 
-TOKEN = "7573364452:AAGlRjYcbTGLtylWTl_KcFMMFYnE1Nt6N-A"
+TOKEN = os.getenv("BOT_TOKEN")
 
 # =======================
 # DATABASE
@@ -21,7 +22,6 @@ TOKEN = "7573364452:AAGlRjYcbTGLtylWTl_KcFMMFYnE1Nt6N-A"
 def init_db():
     conn = sqlite3.connect("usta.db")
     cursor = conn.cursor()
-
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS masters (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,21 +32,18 @@ def init_db():
             city TEXT
         )
     """)
-
     conn.commit()
     conn.close()
 
 
-def find_masters_from_db(service, city):
+def find_masters(service, city):
     conn = sqlite3.connect("usta.db")
     cursor = conn.cursor()
-
     cursor.execute("""
         SELECT name, phone
         FROM masters
         WHERE LOWER(service)=LOWER(?) AND LOWER(city)=LOWER(?)
     """, (service, city))
-
     rows = cursor.fetchall()
     conn.close()
     return rows
@@ -67,7 +64,7 @@ SERVICE_MENU = ReplyKeyboardMarkup(
     [
         ["🔧 Сантехник", "⚡ Электрик"],
         ["🧱 Қурилиш", "🧹 Уй тозалаш"],
-        ["⬅️ Орқага"]
+        ["⬅️ Орқага"],
     ],
     resize_keyboard=True
 )
@@ -76,14 +73,22 @@ CITY_MENU = ReplyKeyboardMarkup(
     [
         ["Қарши", "Самарқанд"],
         ["Тошкент", "Бухоро"],
-        ["⬅️ Орқага"]
+        ["⬅️ Орқага"],
+    ],
+    resize_keyboard=True
+)
+
+REGISTER_SERVICE_MENU = ReplyKeyboardMarkup(
+    [
+        ["🔧 Сантехник", "⚡ Электрик"],
+        ["🧱 Қурилиш", "🧹 Уй тозалаш"],
     ],
     resize_keyboard=True
 )
 
 
 # =======================
-# START
+# START / BACK
 # =======================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
@@ -91,6 +96,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Ассалому алайкум!\nКеракли хизматни танланг 👇",
         reply_markup=MAIN_MENU
     )
+
+
+async def back(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await start(update, context)
 
 
 # =======================
@@ -103,19 +112,19 @@ async def usta_topish(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
-async def service_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["service"] = update.message.text
+async def find_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["find_service"] = update.message.text
     await update.message.reply_text(
         "Қайси шаҳар?",
         reply_markup=CITY_MENU
     )
 
 
-async def city_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    service = context.user_data.get("service")
+async def find_city(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    service = context.user_data.get("find_service")
     city = update.message.text
 
-    results = find_masters_from_db(service, city)
+    results = find_masters(service, city)
 
     if not results:
         await update.message.reply_text(
@@ -127,16 +136,13 @@ async def city_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE):
         for i, (name, phone) in enumerate(results, 1):
             text += f"{i}. 👷 {name}\n📞 {phone}\n\n"
 
-        await update.message.reply_text(
-            text,
-            reply_markup=MAIN_MENU
-        )
+        await update.message.reply_text(text, reply_markup=MAIN_MENU)
 
 
 # =======================
 # REGISTER MASTER FLOW
 # =======================
-async def register_master_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def register_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [[KeyboardButton("📞 Телефон рақамни юбориш", request_contact=True)]]
     await update.message.reply_text(
         "Уста сифатида рўйхатдан ўтиш учун телефон юборинг 👇",
@@ -146,7 +152,7 @@ async def register_master_start(update: Update, context: ContextTypes.DEFAULT_TY
     )
 
 
-async def register_master_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def register_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     contact = update.message.contact
     if not contact:
         return
@@ -154,21 +160,21 @@ async def register_master_phone(update: Update, context: ContextTypes.DEFAULT_TY
     context.user_data["phone"] = contact.phone_number
 
     await update.message.reply_text(
-        "Касбингизни ёзинг (масалан: Сантехник)",
-        reply_markup=ReplyKeyboardRemove()
+        "Касбингизни танланг 👇",
+        reply_markup=REGISTER_SERVICE_MENU
     )
 
 
-async def register_master_finish(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    service = update.message.text
-    phone = context.user_data.get("phone")
-    user = update.effective_user
+async def register_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["service"] = update.message.text
 
-    await update.message.reply_text("Қайси шаҳарда ишлайсиз?")
-    context.user_data["service"] = service
+    await update.message.reply_text(
+        "Қайси шаҳарда ишлайсиз?",
+        reply_markup=CITY_MENU
+    )
 
 
-async def register_master_city(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def register_city(update: Update, context: ContextTypes.DEFAULT_TYPE):
     city = update.message.text
     service = context.user_data.get("service")
     phone = context.user_data.get("phone")
@@ -176,9 +182,9 @@ async def register_master_city(update: Update, context: ContextTypes.DEFAULT_TYP
 
     conn = sqlite3.connect("usta.db")
     cursor = conn.cursor()
-
     cursor.execute("""
-        INSERT OR REPLACE INTO masters (telegram_id, name, phone, service, city)
+        INSERT OR REPLACE INTO masters
+        (telegram_id, name, phone, service, city)
         VALUES (?, ?, ?, ?, ?)
     """, (
         user.id,
@@ -187,7 +193,6 @@ async def register_master_city(update: Update, context: ContextTypes.DEFAULT_TYP
         service,
         city
     ))
-
     conn.commit()
     conn.close()
 
@@ -198,38 +203,39 @@ async def register_master_city(update: Update, context: ContextTypes.DEFAULT_TYP
 
 
 # =======================
-# BACK
-# =======================
-async def back_to_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await start(update, context)
-
-
-# =======================
 # MAIN
 # =======================
 def main():
     init_db()
-
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
 
+    # back
+    app.add_handler(MessageHandler(filters.Regex("^⬅️ Орқага$"), back))
+
+    # find master
     app.add_handler(MessageHandler(filters.Regex("^🔍 Уста топиш$"), usta_topish))
     app.add_handler(MessageHandler(
         filters.Regex("^(🔧 Сантехник|⚡ Электрик|🧱 Қурилиш|🧹 Уй тозалаш)$"),
-        service_chosen
+        find_service
     ))
     app.add_handler(MessageHandler(
         filters.Regex("^(Қарши|Самарқанд|Тошкент|Бухоро)$"),
-        city_chosen
+        find_city
     ))
 
-    app.add_handler(MessageHandler(filters.Regex("^👷 Уста сифатида рўйхатдан ўтиш$"), register_master_start))
-    app.add_handler(MessageHandler(filters.CONTACT, register_master_phone))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, register_master_finish))
-    app.add_handler(MessageHandler(filters.Regex("^(Қарши|Самарқанд|Тошкент|Бухоро)$"), register_master_city))
-
-    app.add_handler(MessageHandler(filters.Regex("^⬅️ Орқага$"), back_to_menu))
+    # register master
+    app.add_handler(MessageHandler(filters.Regex("^👷 Уста сифатида рўйхатдан ўтиш$"), register_start))
+    app.add_handler(MessageHandler(filters.CONTACT, register_phone))
+    app.add_handler(MessageHandler(
+        filters.Regex("^(🔧 Сантехник|⚡ Электрик|🧱 Қурилиш|🧹 Уй тозалаш)$"),
+        register_service
+    ))
+    app.add_handler(MessageHandler(
+        filters.Regex("^(Қарши|Самарқанд|Тошкент|Бухоро)$"),
+        register_city
+    ))
 
     print("🤖 Bot ishga tushdi...")
     app.run_polling()
