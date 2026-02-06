@@ -22,6 +22,7 @@ TOKEN = os.getenv("BOT_TOKEN")
 def init_db():
     conn = sqlite3.connect("usta.db")
     cursor = conn.cursor()
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS masters (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,11 +30,20 @@ def init_db():
             name TEXT,
             phone TEXT,
             service TEXT,
-            city TEXT,
-            rating REAL DEFAULT 0,
-            rating_count INTEGER DEFAULT 0
+            city TEXT
         )
     """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS ratings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            master_id INTEGER,
+            user_id INTEGER,
+            rating INTEGER,
+            UNIQUE(master_id, user_id)
+        )
+    """)
+
     conn.commit()
     conn.close()
 
@@ -46,12 +56,20 @@ async def city_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def find_masters(service, city):
     conn = sqlite3.connect("usta.db")
     cursor = conn.cursor()
+
     cursor.execute("""
-        SELECT telegram_id, name, phone, rating, rating_count
-        FROM masters
-        WHERE LOWER(service)=LOWER(?) AND LOWER(city)=LOWER(?)
-        ORDER BY rating DESC
+        SELECT 
+            m.id,
+            m.name,
+            m.phone,
+            IFNULL(AVG(r.rating), 0),
+            COUNT(r.rating)
+        FROM masters m
+        LEFT JOIN ratings r ON m.id = r.master_id
+        WHERE LOWER(m.service)=LOWER(?) AND LOWER(m.city)=LOWER(?)
+        GROUP BY m.id
     """, (service, city))
+
     rows = cursor.fetchall()
     conn.close()
     return rows
@@ -205,13 +223,23 @@ async def find_city(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = f"🔎 {service} — {city} бўйича усталар:\n\n"
 
-    for i, (tid, name, phone, rating, count) in enumerate(results, 1):
-        stars = "⭐" * round(rating) if rating > 0 else "⭐ йўқ"
-        text += (
-            f"{i}. 👷 {name}\n"
-            f"📞 {phone}\n"
-            f"⭐ Рейтинг: {stars} ({count} та баҳо)\n\n"
-        )
+    for i, (mid, name, phone, avg, cnt) in enumerate(results, 1):
+    stars = "⭐" * round(avg) if avg > 0 else "⭐ йўқ"
+    text += (
+        f"{i}. 👷 {name}\n"
+        f"📞 {phone}\n"
+        f"⭐ Рейтинг: {stars} ({cnt} та баҳо)\n\n"
+    )
+
+    context.user_data[f"rate_{i}"] = mid
+
+    keyboard = [[f"⭐ Баҳо бериш {i+1}"] for i in range(len(results))]
+    keyboard.append(["⬅️ Орқага"])
+
+    await update.message.reply_text(
+    text,
+    reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+)
 
     await update.message.reply_text(
         text,
@@ -328,6 +356,38 @@ async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
 
+async def start_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    index = int(text.split()[-1]) - 1
+    master_id = context.user_data.get(f"rate_{index}")
+
+    context.user_data["rating_master"] = master_id
+
+    await update.message.reply_text(
+        "Неча балл қўясиз?",
+        reply_markup=RATING_MENU
+    )
+
+async def save_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    rating = int(update.message.text.replace("⭐", "").strip())
+    master_id = context.user_data.get("rating_master")
+    user_id = update.effective_user.id
+
+    conn = sqlite3.connect("usta.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        INSERT OR REPLACE INTO ratings (master_id, user_id, rating)
+        VALUES (?, ?, ?)
+    """, (master_id, user_id, rating))
+
+    conn.commit()
+    conn.close()
+
+    await update.message.reply_text(
+        "✅ Раҳмат! Баҳо сақланди.",
+        reply_markup=MAIN_MENU
+    )
 
 # =======================
 # MAIN
@@ -357,12 +417,16 @@ def main():
     
     app.add_handler(MessageHandler(filters.Regex("^👤 Менинг профилим$"), my_profile))
 
+    app.add_handler(MessageHandler(filters.Regex("^⭐ Баҳо бериш"), start_rating))
+    app.add_handler(MessageHandler(filters.Regex("^⭐ [1-5]$"), save_rating))
+
     print("🤖 Bot ishga tushdi...")
     app.run_polling()
 
 
 if __name__ == "__main__":
     main()
+
 
 
 
