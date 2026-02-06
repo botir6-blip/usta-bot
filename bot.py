@@ -51,7 +51,18 @@ def find_masters(service, city):
     """, (service, city))
     rows = cursor.fetchall()
     conn.close()
-    return rows
+    
+def get_master_by_telegram_id(telegram_id):
+    conn = sqlite3.connect("usta.db")
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT name, phone, service, city
+        FROM masters
+        WHERE telegram_id = ?
+    """, (telegram_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return row
 
 
 # =======================
@@ -61,6 +72,7 @@ MAIN_MENU = ReplyKeyboardMarkup(
     [
         ["🔍 Уста топиш"],
         ["👷 Уста сифатида рўйхатдан ўтиш"],
+        ["👤 Менинг профилим"],
         ["❌ Рўйхатдан чиқиш"],
     ],
     resize_keyboard=True
@@ -239,6 +251,32 @@ async def register_city(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "✅ Сиз муваффақиятли рўйхатдан ўтдингиз!",
         reply_markup=MAIN_MENU
     )
+async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    master = get_master_by_telegram_id(user.id)
+
+    if not master:
+        await update.message.reply_text(
+            "❌ Сиз уста сифатида рўйхатдан ўтмагансиз.",
+            reply_markup=MAIN_MENU
+        )
+        return
+
+    name, phone, service, city = master
+
+    text = (
+        "👤 *Менинг профилим*\n\n"
+        f"👷 Исм: {name}\n"
+        f"📞 Телефон: {phone}\n"
+        f"🛠 Касб: {service}\n"
+        f"📍 Шаҳар: {city}"
+    )
+
+    await update.message.reply_text(
+        text,
+        reply_markup=MAIN_MENU,
+        parse_mode="Markdown"
+    )
 
 
 # =======================
@@ -266,6 +304,8 @@ def main():
     app.add_handler(MessageHandler(filters.CONTACT, register_phone))
     # unregister master
     app.add_handler(MessageHandler(filters.Regex("^❌ Рўйхатдан чиқиш$"), unregister_master))
+    
+    app.add_handler(MessageHandler(filters.Regex("^👤 Менинг профилим$"), my_profile))
 
     print("🤖 Bot ishga tushdi...")
     app.run_polling()
@@ -273,6 +313,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
