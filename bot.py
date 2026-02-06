@@ -4,7 +4,6 @@ from telegram import (
     Update,
     ReplyKeyboardMarkup,
     KeyboardButton,
-    ReplyKeyboardRemove,
 )
 from telegram.ext import (
     ApplicationBuilder,
@@ -16,14 +15,16 @@ from telegram.ext import (
 
 TOKEN = os.getenv("BOT_TOKEN")
 
+DB_NAME = "usta.db"
+
 # =======================
 # DATABASE
 # =======================
 def init_db():
-    conn = sqlite3.connect("usta.db")
-    cursor = conn.cursor()
+    conn = sqlite3.connect(DB_NAME)
+    cur = conn.cursor()
 
-    cursor.execute("""
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS masters (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             telegram_id INTEGER UNIQUE,
@@ -34,7 +35,7 @@ def init_db():
         )
     """)
 
-    cursor.execute("""
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS ratings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             master_id INTEGER,
@@ -47,17 +48,12 @@ def init_db():
     conn.commit()
     conn.close()
 
-async def city_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if context.user_data.get("mode") == "find":
-        await find_city(update, context)
-    else:
-        await register_city(update, context)
 
 def find_masters(service, city):
-    conn = sqlite3.connect("usta.db")
-    cursor = conn.cursor()
+    conn = sqlite3.connect(DB_NAME)
+    cur = conn.cursor()
 
-    cursor.execute("""
+    cur.execute("""
         SELECT 
             m.id,
             m.name,
@@ -67,53 +63,34 @@ def find_masters(service, city):
         FROM masters m
         LEFT JOIN ratings r ON m.id = r.master_id
         WHERE LOWER(m.service)=LOWER(?) AND LOWER(m.city)=LOWER(?)
-        GROUP BY m.id
+        GROUP BY m.id, m.name, m.phone
     """, (service, city))
 
-    rows = cursor.fetchall()
+    rows = cur.fetchall()
     conn.close()
     return rows
 
-def get_master_by_telegram_id(telegram_id):
-    conn = sqlite3.connect("usta.db")
-    cursor = conn.cursor()
-    cursor.execute("""
+
+def get_master_by_telegram_id(tg_id):
+    conn = sqlite3.connect(DB_NAME)
+    cur = conn.cursor()
+    cur.execute("""
         SELECT name, phone, service, city
         FROM masters
         WHERE telegram_id = ?
-    """, (telegram_id,))
-    row = cursor.fetchone()
+    """, (tg_id,))
+    row = cur.fetchone()
     conn.close()
     return row
 
-def add_rating(telegram_id, new_rating):
-    conn = sqlite3.connect("usta.db")
-    cursor = conn.cursor()
 
-    cursor.execute("""
-        SELECT rating, rating_count
-        FROM masters
-        WHERE telegram_id = ?
-    """, (telegram_id,))
-    row = cursor.fetchone()
-
-    if not row:
-        conn.close()
-        return
-
-    old_rating, count = row
-    total = old_rating * count + new_rating
-    count += 1
-    avg = total / count
-
-    cursor.execute("""
-        UPDATE masters
-        SET rating = ?, rating_count = ?
-        WHERE telegram_id = ?
-    """, (avg, count, telegram_id))
-
+def delete_master(tg_id):
+    conn = sqlite3.connect(DB_NAME)
+    cur = conn.cursor()
+    cur.execute("DELETE FROM masters WHERE telegram_id = ?", (tg_id,))
     conn.commit()
     conn.close()
+
 
 # =======================
 # MENUS
@@ -146,14 +123,6 @@ CITY_MENU = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
-REGISTER_SERVICE_MENU = ReplyKeyboardMarkup(
-    [
-        ["🔧 Сантехник", "⚡ Электрик"],
-        ["🧱 Қурилиш", "🧹 Уй тозалаш"],
-    ],
-    resize_keyboard=True
-)
-
 RATING_MENU = ReplyKeyboardMarkup(
     [
         ["⭐ 1", "⭐ 2", "⭐ 3"],
@@ -162,7 +131,6 @@ RATING_MENU = ReplyKeyboardMarkup(
     ],
     resize_keyboard=True
 )
-
 
 # =======================
 # START / BACK
@@ -178,69 +146,47 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await start(update, context)
 
-
 # =======================
-# FIND MASTER FLOW
+# FIND MASTER
 # =======================
 async def usta_topish(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     context.user_data["mode"] = "find"
+    await update.message.reply_text("Қайси хизмат керак?", reply_markup=SERVICE_MENU)
 
-    await update.message.reply_text(
-        "Қайси хизмат керак?",
-        reply_markup=SERVICE_MENU
-    )
-
-async def find_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["find_service"] = update.message.text
-    await update.message.reply_text(
-        "Қайси шаҳар?",
-        reply_markup=CITY_MENU
-    )
 
 async def service_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    mode = context.user_data.get("mode")
+    context.user_data["service"] = update.message.text
+    await update.message.reply_text("Қайси шаҳар?", reply_markup=CITY_MENU)
 
-    if mode == "find":
-        await find_service(update, context)
-    elif mode == "register":
-        await register_service(update, context)
-    else:
-        await update.message.reply_text("Илтимос, менюдан танланг 👇")
 
 async def find_city(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    service = context.user_data.get("find_service")
+    service = context.user_data.get("service")
     city = update.message.text
 
     results = find_masters(service, city)
 
     if not results:
         await update.message.reply_text(
-            f"😕 {service} бўйича {city} да ҳозирча уста йўқ.",
+            f"😕 {service} бўйича {city} да уста топилмади.",
             reply_markup=MAIN_MENU
         )
         return
 
-    text = f"🔎 {service} — {city} бўйича усталар:\n\n"
+    context.user_data = {k: v for k, v in context.user_data.items() if not k.startswith("rate_")}
 
-    # old rating data ni тозалаймиз
-    context.user_data = {
-        k: v for k, v in context.user_data.items()
-        if not k.startswith("rate_")
-    }
+    text = f"🔎 {service} — {city} бўйича усталар:\n\n"
 
     for i, (mid, name, phone, avg, cnt) in enumerate(results, 1):
         stars = "⭐" * round(avg) if avg > 0 else "⭐ йўқ"
         text += (
             f"{i}. 👷 {name}\n"
             f"📞 {phone}\n"
-            f"⭐ Рейтинг: {stars} ({cnt} та баҳо)\n\n"
+            f"⭐ {stars} ({cnt} та баҳо)\n\n"
         )
-
-        # rating учун master_id сақлаймиз
         context.user_data[f"rate_{i}"] = mid
 
-    keyboard = [[f"⭐ Баҳо бериш {i}"] for i in range(1, len(results) + 1)]
+    keyboard = [[f"⭐ Баҳо бериш {i}"] for i in range(1, len(results)+1)]
     keyboard.append(["⬅️ Орқага"])
 
     await update.message.reply_text(
@@ -249,7 +195,7 @@ async def find_city(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 # =======================
-# REGISTER MASTER FLOW
+# REGISTER MASTER
 # =======================
 async def register_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
@@ -257,128 +203,90 @@ async def register_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = [[KeyboardButton("📞 Телефон рақамни юбориш", request_contact=True)]]
     await update.message.reply_text(
-        "Уста сифатида рўйхатдан ўтиш учун телефон юборинг 👇",
-        reply_markup=ReplyKeyboardMarkup(
-            keyboard, resize_keyboard=True, one_time_keyboard=True
-        )
+        "Телефон рақамингизни юборинг 👇",
+        reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=True)
     )
 
 
 async def register_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    contact = update.message.contact
-    if not contact:
-        return
+    context.user_data["phone"] = update.message.contact.phone_number
+    await update.message.reply_text("Касбингизни танланг 👇", reply_markup=SERVICE_MENU)
 
-    context.user_data["phone"] = contact.phone_number
-
-    await update.message.reply_text(
-        "Касбингизни танланг 👇",
-        reply_markup=REGISTER_SERVICE_MENU
-    )
-
-async def unregister_master(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-
-    delete_master(user.id)
-
-    context.user_data.clear()
-    await update.message.reply_text(
-        "❌ Сиз уста сифатида рўйхатдан чиқдингиз.",
-        reply_markup=MAIN_MENU
-    )
 
 async def register_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["service"] = update.message.text
+    await update.message.reply_text("Қайси шаҳарда ишлайсиз?", reply_markup=CITY_MENU)
 
-    await update.message.reply_text(
-        "Қайси шаҳарда ишлайсиз?",
-        reply_markup=CITY_MENU
-    )
-
-def delete_master(telegram_id):
-    conn = sqlite3.connect("usta.db")
-    cursor = conn.cursor()
-    cursor.execute(
-        "DELETE FROM masters WHERE telegram_id = ?",
-        (telegram_id,)
-    )
-    conn.commit()
-    conn.close()
 
 async def register_city(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    city = update.message.text
-    service = context.user_data.get("service")
-    phone = context.user_data.get("phone")
     user = update.effective_user
 
-    conn = sqlite3.connect("usta.db")
-    cursor = conn.cursor()
-    cursor.execute("""
+    conn = sqlite3.connect(DB_NAME)
+    cur = conn.cursor()
+    cur.execute("""
         INSERT OR REPLACE INTO masters
         (telegram_id, name, phone, service, city)
         VALUES (?, ?, ?, ?, ?)
     """, (
         user.id,
         user.full_name,
-        phone,
-        service,
-        city
+        context.user_data["phone"],
+        context.user_data["service"],
+        update.message.text
     ))
     conn.commit()
     conn.close()
 
-    await update.message.reply_text(
-        "✅ Сиз муваффақиятли рўйхатдан ўтдингиз!",
-        reply_markup=MAIN_MENU
-    )
+    await update.message.reply_text("✅ Рўйхатдан ўтдингиз!", reply_markup=MAIN_MENU)
+
+# =======================
+# PROFILE / UNREGISTER
+# =======================
 async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    master = get_master_by_telegram_id(user.id)
+    master = get_master_by_telegram_id(update.effective_user.id)
 
     if not master:
-        await update.message.reply_text(
-            "❌ Сиз уста сифатида рўйхатдан ўтмагансиз.",
-            reply_markup=MAIN_MENU
-        )
+        await update.message.reply_text("❌ Сиз уста эмассиз.", reply_markup=MAIN_MENU)
         return
 
     name, phone, service, city = master
-
-    text = (
-        "👤 *Менинг профилим*\n\n"
-        f"👷 Исм: {name}\n"
-        f"📞 Телефон: {phone}\n"
-        f"🛠 Касб: {service}\n"
-        f"📍 Шаҳар: {city}"
-    )
-
     await update.message.reply_text(
-        text,
-        reply_markup=MAIN_MENU,
-        parse_mode="Markdown"
+        f"👤 Профиль\n\n"
+        f"👷 {name}\n📞 {phone}\n🛠 {service}\n📍 {city}",
+        reply_markup=MAIN_MENU
     )
 
+
+async def unregister_master(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    delete_master(update.effective_user.id)
+    await update.message.reply_text("❌ Рўйхатдан чиқдингиз.", reply_markup=MAIN_MENU)
+
+# =======================
+# RATING
+# =======================
 async def start_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text
-    index = int(text.split()[-1]) - 1
-    master_id = context.user_data.get(f"rate_{index}")
+    index = int(update.message.text.split()[-1])
+    context.user_data["rating_master"] = context.user_data.get(f"rate_{index}")
+    await update.message.reply_text("Баҳо қўйинг 👇", reply_markup=RATING_MENU)
 
-    context.user_data["rating_master"] = master_id
-
-    await update.message.reply_text(
-        "Неча балл қўясиз?",
-        reply_markup=RATING_MENU
-    )
 
 async def save_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
     rating = int(update.message.text.replace("⭐", "").strip())
     master_id = context.user_data.get("rating_master")
     user_id = update.effective_user.id
 
-    conn = sqlite3.connect("usta.db")
-    cursor = conn.cursor()
+    conn = sqlite3.connect(DB_NAME)
+    cur = conn.cursor()
 
-    cursor.execute("""
+    cur.execute("SELECT telegram_id FROM masters WHERE id=?", (master_id,))
+    owner = cur.fetchone()
+
+    if owner and owner[0] == user_id:
+        await update.message.reply_text("❌ Ўзингизни баҳолай олмайсиз.", reply_markup=MAIN_MENU)
+        conn.close()
+        return
+
+    cur.execute("""
         INSERT OR REPLACE INTO ratings (master_id, user_id, rating)
         VALUES (?, ?, ?)
     """, (master_id, user_id, rating))
@@ -386,10 +294,7 @@ async def save_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.commit()
     conn.close()
 
-    await update.message.reply_text(
-        "✅ Раҳмат! Баҳо сақланди.",
-        reply_markup=MAIN_MENU
-    )
+    await update.message.reply_text("⭐ Баҳо сақланди, раҳмат!", reply_markup=MAIN_MENU)
 
 # =======================
 # MAIN
@@ -399,25 +304,19 @@ def main():
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-
-    # back
     app.add_handler(MessageHandler(filters.Regex("^⬅️ Орқага$"), back))
 
-    # find master
     app.add_handler(MessageHandler(filters.Regex("^🔍 Уста топиш$"), usta_topish))
-    
-    app.add_handler(MessageHandler(filters.Regex("^(🔧 Сантехник|⚡ Электрик|🧱 Қурилиш|🧹 Уй тозалаш)$"), service_router))
+    app.add_handler(MessageHandler(filters.Regex("^(🔧|⚡|🧱|🧹)"), service_router))
+    app.add_handler(MessageHandler(filters.Regex("^(Қарши|Самарқанд|Тошкент|Бухоро)$"), find_city))
 
-    # city select (find / register)
-    app.add_handler(MessageHandler(filters.Regex("^(Қарши|Самарқанд|Тошкент|Бухоро)$"), city_router))
-
-    # register master
     app.add_handler(MessageHandler(filters.Regex("^👷 Уста сифатида рўйхатдан ўтиш$"), register_start))
     app.add_handler(MessageHandler(filters.CONTACT, register_phone))
-    # unregister master
-    app.add_handler(MessageHandler(filters.Regex("^❌ Рўйхатдан чиқиш$"), unregister_master))
-    
+    app.add_handler(MessageHandler(filters.Regex("^(🔧|⚡|🧱|🧹)"), register_service))
+    app.add_handler(MessageHandler(filters.Regex("^(Қарши|Самарқанд|Тошкент|Бухоро)$"), register_city))
+
     app.add_handler(MessageHandler(filters.Regex("^👤 Менинг профилим$"), my_profile))
+    app.add_handler(MessageHandler(filters.Regex("^❌ Рўйхатдан чиқиш$"), unregister_master))
 
     app.add_handler(MessageHandler(filters.Regex("^⭐ Баҳо бериш"), start_rating))
     app.add_handler(MessageHandler(filters.Regex("^⭐ [1-5]$"), save_rating))
@@ -425,19 +324,5 @@ def main():
     print("🤖 Bot ishga tushdi...")
     app.run_polling()
 
-
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
-
-
-
-
