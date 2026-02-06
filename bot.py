@@ -128,6 +128,8 @@ async def service_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await find_service(update, context)
     elif mode == "register":
         await register_service(update, context)
+    else:
+        await update.message.reply_text("Илтимос, менюдан танланг 👇")
 
 async def find_city(update: Update, context: ContextTypes.DEFAULT_TYPE):
     service = context.user_data.get("find_service")
@@ -231,6 +233,11 @@ def main():
     
     app.add_handler(MessageHandler(filters.Regex("^(🔧 Сантехник|⚡ Электрик|🧱 Қурилиш|🧹 Уй тозалаш)$"), service_router))
 
+    # city select (find / register)
+    app.add_handler(MessageHandler(filters.Regex("^(Қарши|Самарқанд|Тошкент|Бухоро)$"),
+        lambda u, c: find_city(u, c) if c.user_data.get("mode") == "find" else register_city(u, c)    )
+)
+
     # register master
     app.add_handler(MessageHandler(filters.Regex("^👷 Уста сифатида рўйхатдан ўтиш$"), register_start))
     app.add_handler(MessageHandler(filters.CONTACT, register_phone))
@@ -241,6 +248,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
