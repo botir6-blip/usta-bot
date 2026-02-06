@@ -327,7 +327,7 @@ def main():
     app.add_handler(MessageHandler(filters.Regex("^⭐ [1-5]$"), save_rating_handler))
     app.add_handler(MessageHandler(filters.Regex("^👤"), my_profile))
     app.add_handler(MessageHandler(filters.Regex("^❌"), unregister))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND), save_description)
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, save_description))
 
     print("🤖 Bot ishга тушди")
     app.run_polling()
@@ -335,5 +335,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
