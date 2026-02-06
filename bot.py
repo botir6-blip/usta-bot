@@ -201,19 +201,22 @@ async def find_city(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"😕 {service} бўйича {city} да ҳозирча уста йўқ.",
             reply_markup=MAIN_MENU
         )
-    else:
-        text = f"🔎 {service} — {city} бўйича усталар:\n\n"
+        return
 
-for i, (tid, name, phone, rating, count) in enumerate(results, 1):
-    stars = "⭐" * round(rating) if rating > 0 else "⭐ йўқ"
-    text += (
-        f"{i}. 👷 {name}\n"
-        f"📞 {phone}\n"
-        f"⭐ Рейтинг: {stars} ({count} та баҳо)\n\n"
+    text = f"🔎 {service} — {city} бўйича усталар:\n\n"
+
+    for i, (tid, name, phone, rating, count) in enumerate(results, 1):
+        stars = "⭐" * round(rating) if rating > 0 else "⭐ йўқ"
+        text += (
+            f"{i}. 👷 {name}\n"
+            f"📞 {phone}\n"
+            f"⭐ Рейтинг: {stars} ({count} та баҳо)\n\n"
+        )
+
+    await update.message.reply_text(
+        text,
+        reply_markup=MAIN_MENU
     )
-
-        await update.message.reply_text(text, reply_markup=MAIN_MENU)
-
 
 # =======================
 # REGISTER MASTER FLOW
@@ -360,6 +363,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
