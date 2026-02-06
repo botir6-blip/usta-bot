@@ -51,7 +51,7 @@ def find_masters(service, city):
     """, (service, city))
     rows = cursor.fetchall()
     conn.close()
-    return row
+    return rows
 
 def get_master_by_telegram_id(telegram_id):
     conn = sqlite3.connect("usta.db")
@@ -313,6 +313,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
