@@ -114,6 +114,7 @@ async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     context.user_data["phone"] = contact.phone_number
+    context.user_data["step"] = "service"
 
     await update.message.reply_text("Касбни танланг 👇", reply_markup=build_service_menu())
 
@@ -124,7 +125,8 @@ async def ask_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def choose_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
     region = update.message.text
     context.user_data["region"] = region
-
+    context.user_data["step"] = "city"
+    
     await update.message.reply_text("Қайси шаҳар?", reply_markup=build_city_menu(region))
 
 
@@ -332,6 +334,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
