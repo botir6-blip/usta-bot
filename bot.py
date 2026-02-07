@@ -257,20 +257,16 @@ async def get_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data.clear()
  
-async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def show_masters(update, context: ContextTypes.DEFAULT_TYPE):
 
     service = context.user_data.get("service")
     region = context.user_data.get("region")
     district = context.user_data.get("district")
 
-    district = context.user_data.get("district")
-    rows = get_masters_by_district(district)
+    rows = find_masters(service, region, district)
 
     if not rows:
-        await update.message.reply_text(
-            "😕 Ҳозирча уста топилмади.",
-            reply_markup=MAIN_MENU
-        )
+    await update.message.reply_text("😕 Ҳозирча уста топилмади.", reply_markup=MAIN_MENU)
         return
 
     text = "🔎 Топилган усталар:\n\n"
@@ -280,11 +276,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         phone = master[3]
         description = master[7]
 
-        text += (
-            f"👤 {name}\n"
-            f"📞 {phone}\n"
-            f"📝 {description}\n\n"
-        )
+        text += f"👤 {name}\n📞 {phone}\n📝 {description}\n\n"
 
     await update.message.reply_text(text, reply_markup=MAIN_MENU)
 
@@ -442,6 +434,7 @@ def main():
     app.run_polling()
 
 if __name__ == "__main__": main()
+
 
 
 
