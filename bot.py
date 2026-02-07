@@ -310,7 +310,7 @@ def main():
     app.add_handler(MessageHandler(filters.Regex("^👷 Уста бўлиш$"), start_register))
     app.add_handler(MessageHandler(filters.CONTACT, get_phone))
     app.add_handler(MessageHandler(filters.Regex("^🔧|⚡|🧱|🧹|🪟|🎨"), find_service))
-    app.add_handler(MessageHandler(filters.Regex("^Тошкент|Самарқанд|Бухоро|Қашқадарё$"), get_region))
+    app.add_handler(MessageHandler(filters.Regex("^Тошкент|Самарқанд|Бухоро|Қашқадарё$"), ask_region))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, get_district))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, get_description))
 
@@ -327,5 +327,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
