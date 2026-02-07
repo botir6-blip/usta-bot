@@ -129,6 +129,19 @@ async def choose_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await update.message.reply_text("Қайси шаҳар?", reply_markup=build_city_menu(region))
 
+async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    step = context.user_data.get("step")
+
+    if step == "district":
+        await get_district(update, context)
+
+    elif step == "description":
+        await get_description(update, context)
+
+    else:
+        # агар қадам бўлмаса – ҳеч нима қилмаймиз
+        return
 
 async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get("step") != "district":
@@ -316,7 +329,7 @@ def main():
     app.add_handler(MessageHandler(filters.Regex("^(Тошкент|Самарқанд|Бухоро|Қашқадарё)$"), ask_region))
 
     # find master
-    app.add_handler(MessageHandler(filters.Regex("^🔍 Уста топиш$"), start_find))
+    app.add_handler(MessageHandler(filters.Regex("🔍 Уста топиш"), start_find))
 
     # rating
     app.add_handler(MessageHandler(filters.Regex("^⭐ Баҳо бериш"), choose_rating))
@@ -327,8 +340,7 @@ def main():
     app.add_handler(MessageHandler(filters.Regex("^❌ Рўйхатдан чиқиш$"), unregister))
 
     # ⚠️ ЭНГ ОХИРИДА
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, get_district))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, get_description))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_router))
 
     print("Bot ishladi 🚀")
     app.run_polling()
@@ -336,6 +348,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
