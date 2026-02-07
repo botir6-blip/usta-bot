@@ -177,18 +177,20 @@ async def start_find(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["flow"] = "find"
     context.user_data["step"] = "service"
 
-    await update.message.reply_text("Керакли касб:", reply_markup=build_service_menu)
+    await update.message.reply_text(
+        "Керакли касб:",
+        reply_markup=build_service_menu()   # ()
+    )
 
 
 async def find_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if context.user_data.get("flow") != "find":
+    if update.message.text not in SERVICES:
         return
 
-    context.user_data["service"] = update.message.text
-    context.user_data["step"] = "region"
+    service = update.message.text
+    context.user_data["service"] = service   # нуқта ўчди
 
-    await update.message.reply_text("Вилоят:", reply_markup=build_region_menu)
-
+    await ask_region(update, context)        # тўғри чақириш
 
 async def find_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get("flow") != "find":
@@ -308,7 +310,7 @@ def main():
     app.add_handler(MessageHandler(filters.CONTACT, get_phone))
 
     # services
-    app.add_handler(MessageHandler(filters.Regex("^(🔧|⚡|🧱|🧹|🪟|🎨)"), find_service))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, find_service))
 
     # regions
     app.add_handler(MessageHandler(filters.Regex("^(Тошкент|Самарқанд|Бухоро|Қашқадарё)$"), ask_region))
@@ -334,10 +336,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
 
 
 
