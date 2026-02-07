@@ -233,14 +233,14 @@ async def get_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # агар уста руйхатидан утмаяпган булса
     if context.user_data.get("flow") != "register":
         return
-
+    
     if context.user_data.get("step") != "description":
         return
 
-
+    telegram_id = update.effective_user.id
     description = update.message.text
 
-    add_master(
+    add_master(telegram_id,
         context.user_data.get("name"),
         context.user_data.get("phone"),
         context.user_data.get("service"),
@@ -437,6 +437,7 @@ def main():
     app.run_polling()
 
 if __name__ == "__main__": main()
+
 
 
 
