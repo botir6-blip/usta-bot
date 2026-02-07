@@ -274,9 +274,8 @@ async def show_masters(update, context: ContextTypes.DEFAULT_TYPE):
     for master in rows:
         name = master[2]
         phone = master[3]
-        description = master[7]
-
-        text += f"👤 {name}\n📞 {phone}\n📝 {description}\n\n"
+        
+        text += f"👤 {name}\n📞 {phone}\n\n"
 
     await update.message.reply_text(text, reply_markup=MAIN_MENU)
 
@@ -434,6 +433,7 @@ def main():
     app.run_polling()
 
 if __name__ == "__main__": main()
+
 
 
 
