@@ -18,57 +18,93 @@ def init_db():
     conn = sqlite3.connect("usta.db")
     c = conn.cursor()
 
+    # ====== USTALAR ======
     c.execute("""
-        CREATE TABLE IF NOT EXISTS masters(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            telegram_id INTEGER UNIQUE,
-            name TEXT,
-            phone TEXT,
-            service TEXT,
-            region TEXT,
-            district TEXT,
-            description TEXT
-        )
+    CREATE TABLE IF NOT EXISTS masters(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        telegram_id INTEGER UNIQUE,
+        name TEXT,
+        phone TEXT,
+        service TEXT,
+        region TEXT,
+        district TEXT,
+        description TEXT
+    )
     """)
 
+    # ====== BAHOLAR ======
     c.execute("""
-        CREATE TABLE IF NOT EXISTS ratings(
-            master_id INTEGER,
-            user_id INTEGER,
-            rating INTEGER,
-            UNIQUE(master_id, user_id)
-        )
+    CREATE TABLE IF NOT EXISTS ratings(
+        master_id INTEGER,
+        user_id INTEGER,
+        rating INTEGER,
+        UNIQUE(master_id, user_id)
+    )
     """)
 
     conn.commit()
     conn.close()
-    
-def add_master(name, phone, service, region, district, description):
-    conn = sqlite3.connect("masters.db")
-    cursor = conn.cursor()
 
-    cursor.execute("""
-        INSERT INTO masters (name, phone, service, region, district, description)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (name, phone, service, region, district, description))
+
+# ================= USTA QO‘SHISH =================
+def add_master(telegram_id, name, phone, service, region, district, description):
+    conn = sqlite3.connect("usta.db")
+    c = conn.cursor()
+
+    c.execute("""
+    INSERT OR REPLACE INTO masters
+    (telegram_id, name, phone, service, region, district, description)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (telegram_id, name, phone, service, region, district, description))
 
     conn.commit()
     conn.close()
-    
+
+
+# ================= USTANI TOPISH =================
 def find_masters(service, region, district):
     conn = sqlite3.connect("usta.db")
-    cursor = conn.cursor()
+    c = conn.cursor()
 
-    cursor.execute("""
-        SELECT name, phone, description
-        FROM masters
-        WHERE service=? AND region=? AND district=?
+    c.execute("""
+    SELECT id, name, phone,
+    IFNULL(AVG(rating), 0),
+    COUNT(rating)
+    FROM masters
+    LEFT JOIN ratings ON masters.id = ratings.master_id
+    WHERE service=? AND region=? AND district=?
+    GROUP BY masters.id
     """, (service, region, district))
 
-    rows = cursor.fetchall()
+    data = c.fetchall()
     conn.close()
-    return rows
+    return data
 
+
+# ================= BAHA BERISH =================
+def save_rating_db(master_id, user_id, rating):
+    conn = sqlite3.connect("usta.db")
+    c = conn.cursor()
+
+    c.execute("""
+    INSERT OR REPLACE INTO ratings(master_id, user_id, rating)
+    VALUES (?, ?, ?)
+    """, (master_id, user_id, rating))
+
+    conn.commit()
+    conn.close()
+
+
+# ================= RO‘YXATDAN CHIQARISH =================
+def delete_master(telegram_id):
+    conn = sqlite3.connect("usta.db")
+    c = conn.cursor()
+
+    c.execute("DELETE FROM masters WHERE telegram_id=?", (telegram_id,))
+
+    conn.commit()
+    conn.close()
+    
 # ================= MENUS =================
 MAIN_MENU = ReplyKeyboardMarkup([
     ["🔍 Уста топиш"],
@@ -401,6 +437,7 @@ def main():
     app.run_polling()
 
 if __name__ == "__main__": main()
+
 
 
 
