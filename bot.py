@@ -2,7 +2,7 @@ import os
 import sqlite3
 from services import SERVICES
 from regions import REGIONS
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -160,8 +160,8 @@ async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["district"] = update.message.text
     context.user_data["step"] = "description"
 
-    await update.message.reply_text("Ўзингиз ҳақингизда қисқача ёзинг:")
-
+    await update.message.reply_text("Ўзингиз ҳақингизда қисқача ёзинг:",
+    reply_markup=ReplyKeyboardRemove())
 
 async def get_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get("step") != "description":
@@ -348,3 +348,4 @@ def main():
     app.run_polling()
 
 if __name__ == "__main__": main()
+
