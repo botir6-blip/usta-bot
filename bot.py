@@ -154,7 +154,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await get_description(update, context)
 
 async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if context.user_data.get("step") != "district":
+    if context.user_data.get("flow") != "register":
         return
 
     context.user_data["district"] = update.message.text
@@ -350,5 +350,6 @@ def main():
     app.run_polling()
 
 if __name__ == "__main__": main()
+
 
 
