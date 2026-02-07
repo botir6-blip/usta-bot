@@ -15,6 +15,18 @@ TOKEN = os.getenv("BOT_TOKEN")
 
 # ================= DATABASE =================
 def init_db():
+def add_master(name, phone, service, region, district, description):
+    conn = sqlite3.connect("masters.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        INSERT INTO masters (name, phone, service, region, district, description)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (name, phone, service, region, district, description))
+
+    conn.commit()
+    conn.close()
+    
     conn = sqlite3.connect("usta.db")
     c = conn.cursor()
 
@@ -389,6 +401,7 @@ def main():
     app.run_polling()
 
 if __name__ == "__main__": main()
+
 
 
 
