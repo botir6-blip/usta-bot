@@ -263,7 +263,8 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     region = context.user_data.get("region")
     district = context.user_data.get("district")
 
-    rows = get_masters_by_district(service, region, district)
+    district = context.user_data.get("district")
+    rows = get_masters_by_district(district)
 
     if not rows:
         await update.message.reply_text(
@@ -441,6 +442,7 @@ def main():
     app.run_polling()
 
 if __name__ == "__main__": main()
+
 
 
 
