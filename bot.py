@@ -164,6 +164,9 @@ async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup=ReplyKeyboardRemove())
 
 async def get_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if context.user_data.get("flow") != "register":
+        return
+
     if context.user_data.get("step") != "description":
         return
 
@@ -179,10 +182,10 @@ async def get_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """, (
         user.id,
         user.full_name,
-        context.user_data["phone"],
-        context.user_data["service"],
-        context.user_data["region"],
-        context.user_data["district"],
+        context.user_data.get("phone"),
+        context.user_data.get("service"),
+        context.user_data.get("region"),
+        context.user_data.get("district"),
         update.message.text
     ))
 
@@ -190,7 +193,6 @@ async def get_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.close()
 
     await update.message.reply_text("✅ Сиз рўйхатдан ўтдингиз!", reply_markup=MAIN_MENU)
-
     context.user_data.clear()
 
 
@@ -348,4 +350,5 @@ def main():
     app.run_polling()
 
 if __name__ == "__main__": main()
+
 
