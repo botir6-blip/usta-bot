@@ -181,6 +181,7 @@ async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Ўзингиз ҳақингизда қисқача ёзинг:",
             reply_markup=ReplyKeyboardRemove()
         )
+    context.user_data["step"] = "description"    
 
 async def get_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -391,6 +392,7 @@ def main():
     app.run_polling()
 
 if __name__ == "__main__": main()
+
 
 
 
