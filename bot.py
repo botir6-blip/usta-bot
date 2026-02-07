@@ -107,10 +107,10 @@ def delete_master(telegram_id):
     
 # ================= MENUS =================
 MAIN_MENU = ReplyKeyboardMarkup([
-    ["🔍 Уста топиш"],
-    ["👷 Уста бўлиш"],
-    ["👤 Менинг профилим"],
-    ["❌ Рўйхатдан чиқиш"]
+    ["Уста топиш", "Топ-10 усталар"],
+    ["Уста бўлиш"],
+    ["Менинг профилим"],
+    ["Рўйхатдан чиқиш"]
 ], resize_keyboard=True)
 
 
@@ -127,27 +127,27 @@ def build_service_menu():
     if row:
         keyboard.append(row)
 
-    keyboard.append(["⬅️ Орқага"])
+    keyboard.append(["Орқага"])
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 
 def build_region_menu():
     keyboard = [[region] for region in REGIONS.keys()]
-    keyboard.append(["⬅️ Орқага"])
+    keyboard.append(["Орқага"])
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 
 def build_city_menu(region):
     cities = REGIONS.get(region, [])
     keyboard = [[city] for city in cities]
-    keyboard.append(["⬅️ Орқага"])
+    keyboard.append(["Орқага"])
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 
 RATING_MENU = ReplyKeyboardMarkup([
-    ["⭐ 1", "⭐ 2", "⭐ 3"],
-    ["⭐ 4", "⭐ 5"],
-    ["⬅️ Орқага"]
+    ["1", "2", "3"],
+    ["4", "5"],
+    ["Орқага"]
 ], resize_keyboard=True)
 
 # ================= START =================
@@ -348,8 +348,8 @@ async def find_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         context.user_data["rate"][str(i)] = mid
 
-    kb = [[f"⭐ Баҳо бериш {i}"] for i in range(1, len(rows)+1)]
-    kb.append(["⬅️ Орқага"])
+    kb = [[f"Баҳо бериш {i}"] for i in range(1, len(rows)+1)]
+    kb.append(["Орқага"])
 
     await update.message.reply_text(text, reply_markup=ReplyKeyboardMarkup(kb, resize_keyboard=True))
 
@@ -375,6 +375,44 @@ async def save_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text("✅ Раҳмат!", reply_markup=MAIN_MENU)
 
+
+# ================= TOP 10 USTALAR =================
+async def show_top_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    conn = sqlite3.connect("usta.db")
+    c = conn.cursor()
+
+    c.execute("""
+        SELECT m.name, m.phone, m.service, m.region, m.district, m.description,
+        IFNULL(AVG(r.rating), 0) as avg_rating,
+        COUNT(r.rating) as rating_count
+        FROM masters m
+        LEFT JOIN ratings r ON r.master_id = m.id
+        GROUP BY m.id
+        HAVING rating_count > 0
+        ORDER BY avg_rating DESC, rating_count DESC
+        LIMIT 10
+    """)
+
+    rows = c.fetchall()
+    conn.close()
+
+    if not rows:
+        await update.message.reply_text("😕 Ҳозирча бaho berilgan усталар йўқ.", reply_markup=MAIN_MENU)
+        return
+
+    text = "🏆 ТОП-10 УСТАЛАР:\n\n"
+
+    for i, (name, phone, service, region, district, description, avg_rating, rating_count) in enumerate(rows, 1):
+        text += (
+            f"{i}. 👷 {name}\n"
+            f"📞 {phone}\n"
+            f"🛠 {service}\n"
+            f"📍 {region}, {district}\n"
+            f"ℹ️ {description}\n"
+            f"⭐ {avg_rating:.1f} ({rating_count} бaho)\n\n"
+        )
+
+    await update.message.reply_text(text, reply_markup=MAIN_MENU)
 
 # ================= PROFILE =================
 async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -485,19 +523,22 @@ def main():
     app.add_handler(CommandHandler("start", start))
 
     # register
-    app.add_handler(MessageHandler(filters.Regex("^👷 Уста бўлиш$"), start_register))
+    app.add_handler(MessageHandler(filters.Regex("^Уста бўлиш$"), start_register))
     app.add_handler(MessageHandler(filters.CONTACT, get_phone))
 
     # find
-    app.add_handler(MessageHandler(filters.Regex("^🔍 Уста топиш$"), start_find))
+    app.add_handler(MessageHandler(filters.Regex("^Уста топиш$"), start_find))
 
     # rating
-    app.add_handler(MessageHandler(filters.Regex("^⭐ Баҳо бериш"), choose_rating))
-    app.add_handler(MessageHandler(filters.Regex("^⭐ [1-5]$"), save_rating))
+    app.add_handler(MessageHandler(filters.Regex("^Баҳо бериш"), choose_rating))
+    app.add_handler(MessageHandler(filters.Regex("^[1-5]$"), save_rating))
 
+    # top masters
+    app.add_handler(MessageHandler(filters.Regex("^Топ-10 усталар$"), show_top_masters))
+    
     # profile
-    app.add_handler(MessageHandler(filters.Regex("^👤 Менинг профилим$"), my_profile))
-    app.add_handler(MessageHandler(filters.Regex("^❌ Рўйхатдан чиқиш$"), unregister))
+    app.add_handler(MessageHandler(filters.Regex("^Менинг профилим$"), my_profile))
+    app.add_handler(MessageHandler(filters.Regex("^Рўйхатдан чиқиш$"), unregister))
 
     # ⭐ ЭНГ МУҲИМИ
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_router))
