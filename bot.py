@@ -105,21 +105,17 @@ async def start_register(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["step"] = "phone"
 
     kb = [[KeyboardButton("📞 Телефон юбориш", request_contact=True)]]
-    await update.message.reply_text(
-        "Телефон рақамингизни юборинг 👇",
-        reply_markup=ReplyKeyboardMarkup(kb, resize_keyboard=True)
-    )
-
+    await update.message.reply_text("Телефон рақамингизни юборинг 👇", reply_markup=ReplyKeyboardMarkup(kb, resize_keyboard=True))
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if context.user_data.get("step") != "phone":
+    contact = update.message.contact
+
+    if not contact:
         return
 
-    context.user_data["phone"] = update.message.contact.phone_number
-    context.user_data["step"] = "service"
+    context.user_data["phone"] = contact.phone_number
 
-    await update.message.reply_text("Касбни танланг:", reply_markup=build_service_menu)
-
+    await update.message.reply_text("Касбни танланг 👇", reply_markup=build_service_menu())
 
 async def ask_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Қайси вилоят?", reply_markup=build_region_menu())
@@ -336,6 +332,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
