@@ -200,9 +200,7 @@ async def start_find(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["flow"] = "find"
     context.user_data["step"] = "service"
 
-    await update.message.reply_text(
-        "Керакли касб:",
-        reply_markup=build_service_menu()   # ()
+    await update.message.reply_text("Керакли касб:", reply_markup=build_service_menu()   # ()
     )
 
 
@@ -210,10 +208,11 @@ async def find_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.text not in SERVICES:
         return
 
-    service = update.message.text
-    context.user_data["service"] = service   # нуқта ўчди
+    context.user_data["service"] = update.message.text
+    context.user_data["step"] = "region"
 
-    await ask_region(update, context)        # тўғри чақириш
+    await update.message.reply_text("Қайси вилоят?", reply_markup=build_region_menu())
+
 
 async def find_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get("flow") != "find":
@@ -320,7 +319,6 @@ async def unregister(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("❌ Ўчирилди", reply_markup=MAIN_MENU)
 
 
-# ================= MAIN =================
 def main():
     print("🔥 NEW VERSION 🔥")
     init_db()
@@ -332,14 +330,8 @@ def main():
     app.add_handler(MessageHandler(filters.Regex("^👷 Уста бўлиш$"), start_register))
     app.add_handler(MessageHandler(filters.CONTACT, get_phone))
 
-    # services
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, find_service))
-
-    # regions
-    app.add_handler(MessageHandler(filters.Regex("^(Тошкент|Самарқанд|Бухоро|Қашқадарё)$"), ask_region))
-
-    # find master
-    app.add_handler(MessageHandler(filters.Regex("🔍 Уста топиш"), start_find))
+    # find
+    app.add_handler(MessageHandler(filters.Regex("^🔍 Уста топиш$"), start_find))
 
     # rating
     app.add_handler(MessageHandler(filters.Regex("^⭐ Баҳо бериш"), choose_rating))
@@ -349,19 +341,8 @@ def main():
     app.add_handler(MessageHandler(filters.Regex("^👤 Менинг профилим$"), my_profile))
     app.add_handler(MessageHandler(filters.Regex("^❌ Рўйхатдан чиқиш$"), unregister))
 
-    # ⚠️ ЭНГ ОХИРИДА
+    # ⭐ ЭНГ МУҲИМИ
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_router))
-    
+
     print("Bot ishladi 🚀")
     app.run_polling()
-
-
-if __name__ == "__main__":
-    main()
-
-
-
-
-
-
-
