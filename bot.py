@@ -118,7 +118,7 @@ async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["phone"] = update.message.contact.phone_number
     context.user_data["step"] = "service"
 
-    await update.message.reply_text("Касбни танланг:", reply_markup=SERVICE_MENU)
+    await update.message.reply_text("Касбни танланг:", reply_markup=build_service_menu)
 
 
 async def ask_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -328,6 +328,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
