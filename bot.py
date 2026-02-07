@@ -266,7 +266,7 @@ async def show_masters(update, context: ContextTypes.DEFAULT_TYPE):
     rows = find_masters(service, region, district)
 
     if not rows:
-    await update.message.reply_text("😕 Ҳозирча уста топилмади.", reply_markup=MAIN_MENU)
+        await update.message.reply_text("😕 Ҳозирча уста топилмади.", reply_markup=MAIN_MENU)
         return
 
     text = "🔎 Топилган усталар:\n\n"
@@ -434,6 +434,7 @@ def main():
     app.run_polling()
 
 if __name__ == "__main__": main()
+
 
 
 
