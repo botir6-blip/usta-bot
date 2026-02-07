@@ -273,12 +273,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = "🔎 Топилган усталар:\n\n"
 
-    for i, (name, phone, desc) in enumerate(rows, 1):
-        text += (
-            f"{i}. 👷 {name}\n"
-            f"📞 {phone}\n"
-            f"📝 {desc}\n\n"
-        )
+    for _, _, name, phone, service, region, district, description in masters:
 
     await update.message.reply_text(text, reply_markup=MAIN_MENU)
 
@@ -437,6 +432,7 @@ def main():
     app.run_polling()
 
 if __name__ == "__main__": main()
+
 
 
 
