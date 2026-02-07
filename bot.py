@@ -119,7 +119,15 @@ async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Касбни танланг 👇", reply_markup=build_service_menu())
 
 async def ask_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Қайси вилоят?", reply_markup=build_region_menu())
+    region = update.message.text
+
+    if region not in REGIONS:
+        return
+
+    context.user_data["region"] = region
+    context.user_data["step"] = "district"
+
+    await update.message.reply_text("Туманни танланг:", reply_markup=build_city_menu(region))
 
 
 async def choose_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -133,15 +141,17 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     step = context.user_data.get("step")
 
-    if step == "district":
+    if step == "service":
+        await find_service(update, context)
+
+    elif step == "region":
+        await ask_region(update, context)
+
+    elif step == "district":
         await get_district(update, context)
 
     elif step == "description":
         await get_description(update, context)
-
-    else:
-        # агар қадам бўлмаса – ҳеч нима қилмаймиз
-        return
 
 async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get("step") != "district":
@@ -341,13 +351,14 @@ def main():
 
     # ⚠️ ЭНГ ОХИРИДА
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_router))
-
+    
     print("Bot ishladi 🚀")
     app.run_polling()
 
 
 if __name__ == "__main__":
     main()
+
 
 
 
