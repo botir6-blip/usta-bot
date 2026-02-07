@@ -177,7 +177,7 @@ async def start_find(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["flow"] = "find"
     context.user_data["step"] = "service"
 
-    await update.message.reply_text("Керакли касб:", reply_markup=SERVICE_MENU)
+    await update.message.reply_text("Керакли касб:", reply_markup=build_service_menu)
 
 
 async def find_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -187,7 +187,7 @@ async def find_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["service"] = update.message.text
     context.user_data["step"] = "region"
 
-    await update.message.reply_text("Вилоят:", reply_markup=REGION_MENU)
+    await update.message.reply_text("Вилоят:", reply_markup=build_region_menu)
 
 
 async def find_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -334,6 +334,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
