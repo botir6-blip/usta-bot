@@ -2,6 +2,7 @@ import os
 import sqlite3
 from services import SERVICES
 from regions import REGIONS
+from database import get_masters_by_district
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from telegram.ext import (
     ApplicationBuilder,
@@ -255,14 +256,14 @@ async def get_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     context.user_data.clear()
-    
+ 
 async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     service = context.user_data.get("service")
     region = context.user_data.get("region")
     district = context.user_data.get("district")
 
-    rows = find_masters(service, region, district)
+    rows = get_masters_by_district(service, region, district)
 
     if not rows:
         await update.message.reply_text(
@@ -273,18 +274,18 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = "🔎 Топилган усталар:\n\n"
 
-    for master in masters:
+    for master in rows:
         name = master[2]
         phone = master[3]
         description = master[7]
 
-        text = f"""
-    👤 {name}
-    📞 {phone}
-    📝 {description}
-    """
+        text += (
+            f"👤 {name}\n"
+            f"📞 {phone}\n"
+            f"📝 {description}\n\n"
+        )
 
-        await update.message.reply_text(text)
+    await update.message.reply_text(text, reply_markup=MAIN_MENU)
 
 # ================= FIND FLOW =================
 async def start_find(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -440,6 +441,7 @@ def main():
     app.run_polling()
 
 if __name__ == "__main__": main()
+
 
 
 
