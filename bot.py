@@ -42,7 +42,20 @@ def init_db():
 
     conn.commit()
     conn.close()
+    
+def find_masters(service, region, district):
+    conn = sqlite3.connect("usta.db")
+    cursor = conn.cursor()
 
+    cursor.execute("""
+        SELECT name, phone, description
+        FROM masters
+        WHERE service=? AND region=? AND district=?
+    """, (service, region, district))
+
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
 
 # ================= MENUS =================
 MAIN_MENU = ReplyKeyboardMarkup([
@@ -213,6 +226,32 @@ async def get_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "✅ Сиз рўйхатдан ўтдингиз!",
         reply_markup=MAIN_MENU
     )
+    
+async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    service = context.user_data.get("service")
+    region = context.user_data.get("region")
+    district = context.user_data.get("district")
+
+    rows = find_masters(service, region, district)
+
+    if not rows:
+        await update.message.reply_text(
+            "😕 Ҳозирча уста топилмади.",
+            reply_markup=MAIN_MENU
+        )
+        return
+
+    text = "🔎 Топилган усталар:\n\n"
+
+    for i, (name, phone, desc) in enumerate(rows, 1):
+        text += (
+            f"{i}. 👷 {name}\n"
+            f"📞 {phone}\n"
+            f"📝 {desc}\n\n"
+        )
+
+    await update.message.reply_text(text, reply_markup=MAIN_MENU)
 
 
 # ================= FIND FLOW =================
@@ -369,6 +408,7 @@ def main():
     app.run_polling()
 
 if __name__ == "__main__": main()
+
 
 
 
