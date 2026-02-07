@@ -184,48 +184,31 @@ async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def get_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    # Фақат register режимида ишласин
+    # агар уста руйхатидан утмаяпган булса
     if context.user_data.get("flow") != "register":
         return
 
-    # Фақат description қадамида ишласин
     if context.user_data.get("step") != "description":
         return
 
+
     description = update.message.text
-    context.user_data["description"] = description
 
-    # ================== SAVE ==================
-    user = update.effective_user
-
-    conn = sqlite3.connect("usta.db")
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        INSERT OR REPLACE INTO masters
-        (telegram_id, name, phone, service, region, district, description)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (
-        user.id,
-        user.full_name,
+    add_master(
+        context.user_data.get("name"),
         context.user_data.get("phone"),
         context.user_data.get("service"),
         context.user_data.get("region"),
         context.user_data.get("district"),
         description
-    ))
-
-    conn.commit()
-    conn.close()
-    # ==========================================
-
-    # ҲАММАСИ ТУГАДИ
-    context.user_data.clear()
+    )
 
     await update.message.reply_text(
         "✅ Сиз рўйхатдан ўтдингиз!",
         reply_markup=MAIN_MENU
     )
+
+    context.user_data.clear()
     
 async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -408,6 +391,7 @@ def main():
     app.run_polling()
 
 if __name__ == "__main__": main()
+
 
 
 
