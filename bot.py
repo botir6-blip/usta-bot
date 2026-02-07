@@ -176,12 +176,12 @@ async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # ====== АГАР УСТА БЎЛСА ======
-    if context.user_data.get("flow") == "register":
-        await update.message.reply_text(
-            "Ўзингиз ҳақингизда қисқача ёзинг:",
-            reply_markup=ReplyKeyboardRemove()
-        )
-    context.user_data["step"] = "description"    
+   if context.user_data.get("flow") == "register":
+    await update.message.reply_text(
+        "Ўзингиз ҳақингизда қисқача ёзинг:",
+        reply_markup=ReplyKeyboardRemove()
+    )
+    context.user_data["step"] = "description"
 
 async def get_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -392,6 +392,7 @@ def main():
     app.run_polling()
 
 if __name__ == "__main__": main()
+
 
 
 
