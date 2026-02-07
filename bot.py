@@ -302,6 +302,7 @@ async def unregister(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ================= MAIN =================
 def main():
+    print("🔥 NEW VERSION 🔥")
     init_db()
     app = ApplicationBuilder().token(TOKEN).build()
 
@@ -327,6 +328,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
