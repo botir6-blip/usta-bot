@@ -52,27 +52,42 @@ MAIN_MENU = ReplyKeyboardMarkup([
     ["❌ Рўйхатдан чиқиш"]
 ], resize_keyboard=True)
 
-def service_menu():
-    rows = [SERVICES[i:i+2] for i in range(0, len(SERVICES), 2)]
-    rows.append(["⬅️ Орқага"])
-    return ReplyKeyboardMarkup(rows, resize_keyboard=True)
 
-def region_menu():
-    rows = [[r] for r in REGIONS.keys()]
-    rows.append(["⬅️ Орқага"])
-    return ReplyKeyboardMarkup(rows, resize_keyboard=True)
+def build_service_menu():
+    keyboard = []
+    row = []
 
-def district_menu(region):
-    rows = [[d] for d in REGIONS.get(region, [])]
-    rows.append(["⬅️ Орқага"])
-    return ReplyKeyboardMarkup(rows, resize_keyboard=True)
+    for i, service in enumerate(SERVICES, 1):
+        row.append(service)
+        if i % 2 == 0:
+            keyboard.append(row)
+            row = []
+
+    if row:
+        keyboard.append(row)
+
+    keyboard.append(["⬅️ Орқага"])
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+
+def build_region_menu():
+    keyboard = [[region] for region in REGIONS.keys()]
+    keyboard.append(["⬅️ Орқага"])
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+
+def build_city_menu(region):
+    cities = REGIONS.get(region, [])
+    keyboard = [[city] for city in cities]
+    keyboard.append(["⬅️ Орқага"])
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
 
 RATING_MENU = ReplyKeyboardMarkup([
     ["⭐ 1", "⭐ 2", "⭐ 3"],
     ["⭐ 4", "⭐ 5"],
     ["⬅️ Орқага"]
 ], resize_keyboard=True)
-
 
 # ================= START =================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -106,24 +121,15 @@ async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Касбни танланг:", reply_markup=SERVICE_MENU)
 
 
-async def get_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if context.user_data.get("step") != "service":
-        return
-
-    context.user_data["service"] = update.message.text
-    context.user_data["step"] = "region"
-
-    await update.message.reply_text("Вилоят:", reply_markup=REGION_MENU)
+async def ask_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Қайси вилоят?", reply_markup=build_region_menu())
 
 
-async def get_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if context.user_data.get("step") != "region":
-        return
+async def choose_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    region = update.message.text
+    context.user_data["region"] = region
 
-    context.user_data["region"] = update.message.text
-    context.user_data["step"] = "district"
-
-    await update.message.reply_text("Туман / шаҳарни ёзинг:")
+    await update.message.reply_text("Қайси шаҳар?", reply_markup=build_city_menu(region))
 
 
 async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -321,3 +327,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
