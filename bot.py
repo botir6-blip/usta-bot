@@ -273,10 +273,18 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = "🔎 Топилган усталар:\n\n"
 
-    for _, _, name, phone, service, region, district, description in masters:
+    for master in masters:
+        name = master[2]
+        phone = master[3]
+        description = master[7]
 
-    await update.message.reply_text(text, reply_markup=MAIN_MENU)
+        text = f"""
+    👤 {name}
+    📞 {phone}
+    📝 {description}
+    """
 
+        await update.message.reply_text(text)
 
 # ================= FIND FLOW =================
 async def start_find(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -432,6 +440,7 @@ def main():
     app.run_polling()
 
 if __name__ == "__main__": main()
+
 
 
 
