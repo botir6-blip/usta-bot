@@ -1,10 +1,8 @@
 import os
 import sqlite3
-from telegram import (
-    Update,
-    ReplyKeyboardMarkup,
-    KeyboardButton,
-)
+from services import SERVICES
+from regions import REGIONS
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -15,28 +13,26 @@ from telegram.ext import (
 
 TOKEN = os.getenv("BOT_TOKEN")
 
-# =======================
-# DATABASE
-# =======================
+# ================= DATABASE =================
 def init_db():
     conn = sqlite3.connect("usta.db")
-    cur = conn.cursor()
+    c = conn.cursor()
 
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS masters (
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS masters(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             telegram_id INTEGER UNIQUE,
             name TEXT,
             phone TEXT,
             service TEXT,
-            city TEXT,
+            region TEXT,
+            district TEXT,
             description TEXT
         )
     """)
 
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS ratings (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS ratings(
             master_id INTEGER,
             user_id INTEGER,
             rating INTEGER,
@@ -48,188 +44,50 @@ def init_db():
     conn.close()
 
 
-def add_master(tg_id, name, phone, service, city, desc):
-    conn = sqlite3.connect("usta.db")
-    cur = conn.cursor()
-    cur.execute("""
-        INSERT OR REPLACE INTO masters
-        (telegram_id, name, phone, service, city, description)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (tg_id, name, phone, service, city, desc))
-    conn.commit()
-    conn.close()
+# ================= MENUS =================
+MAIN_MENU = ReplyKeyboardMarkup([
+    ["🔍 Уста топиш"],
+    ["👷 Уста бўлиш"],
+    ["👤 Менинг профилим"],
+    ["❌ Рўйхатдан чиқиш"]
+], resize_keyboard=True)
+
+def service_menu():
+    rows = [SERVICES[i:i+2] for i in range(0, len(SERVICES), 2)]
+    rows.append(["⬅️ Орқага"])
+    return ReplyKeyboardMarkup(rows, resize_keyboard=True)
+
+def region_menu():
+    rows = [[r] for r in REGIONS.keys()]
+    rows.append(["⬅️ Орқага"])
+    return ReplyKeyboardMarkup(rows, resize_keyboard=True)
+
+def district_menu(region):
+    rows = [[d] for d in REGIONS.get(region, [])]
+    rows.append(["⬅️ Орқага"])
+    return ReplyKeyboardMarkup(rows, resize_keyboard=True)
+
+RATING_MENU = ReplyKeyboardMarkup([
+    ["⭐ 1", "⭐ 2", "⭐ 3"],
+    ["⭐ 4", "⭐ 5"],
+    ["⬅️ Орқага"]
+], resize_keyboard=True)
 
 
-def delete_master(tg_id):
-    conn = sqlite3.connect("usta.db")
-    cur = conn.cursor()
-    cur.execute("DELETE FROM masters WHERE telegram_id=?", (tg_id,))
-    conn.commit()
-    conn.close()
-
-
-def get_master_by_tg(tg_id):
-    conn = sqlite3.connect("usta.db")
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT id, name, phone, service, city, description
-        FROM masters WHERE telegram_id=?
-    """, (tg_id,))
-    row = cur.fetchone()
-    conn.close()
-    return row
-
-
-def find_masters(service, city):
-    conn = sqlite3.connect("usta.db")
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT 
-            m.id, m.name, m.phone, m.description,
-            IFNULL(AVG(r.rating), 0),
-            COUNT(r.rating)
-        FROM masters m
-        LEFT JOIN ratings r ON m.id=r.master_id
-        WHERE m.service=? AND m.city=?
-        GROUP BY m.id
-    """, (service, city))
-    rows = cur.fetchall()
-    conn.close()
-    return rows
-
-
-def save_rating(master_id, user_id, rating):
-    conn = sqlite3.connect("usta.db")
-    cur = conn.cursor()
-    cur.execute("""
-        INSERT OR REPLACE INTO ratings (master_id, user_id, rating)
-        VALUES (?, ?, ?)
-    """, (master_id, user_id, rating))
-    conn.commit()
-    conn.close()
-
-
-# =======================
-# MENUS
-# =======================
-MAIN_MENU = ReplyKeyboardMarkup(
-    [
-        ["🔍 Уста топиш"],
-        ["👷 Уста сифатида рўйхатдан ўтиш"],
-        ["👤 Менинг профилим"],
-        ["❌ Рўйхатдан чиқиш"],
-    ],
-    resize_keyboard=True
-)
-
-SERVICE_MENU = ReplyKeyboardMarkup(
-    [
-        ["🔧 Сантехник", "⚡ Электрик"],
-        ["🧱 Қурилиш", "🧹 Уй тозалаш"],
-        ["⬅️ Орқага"],
-    ],
-    resize_keyboard=True
-)
-
-CITY_MENU = ReplyKeyboardMarkup(
-    [
-        ["Қарши", "Самарқанд"],
-        ["Тошкент", "Бухоро"],
-        ["⬅️ Орқага"],
-    ],
-    resize_keyboard=True
-)
-
-RATING_MENU = ReplyKeyboardMarkup(
-    [
-        ["⭐ 1", "⭐ 2", "⭐ 3"],
-        ["⭐ 4", "⭐ 5"],
-        ["⬅️ Орқага"],
-    ],
-    resize_keyboard=True
-)
-
-
-# =======================
-# START
-# =======================
+# ================= START =================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     await update.message.reply_text(
-        "Ассалому алайкум!\nКеракли бўлимни танланг 👇",
+        "Ассалому алайкум 👋\nТанланг:",
         reply_markup=MAIN_MENU
     )
 
 
-# =======================
-# FIND FLOW
-# =======================
-async def start_find(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data.clear()
-    context.user_data["flow"] = "find"
-    await update.message.reply_text(
-        "Қайси хизмат керак?",
-        reply_markup=SERVICE_MENU
-    )
-
-
-async def service_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if context.user_data.get("flow") == "find":
-        context.user_data["service"] = update.message.text
-        await update.message.reply_text("Қайси шаҳар?", reply_markup=CITY_MENU)
-
-    elif context.user_data.get("flow") == "register":
-        context.user_data["service"] = update.message.text
-        await update.message.reply_text("Қайси шаҳарда ишлайсиз?", reply_markup=CITY_MENU)
-
-
-async def city_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    city = update.message.text
-    flow = context.user_data.get("flow")
-
-    if flow == "find":
-        service = context.user_data.get("service")
-        results = find_masters(service, city)
-
-        if not results:
-            await update.message.reply_text(
-                f"😕 {service} бўйича {city} да уста топилмади.",
-                reply_markup=MAIN_MENU
-            )
-            return
-
-        text = f"🔎 {service} — {city}:\n\n"
-        context.user_data.clear()
-
-        for i, (mid, name, phone, desc, avg, cnt) in enumerate(results, 1):
-            stars = "⭐" * round(avg) if avg else "⭐ йўқ"
-            text += (
-                f"{i}. 👷 {name}\n"
-                f"📞 {phone}\n"
-                f"📝 {desc}\n"
-                f"⭐ {stars} ({cnt})\n\n"
-            )
-            context.user_data[f"rate_{i}"] = mid
-
-        kb = [[f"⭐ Баҳо бериш {i}"] for i in range(1, len(results)+1)]
-        kb.append(["⬅️ Орқага"])
-
-        await update.message.reply_text(
-            text,
-            reply_markup=ReplyKeyboardMarkup(kb, resize_keyboard=True)
-        )
-
-    elif flow == "register":
-        context.user_data["city"] = city
-        await update.message.reply_text("Қисқача изоҳ ёзинг (қандай ишлар қиласиз):")
-
-
-# =======================
-# REGISTER FLOW
-# =======================
+# ================= REGISTER FLOW =================
 async def start_register(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     context.user_data["flow"] = "register"
+    context.user_data["step"] = "phone"
 
     kb = [[KeyboardButton("📞 Телефон юбориш", request_contact=True)]]
     await update.message.reply_text(
@@ -239,102 +97,227 @@ async def start_register(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message.contact:
+    if context.user_data.get("step") != "phone":
         return
 
     context.user_data["phone"] = update.message.contact.phone_number
-    await update.message.reply_text(
-        "Касбингизни танланг 👇",
-        reply_markup=SERVICE_MENU
-    )
+    context.user_data["step"] = "service"
+
+    await update.message.reply_text("Касбни танланг:", reply_markup=SERVICE_MENU)
 
 
-async def save_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    desc = update.message.text
+async def get_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if context.user_data.get("step") != "service":
+        return
+
+    context.user_data["service"] = update.message.text
+    context.user_data["step"] = "region"
+
+    await update.message.reply_text("Вилоят:", reply_markup=REGION_MENU)
+
+
+async def get_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if context.user_data.get("step") != "region":
+        return
+
+    context.user_data["region"] = update.message.text
+    context.user_data["step"] = "district"
+
+    await update.message.reply_text("Туман / шаҳарни ёзинг:")
+
+
+async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if context.user_data.get("step") != "district":
+        return
+
+    context.user_data["district"] = update.message.text
+    context.user_data["step"] = "description"
+
+    await update.message.reply_text("Ўзингиз ҳақингизда қисқача ёзинг:")
+
+
+async def get_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if context.user_data.get("step") != "description":
+        return
+
     user = update.effective_user
 
-    add_master(
+    conn = sqlite3.connect("usta.db")
+    c = conn.cursor()
+
+    c.execute("""
+        INSERT OR REPLACE INTO masters
+        (telegram_id, name, phone, service, region, district, description)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (
         user.id,
         user.full_name,
         context.user_data["phone"],
         context.user_data["service"],
-        context.user_data["city"],
-        desc
+        context.user_data["region"],
+        context.user_data["district"],
+        update.message.text
+    ))
+
+    conn.commit()
+    conn.close()
+
+    await update.message.reply_text(
+        "✅ Сиз рўйхатдан ўтдингиз!",
+        reply_markup=MAIN_MENU
     )
 
     context.user_data.clear()
-    await update.message.reply_text(
-        "✅ Сиз уста сифатида рўйхатдан ўтдингиз!",
-        reply_markup=MAIN_MENU
-    )
 
 
-# =======================
-# RATING
-# =======================
-async def start_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    idx = int(update.message.text.split()[-1])
-    context.user_data["rate_master"] = context.user_data.get(f"rate_{idx}")
-    await update.message.reply_text("Баҳо қўйинг 👇", reply_markup=RATING_MENU)
+# ================= FIND FLOW =================
+async def start_find(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.clear()
+    context.user_data["flow"] = "find"
+    context.user_data["step"] = "service"
+
+    await update.message.reply_text("Керакли касб:", reply_markup=SERVICE_MENU)
 
 
-async def save_rating_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def find_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if context.user_data.get("flow") != "find":
+        return
+
+    context.user_data["service"] = update.message.text
+    context.user_data["step"] = "region"
+
+    await update.message.reply_text("Вилоят:", reply_markup=REGION_MENU)
+
+
+async def find_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if context.user_data.get("flow") != "find":
+        return
+
+    service = context.user_data["service"]
+    region = update.message.text
+
+    conn = sqlite3.connect("usta.db")
+    c = conn.cursor()
+
+    c.execute("""
+        SELECT m.id, m.name, m.phone, m.district, m.description,
+        IFNULL(AVG(r.rating),0), COUNT(r.rating)
+        FROM masters m
+        LEFT JOIN ratings r ON r.master_id = m.id
+        WHERE m.service=? AND m.region=?
+        GROUP BY m.id
+    """, (service, region))
+
+    rows = c.fetchall()
+    conn.close()
+
+    if not rows:
+        await update.message.reply_text("😕 Уста топилмади", reply_markup=MAIN_MENU)
+        return
+
+    text = "Усталар:\n\n"
+    context.user_data["rate"] = {}
+
+    for i, (mid, name, phone, dist, desc, avg, cnt) in enumerate(rows, 1):
+        stars = "⭐" * round(avg) if avg else "⭐ йўқ"
+
+        text += (
+            f"{i}. 👷 {name}\n"
+            f"📞 {phone}\n"
+            f"📍 {dist}\n"
+            f"ℹ️ {desc}\n"
+            f"{stars} ({cnt})\n\n"
+        )
+
+        context.user_data["rate"][str(i)] = mid
+
+    kb = [[f"⭐ Баҳо бериш {i}"] for i in range(1, len(rows)+1)]
+    kb.append(["⬅️ Орқага"])
+
+    await update.message.reply_text(text, reply_markup=ReplyKeyboardMarkup(kb, resize_keyboard=True))
+
+
+# ================= RATING =================
+async def choose_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    num = update.message.text.split()[-1]
+    context.user_data["rating_master"] = context.user_data["rate"].get(num)
+
+    await update.message.reply_text("Балл:", reply_markup=RATING_MENU)
+
+
+async def save_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
     rating = int(update.message.text.replace("⭐", "").strip())
-    save_rating(
-        context.user_data["rate_master"],
-        update.effective_user.id,
-        rating
-    )
+    master = context.user_data.get("rating_master")
+    user = update.effective_user.id
+
+    conn = sqlite3.connect("usta.db")
+    c = conn.cursor()
+    c.execute("INSERT OR REPLACE INTO ratings VALUES(?,?,?)", (master, user, rating))
+    conn.commit()
+    conn.close()
+
     await update.message.reply_text("✅ Раҳмат!", reply_markup=MAIN_MENU)
 
 
-# =======================
-# PROFILE / UNREGISTER
-# =======================
+# ================= PROFILE =================
 async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    m = get_master_by_tg(update.effective_user.id)
-    if not m:
-        await update.message.reply_text("❌ Сиз уста эмассиз", reply_markup=MAIN_MENU)
+    user = update.effective_user.id
+
+    conn = sqlite3.connect("usta.db")
+    c = conn.cursor()
+    c.execute("SELECT name, phone, service, region, district FROM masters WHERE telegram_id=?", (user,))
+    row = c.fetchone()
+    conn.close()
+
+    if not row:
+        await update.message.reply_text("Сиз уста эмассиз", reply_markup=MAIN_MENU)
         return
 
-    _, name, phone, service, city, desc = m
+    name, phone, service, region, district = row
+
     await update.message.reply_text(
-        f"👤 {name}\n📞 {phone}\n🛠 {service}\n📍 {city}\n📝 {desc}",
+        f"👷 {name}\n📞 {phone}\n🛠 {service}\n📍 {region} / {district}",
         reply_markup=MAIN_MENU
     )
 
 
+# ================= DELETE =================
 async def unregister(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    delete_master(update.effective_user.id)
-    await update.message.reply_text("❌ Рўйхатдан чиқдингиз", reply_markup=MAIN_MENU)
+    user = update.effective_user.id
+
+    conn = sqlite3.connect("usta.db")
+    c = conn.cursor()
+    c.execute("DELETE FROM masters WHERE telegram_id=?", (user,))
+    conn.commit()
+    conn.close()
+
+    await update.message.reply_text("❌ Ўчирилди", reply_markup=MAIN_MENU)
 
 
-# =======================
-# MAIN
-# =======================
+# ================= MAIN =================
 def main():
     init_db()
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.Regex("^🔍 Уста топиш$"), start_find))
-    app.add_handler(MessageHandler(filters.Regex("^👷"), start_register))
+
+    app.add_handler(MessageHandler(filters.Regex("^👷 Уста бўлиш$"), start_register))
     app.add_handler(MessageHandler(filters.CONTACT, get_phone))
+    app.add_handler(MessageHandler(filters.Regex("^🔧|⚡|🧱|🧹|🪟|🎨"), get_service))
+    app.add_handler(MessageHandler(filters.Regex("^Тошкент|Самарқанд|Бухоро|Қашқадарё$"), get_region))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, get_district))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, get_description))
 
-    app.add_handler(MessageHandler(filters.Regex("^(🔧|⚡|🧱|🧹)"), service_handler))
-    app.add_handler(MessageHandler(filters.Regex("^(Қарши|Самарқанд|Тошкент|Бухоро)$"), city_handler))
-    app.add_handler(MessageHandler(filters.Regex("^⭐ Баҳо бериш"), start_rating))
-    app.add_handler(MessageHandler(filters.Regex("^⭐ [1-5]$"), save_rating_handler))
-    app.add_handler(MessageHandler(filters.Regex("^👤"), my_profile))
-    app.add_handler(MessageHandler(filters.Regex("^❌"), unregister))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, save_description))
+    app.add_handler(MessageHandler(filters.Regex("^🔍 Уста топиш$"), start_find))
+    app.add_handler(MessageHandler(filters.Regex("^⭐ Баҳо бериш"), choose_rating))
+    app.add_handler(MessageHandler(filters.Regex("^⭐ [1-5]$"), save_rating))
 
-    print("🤖 Bot ishга тушди")
+    app.add_handler(MessageHandler(filters.Regex("^👤 Менинг профилим$"), my_profile))
+    app.add_handler(MessageHandler(filters.Regex("^❌ Рўйхатдан чиқиш$"), unregister))
+
+    print("Bot ishladi 🚀")
     app.run_polling()
 
 
 if __name__ == "__main__":
     main()
-
-
-
