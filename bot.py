@@ -392,6 +392,14 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     step = context.user_data.get("step")
 
+    if step == "age":
+        await get_age(update, context)
+        return
+
+    if step == "experience":
+        await get_experience(update, context)
+        return
+    
     if step == "service":
         # Agar bu "find" jarayoni bo'lsa, tilga mos xizmatlar menyusi
         if context.user_data.get("flow") == "find":
@@ -440,7 +448,7 @@ async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ====== АГАР УСТА БЎЛСА ======
     if context.user_data.get("flow") == "register":
         # Ёшни сўраш
-        await update.message.reply_text("Ўшингизни киритинг:", reply_markup=ReplyKeyboardRemove())
+        await update.message.reply_text("Ёшингизни киритинг:", reply_markup=ReplyKeyboardRemove())
         context.user_data["step"] = "age"
 
 async def get_age(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -455,23 +463,23 @@ async def get_age(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     age = clean_text(update.message.text)
     
-    if not age:
+    if not age or not age.isdigit() or len(age) > 2:
         if language == "uz_kr":
-            await update.message.reply_text("Илтимос, ёшни киритинг (2 хоналик катак):", reply_markup=ReplyKeyboardRemove())
+            await update.message.reply_text("Илтимос, ёшни киритинг):", reply_markup=ReplyKeyboardRemove())
         elif language == "uz_lt":
-            await update.message.reply_text("Iltimos, yoshingizni kiriting (2 honaliq katak):", reply_markup=ReplyKeyboardRemove())
+            await update.message.reply_text("Iltimos, yoshingizni kiriting):", reply_markup=ReplyKeyboardRemove())
         else:  # ru
-            await update.message.reply_text("Пожалуйста, введите ваш возраст (2 цифры):", reply_markup=ReplyKeyboardRemove())
+            await update.message.reply_text("Пожалуйста, введите ваш возраст):", reply_markup=ReplyKeyboardRemove())
         return
-        
+    
     context.user_data["age"] = age
     
     if language == "uz_kr":
-        await update.message.reply_text("Тажрибангиз неча йил (2 хоналик катак)?", reply_markup=ReplyKeyboardRemove())
+        await update.message.reply_text("Тажрибангиз неча йил)?", reply_markup=ReplyKeyboardRemove())
     elif language == "uz_lt":
-        await update.message.reply_text("Tajribangiz necha yil (2 honaliq katak)?", reply_markup=ReplyKeyboardRemove())
+        await update.message.reply_text("Tajribangiz necha yil)?", reply_markup=ReplyKeyboardRemove())
     else:  # ru
-        await update.message.reply_text("Сколько лет у вас опыта (2 цифры)?", reply_markup=ReplyKeyboardRemove())
+        await update.message.reply_text("Сколько лет у вас опыта)?", reply_markup=ReplyKeyboardRemove())
     
     context.user_data["step"] = "experience"
 
@@ -485,17 +493,18 @@ async def get_experience(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get("step") != "experience":
         return
 
-    experience = clean_text(update.message.text)
+    experience = update.message.text.strip()
     
-    if not experience:
+    if not experience or not experience.isdigit() or len(experience) > 2:
         if language == "uz_kr":
-            await update.message.reply_text("Илтимос, тажриба киритинг (2 хоналик катак):", reply_markup=ReplyKeyboardRemove())
+            await update.message.reply_text("Илтимос, тажриба киритинг):", reply_markup=ReplyKeyboardRemove())
         elif language == "uz_lt":
-            await update.message.reply_text("Iltimos, tajribangizni kiriting (2 honaliq katak):", reply_markup=ReplyKeyboardRemove())
+            await update.message.reply_text("Iltimos, tajribangizni kiriting):", reply_markup=ReplyKeyboardRemove())
         else:  # ru
-            await update.message.reply_text("Пожалуйста, введите ваш опыт (2 цифры):", reply_markup=ReplyKeyboardRemove())
+            await update.message.reply_text("Пожалуйста, введите ваш опыт):", reply_markup=ReplyKeyboardRemove())
         return
-        
+   
+         
     context.user_data["experience"] = experience
     
     # Барча маълумотларни олиб устани қўшамиз
@@ -556,15 +565,19 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
     
+    service = context.user_data.get("service")
+    region = context.user_data.get("region")
+    district = context.user_data.get("district")
+
     conn = sqlite3.connect("usta.db")
     c = conn.cursor()
 
     c.execute("""
-    SELECT m.id, m.name, m.phone, m.district
+    SELECT m.id, m.name, m.phone, m.district, m.age, m.experience
     FROM masters m
-    WHERE m.service=? AND m.region=?
+    WHERE m.service=? AND m.region=? AND m.district=?
     GROUP BY m.id
-    """, (service, region))
+    """, (service, region, district))
 
     rows = c.fetchall()
     conn.close()
@@ -575,11 +588,13 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = texts["masters_found"] + "\n\n"
 
-    for i, (mid, name, phone, dist) in enumerate(rows, 1):
+    for i, (mid, name, phone, dist, age, experience) in enumerate(rows, 1):
         text += (
             f"{i}. 👷 {name}\n"
             f"📞 {phone}\n"
             f"📍 {dist}\n\n"
+            f" Ёши: {age}\n"
+            f"Тажриба: {experience}йил\n\n"
         )
 
     kb = [[texts["back"]]]
@@ -862,7 +877,7 @@ def main():
     # register - barcha tillar uchun
     app.add_handler(MessageHandler(filters.Regex("^(Уста бўлиш|Usta bo'lish|Стать мастером)$"), start_register))
     app.add_handler(MessageHandler(filters.CONTACT, get_phone))
-
+    
     # find - barcha tillar uchun
     app.add_handler(MessageHandler(filters.Regex("^(Уста топиш|Usta topish|Найти мастера)$"), start_find))
     
