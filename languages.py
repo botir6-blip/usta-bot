@@ -16,7 +16,7 @@ LANGUAGE_NAMES = {
 UZ_KR = {
     # Asosiy menyular
     "main_menu": [
-        ["Уста топиш", "Топ-10 усталар"],
+        ["Уста топиш"],
         ["Уста бўлиш", "Статистика"],
         ["Менинг профилим"],
         ["Рўйхатдан чиқиш", "💾 Backup"],
@@ -78,7 +78,7 @@ UZ_KR = {
 UZ_LT = {
     # Asosiy menyular
     "main_menu": [
-        ["Usta topish", "Top-10 ustalar"],
+        ["Usta topish"],
         ["Usta bo'lish", "Statistika"],
         ["Mening profilim"],
         ["Ro'yxatdan chiqish", "💾 Backup"],
@@ -140,7 +140,7 @@ UZ_LT = {
 RU = {
     # Основные меню
     "main_menu": [
-        ["Найти мастера", "Топ-10 мастеров"],
+        ["Найти мастера"],
         ["Стать мастером", "Статистика"],
         ["Мой профиль"],
         ["Выйти", "💾 Backup"],

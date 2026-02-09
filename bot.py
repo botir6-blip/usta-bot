@@ -12,7 +12,7 @@ from telegram.ext import (
     filters,
 )
 
-TOKEN = "7573364452:AAFW1F3ax2HwSGOiULbk0xAEhBs-_vqmOhE"
+TOKEN = "7573364452:AAGLlRK5ig6xb7t1teeXgTRi_5VZKK4Xl0U"
 
 # ================= DATABASE =================
 def init_db():
@@ -29,7 +29,10 @@ def init_db():
         service TEXT,
         region TEXT,
         district TEXT,
-        description TEXT
+        age TEXT,
+        experience TEXT,
+        education TEXT,
+        skills TEXT
     )
     """)
 
@@ -61,14 +64,17 @@ def init_db():
 
 
 # ================= USTA QO‘SHISH =================
-def add_master(telegram_id, name, phone, service, region, district, description):
+def add_master(telegram_id, name, phone, service, region, district, age=None, experience=None):
     # Barcha maydonlarni tozalash
     name = clean_text(name) if name else ""
     phone = clean_text(phone) if phone else ""
     service = clean_text(service) if service else ""
     region = clean_text(region) if region else ""
     district = clean_text(district) if district else ""
-    description = clean_text(description) if description else ""
+    
+    # Хақида маълумотларни олиш
+    age = age or ""
+    experience = experience or ""
     
     # Minimal tekshirish
     if not name or not phone or not service or not region or not district:
@@ -84,9 +90,9 @@ def add_master(telegram_id, name, phone, service, region, district, description)
     # Yangi ustani qo'shamiz (yoki yangilaymiz)
     c.execute(""" 
     INSERT OR REPLACE INTO masters
-    (telegram_id, name, phone, service, region, district, description)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (telegram_id, name, phone, service, region, district, description))
+    (telegram_id, name, phone, service, region, district, age, experience)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (telegram_id, name, phone, service, region, district, age, experience))
     
     # Agar eski usta bo'lsa, reytinglarni yangi ID bilan bog'lash
     if old_master:
@@ -109,11 +115,8 @@ def find_masters(service, region, district):
     c = conn.cursor()
 
     c.execute("""
-    SELECT id, name, phone, region, district, description,
-    IFNULL(AVG(rating), 0),
-    COUNT(rating)
+    SELECT id, name, phone, region, district, service
     FROM masters
-    LEFT JOIN ratings ON masters.id = ratings.master_id
     WHERE service=? AND region=? AND district=?
     GROUP BY masters.id
     """, (service, region, district))
@@ -121,20 +124,6 @@ def find_masters(service, region, district):
     data = c.fetchall()
     conn.close()
     return data
-
-
-# ================= BAHA BERISH =================
-def save_rating_db(master_id, user_id, rating):
-    conn = sqlite3.connect("usta.db")
-    c = conn.cursor()
-
-    c.execute("""
-    INSERT OR REPLACE INTO ratings(master_id, user_id, rating)
-    VALUES (?, ?, ?)
-    """, (master_id, user_id, rating))
-
-    conn.commit()
-    conn.close()
 
 
 # ================= RO‘YXATDAN CHIQARISH =================
@@ -152,7 +141,7 @@ def delete_master(telegram_id):
         c.execute("DELETE FROM ratings WHERE master_id=?", (master_id,))
         # KEYIN ustani o'chiramiz
         c.execute("DELETE FROM masters WHERE telegram_id=?", (telegram_id,))
-        print(f"🗑️ Usta {master_id} va uning {c.rowcount} ta reytingi o'chirildi")
+        print(f"Usta {master_id} va uning {c.rowcount} ta reytingi ochirildi")
     
     conn.commit()
     conn.close()
@@ -161,7 +150,7 @@ def delete_master(telegram_id):
 
 # ================= MENUS =================
 MAIN_MENU = ReplyKeyboardMarkup([
-    ["Уста топиш", "Топ-10 усталар"],
+    ["Уста топиш"],
     ["Уста бўлиш", "Статистика"],
     ["Менинг профилим"],
     ["Рўйхатдан чиқиш", "💾 Backup"]
@@ -197,12 +186,6 @@ def build_city_menu(region, language="uz_kr"):
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 
-RATING_MENU = ReplyKeyboardMarkup([
-    ["1", "2", "3"],
-    ["4", "5"],
-    ["Орқага"]
-], resize_keyboard=True)
-
 # ================= TIL TANLASH =================
 def build_language_menu():
     keyboard = [[LANGUAGES[lang]] for lang in LANGUAGES.keys()]
@@ -212,12 +195,19 @@ async def choose_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Til tanlash"""
     text = update.message.text
     
+    print(f"choose_language called with text: {text}")
+    print(f"LANGUAGES dict: {LANGUAGES}")
+    
     # Tilni topish
     language = None
     for lang_code, lang_name in LANGUAGES.items():
+        print(f"Checking: {lang_code} -> {lang_name}")
         if text == lang_name:
             language = lang_code
+            print(f"Found language: {language}")
             break
+    
+    print(f"Final language: {language}")
     
     if language:
         context.user_data["language"] = language
@@ -227,8 +217,19 @@ async def choose_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data.clear()
         context.user_data["language"] = language
         
+        # Фикр-мулохазалар ва шикоятлар
+        feedback_text = ""
+        if language == "uz_kr":
+            feedback_text = "💡 Фикр-мулохазалар ва шикоятлар:\n\n📞 +9981234567\n🌐 www.usta-bot.uz\n🤖 Ботдан фойдаланиш учун раҳмат:"
+        elif language == "uz_lt":
+            feedback_text = "💡 Fikr-mulohazalar va shikoyatlar:\n\n📞 +9981234567\n🌐 www.usta-bot.uz\n🤖 Botdan foydalanish uchun ma'lumot:"
+        else:  # ru
+            feedback_text = "💡 Замечания и предложения:\n\n📞 +9981234567\n🌐 www.usta-bot.uz\n🤖 Информация по использованию бота:"
+        
+        welcome_with_feedback = texts["welcome"] + "\n\n" + feedback_text
+        
         await update.message.reply_text(
-            texts["welcome"],
+            welcome_with_feedback,
             reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True)
         )
     else:
@@ -304,14 +305,25 @@ def clean_text(text):
 
 # ================= REGISTER FLOW =================
 async def start_register(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Tilni saqlab qolish
+    language = context.user_data.get("language", "uz_kr")
     context.user_data.clear()
+    context.user_data["language"] = language
     context.user_data["flow"] = "register"
     context.user_data["step"] = "phone"
     
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
 
-    kb = [[KeyboardButton("📞 Телефон юбориш", request_contact=True)]]
+    # Tilga mos telefon tugmasi
+    if language == "uz_kr":
+        phone_text = "📞 Телефон юбориш"
+    elif language == "uz_lt":
+        phone_text = "📞 Telefon yuborish"
+    else:  # ru
+        phone_text = "📞 Отправить телефон"
+    
+    kb = [[KeyboardButton(phone_text, request_contact=True)]]
     await update.message.reply_text(texts["send_phone"], reply_markup=ReplyKeyboardMarkup(kb, resize_keyboard=True))
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -371,8 +383,11 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Орқага тугмаси - barcha tillardagi variantlar
     back_variants = ["Орқага", "Orqaga", "Назад"]
     if text in back_variants:
-        await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
+        # Тилни сақлаб қолиб, қолганини ўчириш
+        language = context.user_data.get("language", "uz_kr")
         context.user_data.clear()
+        context.user_data["language"] = language
+        await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
         return
 
     step = context.user_data.get("step")
@@ -394,15 +409,12 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif step == "region":
         if context.user_data.get("flow") == "find":
-            await find_region(update, context)
+            await ask_region(update, context)
         else:
             await ask_region(update, context)
 
     elif step == "district":
         await get_district(update, context)
-
-    elif step == "description":
-        await get_description(update, context)
 
 async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
@@ -427,79 +439,96 @@ async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # ====== АГАР УСТА БЎЛСА ======
     if context.user_data.get("flow") == "register":
-        await update.message.reply_text(texts["write_description"], reply_markup=ReplyKeyboardRemove())
-    context.user_data["step"] = "description"
+        # Ёшни сўраш
+        await update.message.reply_text("Ўшингизни киритинг:", reply_markup=ReplyKeyboardRemove())
+        context.user_data["step"] = "age"
 
-async def get_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def get_age(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
 
-    # агар уста руйхатидан утмаяпган булса
     if context.user_data.get("flow") != "register":
         return
     
-    if context.user_data.get("step") != "description":
+    if context.user_data.get("step") != "age":
         return
 
-    telegram_id = update.effective_user.id
-    description = clean_text(update.message.text)
+    age = clean_text(update.message.text)
     
-    # Agar tozalashdan keyin hech narsa qolmagan bo'lsa
-    if not description:
-        await update.message.reply_text(
-            texts["invalid_input"] + "\n" + texts["write_description"],
-            reply_markup=ReplyKeyboardRemove()
-        )
+    if not age:
+        if language == "uz_kr":
+            await update.message.reply_text("Илтимос, ёшни киритинг (2 хоналик катак):", reply_markup=ReplyKeyboardRemove())
+        elif language == "uz_lt":
+            await update.message.reply_text("Iltimos, yoshingizni kiriting (2 honaliq katak):", reply_markup=ReplyKeyboardRemove())
+        else:  # ru
+            await update.message.reply_text("Пожалуйста, введите ваш возраст (2 цифры):", reply_markup=ReplyKeyboardRemove())
+        return
+        
+    context.user_data["age"] = age
+    
+    if language == "uz_kr":
+        await update.message.reply_text("Тажрибангиз неча йил (2 хоналик катак)?", reply_markup=ReplyKeyboardRemove())
+    elif language == "uz_lt":
+        await update.message.reply_text("Tajribangiz necha yil (2 honaliq katak)?", reply_markup=ReplyKeyboardRemove())
+    else:  # ru
+        await update.message.reply_text("Сколько лет у вас опыта (2 цифры)?", reply_markup=ReplyKeyboardRemove())
+    
+    context.user_data["step"] = "experience"
+
+async def get_experience(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    language = context.user_data.get("language", "uz_kr")
+    texts = get_texts(language)
+
+    if context.user_data.get("flow") != "register":
+        return
+    
+    if context.user_data.get("step") != "experience":
         return
 
+    experience = clean_text(update.message.text)
+    
+    if not experience:
+        if language == "uz_kr":
+            await update.message.reply_text("Илтимос, тажриба киритинг (2 хоналик катак):", reply_markup=ReplyKeyboardRemove())
+        elif language == "uz_lt":
+            await update.message.reply_text("Iltimos, tajribangizni kiriting (2 honaliq katak):", reply_markup=ReplyKeyboardRemove())
+        else:  # ru
+            await update.message.reply_text("Пожалуйста, введите ваш опыт (2 цифры):", reply_markup=ReplyKeyboardRemove())
+        return
+        
+    context.user_data["experience"] = experience
+    
+    # Барча маълумотларни олиб устани қўшамиз
+    telegram_id = update.effective_user.id
     add_master(telegram_id,
         context.user_data.get("name"),
         context.user_data.get("phone"),
         context.user_data.get("service"),
         context.user_data.get("region"),
         context.user_data.get("district"),
-        description
+        context.user_data.get("age"),
+        context.user_data.get("experience")
     )
-
-    await update.message.reply_text(
-        texts["success_register"],
-        reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True)
-    )
-
-    context.user_data.clear()
- 
-async def show_masters(update, context: ContextTypes.DEFAULT_TYPE):
+    
+    if language == "uz_kr":
+        await update.message.reply_text("✅ Муваффақият! Сиз уста сифатида рўйхатдан ўтдингиз.", reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
+    elif language == "uz_lt":
+        await update.message.reply_text("✅ Muvaffaqiyat! Siz usta sifatida ro'yxatdan o'tdingiz.", reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
+    else:  # ru
+        await update.message.reply_text("✅ Успешно! Вы зарегистрировались как мастер.", reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
+    
+    # Тилни сақлаб қолиб, қолганини ўчириш
     language = context.user_data.get("language", "uz_kr")
-    texts = get_texts(language)
+    context.user_data.clear()
+    context.user_data["language"] = language
 
-    service = context.user_data.get("service")
-    region = context.user_data.get("region")
-    district = context.user_data.get("district")
-
-    rows = find_masters(service, region, district)
-
-    if not rows:
-        await update.message.reply_text(texts["no_masters"], reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
-        return
-
-    text = texts["masters_found"] + "\n\n"
-
-    for master in rows:
-        name = master[2]
-        phone = master[3]
-        region = master[4]
-        district = master[5]
-        description = master[6]
-        avg_rating = master[7]
-        rating_count = master[8]
-        
-        text += f"👤 {name}\n📞 {phone}\n📍 {region} / {district}\n📝 {description}\n⭐ {avg_rating:.1f} ({rating_count} бахо)\n\n"
-
-    await update.message.reply_text(text, reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
 
 # ================= FIND FLOW =================
 async def start_find(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Tilni saqlab qolish
+    language = context.user_data.get("language", "uz_kr")
     context.user_data.clear()
+    context.user_data["language"] = language
     context.user_data["flow"] = "find"
     context.user_data["step"] = "service"
     
@@ -523,26 +552,18 @@ async def find_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(texts["choose_region"], reply_markup=build_region_menu(language))
 
 
-async def find_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if context.user_data.get("flow") != "find":
-        return
-
+async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
-
-    service = context.user_data["service"]
-    region = update.message.text
-
+    
     conn = sqlite3.connect("usta.db")
     c = conn.cursor()
 
     c.execute("""
-        SELECT m.id, m.name, m.phone, m.district, m.description,
-        IFNULL(AVG(r.rating),0), COUNT(r.rating)
-        FROM masters m
-        LEFT JOIN ratings r ON r.master_id = m.id
-        WHERE m.service=? AND m.region=?
-        GROUP BY m.id
+    SELECT m.id, m.name, m.phone, m.district
+    FROM masters m
+    WHERE m.service=? AND m.region=?
+    GROUP BY m.id
     """, (service, region))
 
     rows = c.fetchall()
@@ -553,53 +574,17 @@ async def find_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     text = texts["masters_found"] + "\n\n"
-    context.user_data["rate"] = {}
 
-    for i, (mid, name, phone, dist, desc, avg, cnt) in enumerate(rows, 1):
-        stars = "⭐" * round(avg) if avg else "⭐ йўқ"
-
+    for i, (mid, name, phone, dist) in enumerate(rows, 1):
         text += (
             f"{i}. 👷 {name}\n"
             f"📞 {phone}\n"
-            f"📍 {dist}\n"
-            f"ℹ️ {desc}\n"
-            f"{stars} ({cnt})\n\n"
+            f"📍 {dist}\n\n"
         )
 
-        context.user_data["rate"][str(i)] = mid
-
-    kb = [[f"Баҳо бериш {i}"] for i in range(1, len(rows)+1)]
-    kb.append([texts["back"]])
+    kb = [[texts["back"]]]
 
     await update.message.reply_text(text, reply_markup=ReplyKeyboardMarkup(kb, resize_keyboard=True))
-
-
-# ================= RATING =================
-async def choose_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    language = context.user_data.get("language", "uz_kr")
-    texts = get_texts(language)
-    
-    num = update.message.text.split()[-1]
-    context.user_data["rating_master"] = context.user_data["rate"].get(num)
-
-    await update.message.reply_text("Балл:", reply_markup=RATING_MENU)
-
-
-async def save_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    language = context.user_data.get("language", "uz_kr")
-    texts = get_texts(language)
-    
-    rating = int(update.message.text.replace("⭐", "").strip())
-    master = context.user_data.get("rating_master")
-    user = update.effective_user.id
-
-    conn = sqlite3.connect("usta.db")
-    c = conn.cursor()
-    c.execute("INSERT OR REPLACE INTO ratings VALUES(?,?,?)", (master, user, rating))
-    conn.commit()
-    conn.close()
-
-    await update.message.reply_text(texts["rating_saved"], reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
 
 
 # ================= STATISTIKA =================
@@ -647,96 +632,23 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text += f"📅 Активные сегодня: {today_users}\n"
         text += f"👷 Всего мастеров: {total_masters}\n"
         text += f"⭐ Всего оценок: {total_ratings}\n"
-# ================= TOP 10 USTALAR =================
-async def show_top_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    language = context.user_data.get("language", "uz_kr")
-    texts = get_texts(language)
     
-    conn = sqlite3.connect("usta.db")
-    c = conn.cursor()
-
-    c.execute("""
-        SELECT m.name, m.phone, m.service, m.region, m.district, m.description,
-        IFNULL(AVG(r.rating), 0) as avg_rating,
-        COUNT(r.rating) as rating_count
-        FROM masters m
-        LEFT JOIN ratings r ON m.id = r.master_id
-        GROUP BY m.id
-        HAVING rating_count > 0
-        ORDER BY avg_rating DESC, rating_count DESC
-        LIMIT 10
-    """)
-
-    rows = c.fetchall()
-    conn.close()
-
-    if not rows:
-        no_masters_text = "😕 Ҳозирча бахо берилган усталар йўқ." if language == "uz_kr" else "😕 Hozircha baho berilgan ustalar yo'q." if language == "uz_lt" else "😕 Пока нет оцененных мастеров."
-        await update.message.reply_text(no_masters_text, reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
-        return
-
-    # Viloyatlar bo'yicha guruhlash
-    regions = {}
-    for name, phone, service, region, district, description, avg_rating, rating_count in rows:
-        if region not in regions:
-            regions[region] = []
-        regions[region].append({
-            'name': name, 'phone': phone, 'service': service,
-            'district': district, 'description': description,
-            'avg_rating': avg_rating, 'rating_count': rating_count
-        })
-
-    # Tilga mos sarlavha
-    if language == "uz_kr":
-        text = "🏆 ТОП-10 УСТАЛАР (Вилоятлар бўйича):\n\n"
-        location_label = "📍"
-        service_label = "🛠"
-        district_label = "🏘️"
-        info_label = "ℹ️"
-        rating_label = "⭐"
-        rating_word = "баҳо"
-    elif language == "uz_lt":
-        text = "🏆 TOP-10 USTALAR (Viloyatlar bo'yicha):\n\n"
-        location_label = "📍"
-        service_label = "🛠"
-        district_label = "🏘️"
-        info_label = "ℹ️"
-        rating_label = "⭐"
-        rating_word = "baho"
-    else:  # ru
-        text = "🏆 ТОП-10 МАСТЕРОВ (по областям):\n\n"
-        location_label = "📍"
-        service_label = "🛠"
-        district_label = "🏘️"
-        info_label = "ℹ️"
-        rating_label = "⭐"
-        rating_word = "оценок"
-
-    for region, masters in regions.items():
-        text += f"{location_label} {region}:\n"
-        for i, master in enumerate(masters, 1):
-            text += (
-                f"  {i}. {master['name']}\n"
-                f"  📞 {master['phone']}\n"
-                f"  {service_label} {master['service']}\n"
-                f"  {district_label} {master['district']}\n"
-                f"  {info_label} {master['description']}\n"
-                f"  {rating_label} {master['avg_rating']:.1f} ({master['rating_count']} {rating_word})\n\n"
-            )
-        text += "\n"
-
     await update.message.reply_text(text, reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
+
+# ================= PROFILE =================
 
 # ================= PROFILE =================
 async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
     
+    print(f"my_profile called - language: {language}, user: {update.effective_user.id}")
+    
     user = update.effective_user.id
 
     conn = sqlite3.connect("usta.db")
     c = conn.cursor()
-    c.execute("SELECT name, phone, service, region, district FROM masters WHERE telegram_id=?", (user,))
+    c.execute("SELECT name, phone, service, region, district, age, experience, education, skills FROM masters WHERE telegram_id=?", (user,))
     row = c.fetchone()
     conn.close()
 
@@ -744,10 +656,22 @@ async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(texts["not_master"], reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
         return
 
-    name, phone, service, region, district = row
+    name, phone, service, region, district, age, experience, education, skills = row
+
+    profile_text = f"👷 {name}\n📞 {phone}\n🛠 {service}\n📍 {region} / {district}"
+    
+    # Янги майдонларни қўшиш
+    if age:
+        profile_text += f"\n🎂 Йош: {age}"
+    if experience:
+        profile_text += f"\n💼 Тажриба: {experience}"
+    if education:
+        profile_text += f"\n🎓 Маълумот: {education}"
+    if skills:
+        profile_text += f"\n🔧 Кўникмалар: {skills}"
 
     await update.message.reply_text(
-        f"👷 {name}\n📞 {phone}\n🛠 {service}\n📍 {region} / {district}",
+        profile_text,
         reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True)
     )
 
@@ -758,9 +682,11 @@ async def unregister(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texts = get_texts(language)
     
     user = update.effective_user.id
+    print(f"Unregister called by user: {user}, language: {language}")
 
     # delete_master funksiyasidan foydalanamiz
     success = delete_master(user)
+    print(f"Delete master result: {success}")
     
     if success:
         await update.message.reply_text(texts["unregistered_success"], reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
@@ -779,6 +705,8 @@ async def backup_database(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
     
+    print(f"Backup called by user: {update.effective_user.id}, language: {language}")
+    
     try:
         import json
         from datetime import datetime
@@ -789,7 +717,7 @@ async def backup_database(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Barcha ustalarni olish
         c.execute("""
         SELECT m.id, m.telegram_id, m.name, m.phone, m.service, 
-               m.region, m.district, m.description,
+               m.region, m.district,
                COUNT(r.rating) as rating_count,
                IFNULL(AVG(r.rating), 0) as avg_rating
         FROM masters m
@@ -808,9 +736,8 @@ async def backup_database(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 'service': row[4],
                 'region': row[5],
                 'district': row[6],
-                'description': row[7],
-                'rating_count': row[8],
-                'avg_rating': float(row[9])
+                'rating_count': row[7],
+                'avg_rating': float(row[8])
             }
             masters.append(master)
         
@@ -859,52 +786,52 @@ async def backup_database(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # def populate_sample_data():
     """Bazaga 50 ta namuna usta ma'lumotlarini qo'shish"""
     sample_masters = [
-        (123456789, "Ахмедов Карим", "+998901234567", "Электрик", "Тошкент", "Мирабад", "10 йил тажриба, чор-чора ва уй электр ишлари"),
-        (123456790, "Умаров Бахтиёр", "+998912345678", "Сантехник", "Тошкент", "Чилонзор", "Канализация, қувур ишлари, қизитиш системалари"),
-        (123456791, "Рахимова Гулчехра", "+998923456789", "Наккаш", "Самарканд", "Самарканд шаҳар", "Уй деворларини нақшлаш, реставрация ишлари"),
-        (123456792, "Тошев Жамшед", "+998934567890", "Мебел устаси", "Бухоро", "Бухоро шаҳар", "Мебел тиклаш, янги мебел яратиш"),
-        (123456793, "Каримова Дилфуза", "+998945678901", "Тикувчи", "Фарғона", "Фарғона шаҳар", "Кийим-кечак тикиш, тўқимачилик"),
-        (123456794, "Саидов Бобур", "+998956789012", "Қурилишчи", "Андижон", "Андижон шаҳар", "Уй қурилиши, таъмирлаш"),
-        (123456795, "Нематова Муҳаббат", "+998967890123", "Ошпаз", "Наманган", "Наманган шаҳар", "Тўйлар учун таомлар, кулинар хизмат"),
-        (123456796, "Қодиров Элмурод", "+998978901234", "Авто устаси", "Қорақалпоғистон", "Нукус", "Автомобил таъмири, диогностика"),
-        (123456797, "Тўхтаева Зарина", "+998989012345", "Сартарош", "Хоразм", "Урганч", "Эркаклар ва аёллар сартарошлиги"),
-        (123456798, "Ҳамроқулов Азиз", "+998990123456", "Компютер устаси", "Тошкент", "Яшнабад", "Компютер таъмири, дастур ўрнатиш"),
-        (123456799, "Солиева Мохира", "+998991234567", "Фотограф", "Самарканд", "Самарканд шаҳар", "Тўй, портрет фотографияси"),
-        (123456800, "Юлдашев Фаррух", "+998992345678", "Асосчи", "Бухоро", "Бухоро шаҳар", "Фундамент, девор қурилиши"),
-        (123456801, "Абдуллаева Рано", "+998993456789", "Гулчӣ", "Фарғона", "Фарғона шаҳар", "Тўй гуллари, букетлар"),
-        (123456802, "Ҳасанов Бехзод", "+998994567890", "Металл ишлари", "Андижон", "Андижон шаҳар", "Темир эшik, панжара ишлари"),
-        (123456803, "Мирзаева Муниса", "+998995678901", "Манакур", "Наманган", "Наманган шаҳар", "Оёқ ва қўл манакури"),
-        (123456804, "Рашидов Шерзод", "+998996789012", "Шиша устаси", "Қорақалпоғистон", "Нукус", "Ойна, шиша ишлари"),
-        (123456805, "Турсунова Дилором", "+998997890123", "Косметолог", "Тошкент", "Мирабад", "Юз тўлиши, эпиляция"),
-        (123456806, "Олимов Сардор", "+998998901234", "Электрик", "Тошкент", "Чилонзор", "Қурилиш электр ишлари"),
-        (123456807, "Қодирова Мохира", "+998999012345", "Тикувчи", "Самарканд", "Самарканд шаҳар", "Болалар кийимлари тикиш"),
-        (123456808, "Умаров Жамшид", "+998900123456", "Сантехник", "Бухоро", "Бухоро шаҳар", "Сув иссиқлиги, қувур ўтказиш"),
-        (123456809, "Тўраев Бахтиёр", "+998901234567", "Наккаш", "Фарғона", "Фарғона шаҳар", "Миллий нақшлар, девор безаклари"),
-        (123456810, "Саидова Гулшан", "+998902345678", "Мебел устаси", "Андижон", "Андижон шаҳар", "Офис мебели, кухня мебели"),
-        (123456811, "Рахимов Азиз", "+998903456789", "Қурилишчи", "Наманган", "Наманган шаҳар", "Қурилиш материаллари, таъмирлаш"),
-        (123456812, "Каримова Зарина", "+998904567890", "Ошпаз", "Қорақалпоғистон", "Нукус", "Миллий таомлар, тўйлар"),
-        (123456813, "Тошев Элмурод", "+998905678901", "Авто устаси", "Тошкент", "Яшнабад", "Ёқилғи система, мотор таъмири"),
-        (123456814, "Нематова Дилфуза", "+998906789012", "Сартарош", "Тошкент", "Мирабад", "Эркаклар сартарошлиги, соч кесиш"),
-        (123456815, "Ҳамроқулова Мохира", "+998907890123", "Компютер устаси", "Тошкент", "Чилонзор", "Ноутбук таъмири, вирус тозалаш"),
-        (123456816, "Солиев Бехзод", "+998908901234", "Фотограф", "Самарканд", "Самарканд шаҳар", "Маҳсулот фотографияси, студия"),
-        (123456817, "Юлдашева Рано", "+998909012345", "Асосчи", "Бухоро", "Бухоро шаҳар", "Ғисла ишлари, девор оқлаш"),
-        (123456818, "Абдуллаев Шерзод", "+998910123456", "Гулчӣ", "Фарғона", "Фарғона шаҳар", "Маҳсулот гуллари, доға гуллари"),
-        (123456819, "Ҳасанова Муниса", "+998911234567", "Металл ишлари", "Андижон", "Андижон шаҳар", "Металл конструкциялар, эшikлар"),
-        (123456820, "Мирзаев Фаррух", "+998912345678", "Манакур", "Наманган", "Наманган шаҳар", "Француз манакури, гель лак"),
-        (123456821, "Рашидова Дилором", "+998913456789", "Шиша устаси", "Қорақалпоғистон", "Нукус", "Шиша ўрнатиш, жўра ишлари"),
-        (123456822, "Турсунов Сардор", "+998914567890", "Косметолог", "Тошкент", "Яшнабад", "Массаж, парфюмерия"),
-        (123456823, "Олимова Гулчехра", "+998915678901", "Электрик", "Тошкент", "Мирабад", "Чиқиш ишлари, розетка ўрнатиш"),
-        (123456824, "Қодиров Жамшид", "+998916789012", "Тикувчи", "Самарканд", "Самарканд шаҳар", "Кўйлак, шим тикиш"),
-        (123456825, "Умарова Зарина", "+998917890123", "Сантехник", "Бухоро", "Бухоро шаҳар", "Қозон, арматура ишлари"),
-        (123456826, "Тўраева Мохира", "+998918901234", "Наккаш", "Фарғона", "Фарғона шаҳар", "Қадимий нақшлар, реставрация"),
-        (123456827, "Саидов Азиз", "+998919012345", "Мебел устаси", "Андижон", "Андижон шаҳар", "Ётқизув мебели, шкафлар"),
-        (123456828, "Рахимова Дилфуза", "+998920123456", "Қурилишчи", "Наманган", "Наманган шаҳар", "Қоплама ишлари, таъмирлаш"),
-        (123456829, "Каримов Бехзод", "+998921234567", "Ошпаз", "Қорақалпоғистон", "Нукус", "Ресторан таомлари, банкеты"),
-        (123456830, "Тошева Рано", "+998922345678", "Авто устаси", "Тошкент", "Чилонзор", "Маслаф алмаштириш, тормозлар"),
-        (123456831, "Нематов Шерзод", "+998923456789", "Сартарош", "Тошкент", "Мирабад", "Болалар сартарошлиги, модел бериш"),
-        (123456832, "Ҳамроқулов Фаррух", "+998924567890", "Компютер устаси", "Тошкент", "Яшнабад", "Интернет ўрнатиш, тармоқ"),
-        (123456833, "Солиева Дилором", "+998925678901", "Фотограф", "Самарканд", "Самарканд шаҳар", "Видео ишлари, монтаж"),
-        (123456834, "Юлдашев Азиз", "+998926789012", "Асосчи", "Бухоро", "Бухоро шаҳар", "Том қоплама, гидроизоляция"),
+        (123456789, "Ахмедов Карим", "+998901234567", "Электрик", "Тошкент", "Мирабад"),
+        (123456790, "Умаров Бахтиёр", "+998912345678", "Сантехник", "Тошкент", "Чилонзор"),
+        (123456791, "Рахимова Гулчехра", "+998923456789", "Наккаш", "Самарканд", "Самарканд шаҳар"),
+        (123456792, "Тошев Жамшед", "+998934567890", "Мебел устаси", "Бухоро", "Бухоро шаҳар"),
+        (123456793, "Каримова Дилфуза", "+998945678901", "Тикувчи", "Фарғона", "Фарғона шаҳар"),
+        (123456794, "Саидов Бобур", "+998956789012", "Қурилишчи", "Андижон", "Андижон шаҳар"),
+        (123456795, "Нематова Муҳаббат", "+998967890123", "Ошпаз", "Наманган", "Наманган шаҳар"),
+        (123456796, "Қодиров Элмурод", "+998978901234", "Авто устаси", "Қорақалпоғистон", "Нукус"),
+        (123456797, "Тўхтаева Зарина", "+998989012345", "Сартарош", "Хоразм", "Урганч"),
+        (123456798, "Ҳамроқулов Азиз", "+998990123456", "Компютер устаси", "Тошкент", "Яшнабад"),
+        (123456799, "Солиева Мохира", "+998991234567", "Фотограф", "Самарканд", "Самарканд шаҳар"),
+        (123456800, "Юлдашев Фаррух", "+998992345678", "Асосчи", "Бухоро", "Бухоро шаҳар"),
+        (123456801, "Абдуллаева Рано", "+998993456789", "Гулчӣ", "Фарғона", "Фарғона шаҳар"),
+        (123456802, "Ҳасанов Бехзод", "+998994567890", "Металл ишлари", "Андижон", "Андижон шаҳар"),
+        (123456803, "Мирзаева Муниса", "+998995678901", "Манакур", "Наманган", "Наманган шаҳар"),
+        (123456804, "Рашидов Шерзод", "+998996789012", "Шиша устаси", "Қорақалпоғистон", "Нукус"),
+        (123456805, "Турсунова Дилором", "+998997890123", "Косметолог", "Тошкент", "Мирабад"),
+        (123456806, "Олимов Сардор", "+998998901234", "Электрик", "Тошкент", "Чилонзор"),
+        (123456807, "Қодирова Мохира", "+998999012345", "Тикувчи", "Самарканд", "Самарканд шаҳар"),
+        (123456808, "Умаров Жамшид", "+998900123456", "Сантехник", "Бухоро", "Бухоро шаҳар"),
+        (123456809, "Тўраев Бахтиёр", "+998901234567", "Наккаш", "Фарғона", "Фарғона шаҳар"),
+        (123456810, "Саидова Гулшан", "+998902345678", "Мебел устаси", "Андижон", "Андижон шаҳар"),
+        (123456811, "Рахимов Азиз", "+998903456789", "Қурилишчи", "Наманган", "Наманган шаҳар"),
+        (123456812, "Каримова Зарина", "+998904567890", "Ошпаз", "Қорақалпоғистон", "Нукус"),
+        (123456813, "Тошев Элмурод", "+998905678901", "Авто устаси", "Тошкент", "Яшнабад"),
+        (123456814, "Нематова Дилфуза", "+998906789012", "Сартарош", "Тошкент", "Мирабад"),
+        (123456815, "Ҳамроқулова Мохира", "+998907890123", "Компютер устаси", "Тошкент", "Чилонзор"),
+        (123456816, "Солиев Бехзод", "+998908901234", "Фотограф", "Самарканд", "Самарканд шаҳар"),
+        (123456817, "Юлдашева Рано", "+998909012345", "Асосчи", "Бухоро", "Бухоро шаҳар"),
+        (123456818, "Абдуллаев Шерзод", "+998910123456", "Гулчӣ", "Фарғона", "Фарғона шаҳар"),
+        (123456819, "Ҳасанова Муниса", "+998911234567", "Металл ишлари", "Андижон", "Андижон шаҳар"),
+        (123456820, "Мирзаев Фаррух", "+998912345678", "Манакур", "Наманган", "Наманган шаҳар"),
+        (123456821, "Рашидова Дилором", "+998913456789", "Шиша устаси", "Қорақалпоғистон", "Нукус"),
+        (123456822, "Турсунов Сардор", "+998914567890", "Косметолог", "Тошкент", "Яшнабад"),
+        (123456823, "Олимова Гулчехра", "+998915678901", "Электрик", "Тошкент", "Мирабад"),
+        (123456824, "Қодиров Жамшид", "+998916789012", "Тикувчи", "Самарканд", "Самарканд шаҳар"),
+        (123456825, "Умарова Зарина", "+998917890123", "Сантехник", "Бухоро", "Бухоро шаҳар"),
+        (123456826, "Тўраева Мохира", "+998918901234", "Наккаш", "Фарғона", "Фарғона шаҳар"),
+        (123456827, "Саидов Азиз", "+998919012345", "Мебел устаси", "Андижон", "Андижон шаҳар"),
+        (123456828, "Рахимова Дилфуза", "+998920123456", "Қурилишчи", "Наманган", "Наманган шаҳар"),
+        (123456829, "Каримов Бехзод", "+998921234567", "Ошпаз", "Қорақалпоғистон", "Нукус"),
+        (123456830, "Тошева Рано", "+998922345678", "Авто устаси", "Тошкент", "Чилонзор"),
+        (123456831, "Нематов Шерзод", "+998923456789", "Сартарош", "Тошкент", "Мирабад"),
+        (123456832, "Ҳамроқулов Фаррух", "+998924567890", "Компютер устаси", "Тошкент", "Яшнабад"),
+        (123456833, "Солиева Дилором", "+998925678901", "Фотограф", "Самарканд", "Самарканд шаҳар"),
+        (123456834, "Юлдашев Азиз", "+998926789012", "Асосчи", "Бухоро", "Бухоро шаҳар"),
     ]
     
     conn = sqlite3.connect("usta.db")
@@ -913,8 +840,8 @@ async def backup_database(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for master in sample_masters:
         c.execute("""
         INSERT OR REPLACE INTO masters 
-        (telegram_id, name, phone, service, region, district, description)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        (telegram_id, name, phone, service, region, district)
+        VALUES (?, ?, ?, ?, ?, ?)
         """, master)
     
     conn.commit()
@@ -938,16 +865,6 @@ def main():
 
     # find - barcha tillar uchun
     app.add_handler(MessageHandler(filters.Regex("^(Уста топиш|Usta topish|Найти мастера)$"), start_find))
-
-    # rating - barcha tillar uchun
-    app.add_handler(MessageHandler(filters.Regex("^(Баҳо бериш|Baho bering|Оценить)$"), choose_rating))
-    app.add_handler(MessageHandler(filters.Regex("^[1-5]$"), save_rating))
-
-    # top masters - barcha tillar uchun
-    app.add_handler(MessageHandler(filters.Regex("^(Топ-10 усталар|Top-10 ustalar|Топ-10 мастеров)$"), show_top_masters))
-    
-    # stats - barcha tillar uchun
-    app.add_handler(MessageHandler(filters.Regex("^(Статистика|Statistika|Статистика)$"), show_stats))
     
     # profile - barcha tillar uchun
     app.add_handler(MessageHandler(filters.Regex("^(Менинг профилим|Mening profilim|Мой профиль)$"), my_profile))
@@ -959,33 +876,14 @@ def main():
     app.add_handler(MessageHandler(filters.Regex("^🌐 Tilni o'zgartirish$"), change_language))
     app.add_handler(MessageHandler(filters.Regex("^🌐 Изменить язык$"), change_language))
 
+    # stats - barcha tillar uchun
+    app.add_handler(MessageHandler(filters.Regex("^(Статистика|Statistika|Статистика)$"), show_stats))
+
     # ⭐ ЭНГ МУҲИМИ
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_router))
 
     print("Bot is running...")
     app.run_polling()
 
-if __name__ == "__main__": main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+if __name__ == "__main__":
+    main()
