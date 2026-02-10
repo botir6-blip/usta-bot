@@ -117,7 +117,7 @@ REGIONS_UZ_LT = {
     "Jizzax viloyati": [
         "Jizzax shahar", "Paxtakor", "G'allaorol", "Do'stlik", "Baxmal",
         "Arnasoy", "Mirzachul", "Forish", "Yangiobod", "Zarbdor",
-        "Zafarobod", "Zomin, "Sh.Rashidov"
+        "Zafarobod", "Zomin", "Sh.Rashidov"
     ],
     "Sirdaryo viloyati": [
         "Guliston shahar", "Sirdaryo", "Oqoltin", "Sayxunobod",
