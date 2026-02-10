@@ -362,7 +362,7 @@ async def choose_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     region = update.message.text
     context.user_data["region"] = region
-    context.user_data["step"] = "city"
+    context.user_data["step"] = "district"
     
     # Tilga mos "Қайси шаҳар?" matni
     if language == "uz_kr":
@@ -901,4 +901,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
