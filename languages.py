@@ -18,7 +18,7 @@ UZ_KR = {
     "main_menu": [
         ["Уста топиш", "Уста бўлиш"],
         ["Статистика", "Менинг профилим"],
-        ["Рўйхатдан чиқиш", "💾 Backup"],
+        ["Рўйхатдан чиқиш", "Админга ёзиш"],
         ["🌐 Тилни ўзгартиш"]
     ],
     "welcome": "Ассалому алайкум! Танланг:",
@@ -31,7 +31,8 @@ UZ_KR = {
     "choose_service": "Касбни танланг:",
     "choose_region": "Вилоятни танланг:",
     "choose_district": "Туманни танланг:",
-    "write_description": "Ўзингиз ҳақингизда қисқача ёзинг:",
+    "enter_age": "Ёшингизни киритинг:",
+    "enter_experience": "Неча йиллик тажрибангиз бор?",
     "success_register": "✅ Сиз рўйхатдан ўтдингиз!",
     
     # Usta топиш
@@ -79,7 +80,7 @@ UZ_LT = {
     "main_menu": [
         ["Usta topish", "Usta bo'lish"],
         ["Statistika", "Mening profilim"],
-        ["Ro'yxatdan chiqish", "💾 Backup"],
+        ["Ro'yxatdan chiqish", "Adminga yozish"],
         ["🌐 Tilni o'zgartirish"]
     ],
     "welcome": "Assalomu alaykum! Tanlang:",
@@ -92,7 +93,8 @@ UZ_LT = {
     "choose_service": "Kasbni tanlang:",
     "choose_region": "Viloyatni tanlang:",
     "choose_district": "Tumanni tanlang:",
-    "write_description": "O'zingiz haqingizda qisqacha yozing:",
+    "enter_age": "Yoshingizni kiriting:",
+    "enter_experience": "Necha yillik tajribangiz bor?",
     "success_register": "✅ Siz ro'yxatdan o'tdingiz!",
     
     # Usta topish
@@ -140,7 +142,7 @@ RU = {
     "main_menu": [
         ["Найти мастера", "Стать мастером"],
         ["Статистика", "Мой профиль"],
-        ["Выйти", "💾 Backup"],
+        ["Выйти", "Написать админу"],
         ["🌐 Изменить язык"]
     ],
     "welcome": "Здравствуйте! Выберите:",
@@ -153,7 +155,8 @@ RU = {
     "choose_service": "Выберите профессию:",
     "choose_region": "Выберите область:",
     "choose_district": "Выберите район:",
-    "write_description": "Напишите кратко о себе:",
+    "enter_age": "Введите ваш возраст:",
+    "enter_experience": "Сколько лет опыта?",
     "success_register": "✅ Вы успешно зарегистрированы!",
     
     # Поиск мастеров

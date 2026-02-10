@@ -4,6 +4,7 @@ from services import SERVICES
 from regions import REGIONS
 from languages import LANGUAGES, get_texts, LANGUAGE_NAMES
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -12,7 +13,7 @@ from telegram.ext import (
     filters,
 )
 
-TOKEN = ""
+TOKEN = "7573364452:AAGLlRK5ig6xb7t1teeXgTRi_5VZKK4Xl0U"
 
 # ================= DATABASE =================
 def init_db():
@@ -219,19 +220,15 @@ async def choose_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Фикр-мулохазалар ва шикоятлар
         feedback_text = ""
         if language == "uz_kr":
-            feedback_text = "💡 Фикр-мулохазалар ва шикоятлар:\n\n📞 +998994150020\n🤖 Ботдан фойдаланиш учун раҳмат:"
+            feedback_text = "💡 Фикр-мулохазалар ва шикоятлар:\n\n" "@botir_support"
         elif language == "uz_lt":
-            feedback_text = "💡 Fikr-mulohazalar va shikoyatlar:\n\n📞 +998994150020\n🤖 Botdan foydalanish uchun ma'lumot:"
+            feedback_text = "💡 Fikr-mulohazalar va shikoyatlar:\n\n" "@botir_support"
         else:  # ru
-            feedback_text = "💡 Замечания и предложения:\n\n📞 +998994150020\n🤖 Информация по использованию бота:"
+            feedback_text = "💡 Замечания и предложения:\n\n" "@botir_support"
         
-        welcome_with_feedback = texts["welcome"] + "\n\n" + feedback_text
-        
-        await update.message.reply_text(
-            welcome_with_feedback,
-            reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True)
-        )
+        await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
     else:
+
         await update.message.reply_text(
             "Илтимос, тилни танланг:",
             reply_markup=build_language_menu()
@@ -374,11 +371,22 @@ async def choose_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await update.message.reply_text(question, reply_markup=build_city_menu(region, language))
 
+async def write_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [
+        [InlineKeyboardButton("📩 Админга ёзиш", url="https://t.me/botir_support")]
+    ]
+
+    await update.message.reply_text("Админ билан боғланиш учун тугмани босинг:", reply_markup=InlineKeyboardMarkup(keyboard))
+
 async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
     
+    if text in ["📩 Админга ёзиш", "📩 Написать админу", "📩 Adminga yozish", "Админга ёзиш", "Написать админу", "Adminga yozish"]:
+        await write_admin(update, context)
+        return
+
     # Орқага тугмаси - barcha tillardagi variantlar
     back_variants = ["Орқага", "Orqaga", "Назад"]
     if text in back_variants:
@@ -463,22 +471,12 @@ async def get_age(update: Update, context: ContextTypes.DEFAULT_TYPE):
     age = clean_text(update.message.text)
     
     if not age or not age.isdigit() or len(age) > 2:
-        if language == "uz_kr":
-            await update.message.reply_text("Илтимос, ёшни киритинг):", reply_markup=ReplyKeyboardRemove())
-        elif language == "uz_lt":
-            await update.message.reply_text("Iltimos, yoshingizni kiriting):", reply_markup=ReplyKeyboardRemove())
-        else:  # ru
-            await update.message.reply_text("Пожалуйста, введите ваш возраст):", reply_markup=ReplyKeyboardRemove())
-        return
+        
+        await update.message.reply_text(texts["enter_age"])
     
     context.user_data["age"] = age
     
-    if language == "uz_kr":
-        await update.message.reply_text("Тажрибангиз неча йил)?", reply_markup=ReplyKeyboardRemove())
-    elif language == "uz_lt":
-        await update.message.reply_text("Tajribangiz necha yil)?", reply_markup=ReplyKeyboardRemove())
-    else:  # ru
-        await update.message.reply_text("Сколько лет у вас опыта)?", reply_markup=ReplyKeyboardRemove())
+    await update.message.reply_text(texts["enter_experience"])
     
     context.user_data["step"] = "experience"
 
