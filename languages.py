@@ -16,9 +16,8 @@ LANGUAGE_NAMES = {
 UZ_KR = {
     # Asosiy menyular
     "main_menu": [
-        ["Уста топиш"],
-        ["Уста бўлиш", "Статистика"],
-        ["Менинг профилим"],
+        ["Уста топиш", "Уста бўлиш"],
+        ["Статистика", "Менинг профилим"],
         ["Рўйхатдан чиқиш", "💾 Backup"],
         ["🌐 Тилни ўзгартиш"]
     ],
@@ -55,7 +54,7 @@ UZ_KR = {
     
     # Рўйхатдан чиқиш
     "unregister": "Рўйхатдан чиқиш",
-    "unregistered_success": "❌ Уста сифатидан ўчирилди ва барча рейтиглар ўчирилди",
+    "unregistered_success": "❌ Уста сифатидан ўчирилди",
     "not_registered": "❌ Сиз уста сифатида рўйхатдан ўтмагансиз",
     
     # Топ-10
@@ -78,9 +77,8 @@ UZ_KR = {
 UZ_LT = {
     # Asosiy menyular
     "main_menu": [
-        ["Usta topish"],
-        ["Usta bo'lish", "Statistika"],
-        ["Mening profilim"],
+        ["Usta topish", "Usta bo'lish"],
+        ["Statistika", "Mening profilim"],
         ["Ro'yxatdan chiqish", "💾 Backup"],
         ["🌐 Tilni o'zgartirish"]
     ],
@@ -113,11 +111,11 @@ UZ_LT = {
     
     # Profil
     "my_profile": "Mening profilim",
-    "not_master": "Sizusta emassiz",
+    "not_master": "Siz usta emassiz",
     
     # Ro'yxatdan chiqish
     "unregister": "Ro'yxatdan chiqish",
-    "unregistered_success": "❌ Usta sifatidan ochirildi va barcha reytinglar ochirildi",
+    "unregistered_success": "❌ Usta sifatidan ochirildi",
     "not_registered": "❌ Siz usta sifatida ro'yxatdan o'tmaganingiz",
     
     # Top-10
@@ -140,9 +138,8 @@ UZ_LT = {
 RU = {
     # Основные меню
     "main_menu": [
-        ["Найти мастера"],
-        ["Стать мастером", "Статистика"],
-        ["Мой профиль"],
+        ["Найти мастера", "Стать мастером"],
+        ["Статистика", "Мой профиль"],
         ["Выйти", "💾 Backup"],
         ["🌐 Изменить язык"]
     ],
@@ -179,7 +176,7 @@ RU = {
     
     # Выход
     "unregister": "Выйти",
-    "unregistered_success": "❌ Вы вышли из системы, все оценки удалены",
+    "unregistered_success": "❌ Вы вышли из системы",
     "not_registered": "❌ Вы не зарегистрированы как мастер",
     
     # Топ-10
