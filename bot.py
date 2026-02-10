@@ -115,11 +115,11 @@ def find_masters(service, region, district):
     c = conn.cursor()
 
     c.execute("""
-    SELECT id, name, phone, region, district, service
+    SELECT id, name, phone, region, district, service, age, experience
     FROM masters
-    WHERE service=? AND region=? AND district=?
+    WHERE service LIKE ? AND region LIKE ? AND district LIKE ?
     GROUP BY masters.id
-    """, (service, region, district))
+    """, ("%" + service + "%", "%" + region + "%", "%" + district + "%"))
 
     data = c.fetchall()
     conn.close()
@@ -901,5 +901,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
