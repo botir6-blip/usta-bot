@@ -36,84 +36,88 @@ REGIONS_UZ_KR = {
         "Амударё", "Элликқалъа", "Бузатов", "Канликул"
     ],
     "Хоразм вилояти": [
-        "Урганч шаҳар", "Хива", "Хонқа", "Қўшкўпир", "Янгиариқ", "Бозота",
-        "Шовот", "Газлар", "Хазорасп", "Урганч"
+        "Урганч шаҳар", "Хива", "Хонқа", "Қўшкўпир", "Янгиариқ", "Богот",
+        "Шовот", "Гурлан", "Хазорасп", "Янгибозор", "Тупроккалъа"
     ],
     "Қашқадарё вилояти": [
-        "Қарши шаҳар", "Шахрисабз", "Касон", "Китоб", "Мирзочул", "Нишон",
-        "Томас", "Чироқчи", "Деққонобод", "Муборак", "Қамashi", "Янгиназар",
-        "Сохиб", "Гузар", "Косон"
+        "Қарши шаҳар", "Шахрисабз", "Косон", "Китоб", "Миришкор", "Нишон",
+        "Яккабог", "Чироқчи", "Деққонобод", "Муборак", "Қамaши", "Кукдала",
+        "Касби", "Гузор"
     ],
     "Сурхондарё вилояти": [
-        "Термиз шаҳар", "Бойсун", "Жарқўрғон", "Кумқўрғон", "Олтинкўл",
-        "Сарийосиё", "Узун", "Шеробод", "Музрабод", "Ангор", "Термиз"
+        "Термиз шаҳар", "Бойсун", "Жарқўрғон", "Кумқўрғон", "Олтинсой",
+        "Сариосиё", "Узун", "Шеробод", "Музработ", "Ангор", "Бандихон",
+        "Денов", "Кизирик", "Шурчи"
     ],
     "Жиззах вилояти": [
         "Жиззах шаҳар", "Пахтакор", "Галлаорол", "Дустлик", "Бахмал",
-        "Арнасой", "Мирзочул", "Фориш", "Янгиобод", "Жиззах"
+        "Арнасой", "Мирзачул", "Фориш", "Янгиобод", "Зарбдор",
+        "Зафаробод", "Зомин", "Ш.Рашидов"
     ],
     "Сирдарё вилояти": [
-        "Гулистон шаҳар", "Бахт", "Сирдарё", "Оққургон", "Сайхунобод",
-        "Хаваст", "Мирзобод", "Сардоба", "Гулистон"
+        "Гулистон шаҳар", "Сирдарё", "Оқолтин", "Сайхунобод",
+        "Ховос", "Мирзаобод", "Сардоба", "Боёвут"
     ],
     "Тошкент вилояти": [
-        "Тошкент шаҳар", "Бекабад", "Чирчиқ", "Ангрен", "Олмалиқ",
-        "Паркент", "Қуйичирчиқ", "Боштўрғон", "Занғиота", "Қибрай",
-        "Уртачирчиқ", "Ахангаран", "Пскент", "Тошкент"
+        "Зангиота", "Бекобод", "Куйи Чирчиқ", "Янгийул", "Оккургон",
+        "Паркент", "Юкори чирчиқ", "Чиноз", "Бука", "Қибрай",
+        "Урта чирчиқ", "Охангарон", "Пискент", "Бустонлик"
     ]
 }
 
 # O'zbek (lotin)
 REGIONS_UZ_LT = {
     "Toshkent": [
-        "Mirabad", "Chilonzor", "Yashnobod", "Yunusobod", "Mirzo Ulug'bek",
-        "Shayxontohur", "Olmazor", "Sergili", "Bektemir", "Yakkasaroy",
-        "Uchtepa", "Yangihayot", "Sobir Raximov", "Olmaliq", "Kukcha"
+        "Mirobod", "Chilonzor", "Yashnobod", "Yunusobod", "Mirzo Ulug'bek",
+        "Shayxontohur", "Olmazor", "Sergeli", "Bektemir", "Yakkasaroy",
+        "Uchtepa", "Yangihayot"
     ],
     "Samarqand viloyati": [
-        "Samarqand shahar", "Qatqo'rg'on", "Paxtachi", "Nurobod", "Qo'shrabot",
-        "Urgut", "Ishtixon", "Payariq", "Qatqo'rg'on", "To'loq", "Jombo'y",
-        "Bulung'ur", "Turkobod", "Axror", "Narpay", "Qo'shqadaryo", "Registon"
+        "Samarqand shahar", "Paxtachi", "Nurobod", "Qo'shrabot",
+        "Urgut", "Ishtixon", "Payariq", "Kattaqo'rg'on", "To'yloq", "Jombo'y",
+        "Bulung'ur", "Narpay", "Oqdaryo", "Pastdarg'om"
     ],
     "Buxoro viloyati": [
         "Buxoro shahar", "Qorako'l", "Vobkent", "Jondor", "Kogon", "Olot",
-        "G'ijduvon", "Romitan", "Shofirkon", "Peshko", "Qorako'l", "Kogon"
+        "G'ijduvon", "Romitan", "Shofirkon", "Peshku", "Qorovulbozor"
     ],
     "Farg'ona viloyati": [
-        "Farg'ona shahar", "Qo'qon", "Marg'ilon", "Beshariq", "Buvayda",
-        "Oltiariq", "To'loq", "Fuqat", "Uchko'prik", "Yozyovon", "Dang'ara",
-        "Ahunboboyev", "Bo'god", "Quva", "Rishton", "Sux", "Qo'qon"
+        "Farg'ona shahar", "Beshariq", "Buvayda", "Qushtepa",
+        "Oltiariq", "Toshloq", "Furqat", "Uchko'prik", "Yozyovon", "Dang'ara",
+        "O'zbekiston", "Ba'gdod", "Quva", "Rishton", "Sux"
     ],
     "Andijon viloyati": [
-        "Andijon shahar", "Xonobod", "Shahrixon", "Paxtaobod", "Qo'rg'ontepa",
-        "Qo'qonqo't", "Baliqchi", "Buza", "Joloquduq", "Xo'jaobod", "Marhamot",
-        "Ulug'nor", "Asaka", "Andijon"
+        "Andijon shahar", "Buston", "Shahrixon", "Paxtaobod", "Qo'rg'ontepa",
+        "Buloqboshi", "Baliqchi", "Izboskan", "Jalaquduq", "Oltinko'l", "Marhamat",
+        "Ulug'nor", "Asaka", "Xujaobod"
     ],
     "Namangan viloyati": [
-        "Namangan shahar", "Chust", "Kosonsoy", "Pop", "Uychin", "Uchqo'rg'on",
-        "To'raqo'rg'on", "Chortoq", "Mingbuloq", "Yangiqo'rg'on", "Namangan"
+        "Namangan shahar", "Chust", "Kosonsoy", "Pop", "Uychi", "Uchqo'rg'on",
+        "To'raqo'rg'on", "Chortoq", "Mingbuloq", "Yangiqo'rg'on", "Norin"
     ],
     "Qoraqalpog'iston Respublikasi": [
-        "Nukus shahar", "To'rtko'l", "Chimbay", "Ko'ko'z", "Xo'jayli", "Qo'nghiro't",
+        "Nukus shahar", "To'rtko'l", "Chimboy", "Taxtakupir", "Xo'jayli", "Qo'nghiro't",
         "Taxiatosh", "Beruniy", "Kegeyli", "Mo'ynoq", "Shumanay", "Qorao'zak",
-        "Amudaryo", "Elliqqal'a"
+        "Amudaryo", "Ellikqal'a", "Buzatov", "Qanliko'l"
     ],
     "Xorazm viloyati": [
-        "Urganch shahar", "Xiva", "Xonqa", "Qo'shko'pir", "Yangiariq", "Bozota",
-        "Shovot", "Gazlar", "Xazorasp", "Urganch"
+        "Urganch shahar", "Xiva", "Xonqa", "Qo'shko'pir", "Yangiariq", "Bog'ot",
+        "Shovot", "Gurlan", "Xazorasp", "Yangibozor", "Tuproqqak'a"
     ],
     "Qashqadaryo viloyati": [
-        "Qarshi shahar", "Shahrisabz", "Koson", "Kitob", "Mirzachul", "Nishon",
-        "Tomas", "Chiroqchi", "Deqqonobod", "Muborak", "Qamashi", "Yanginazar",
-        "Sohib", "G'uzar", "Koson"
+        "Qarshi shahar", "Shahrisabz", "Koson", "Kitob", "Mirishkor", "Nishon",
+        "Yakkabog'", "Chiroqchi", "Dexqonobod", "Muborak", "Qamashi", "Ko'kdala",
+        "Kasbi", "G'uzor"
     ],
     "Surxondaryo viloyati": [
-        "Termiz shahar", "Boysun", "Jarqo'rg'on", "Qumqo'rg'on", "Oltinko'l",
-        "Sariosiyo", "Uzun", "Sherobod", "Muzrabod", "Angor", "Termiz"
+        "Termiz shahar", "Boysun", "Jarqo'rg'on", "Qumqo'rg'on", "Oltinsoy",
+        "Sariosiyo", "Uzun", "Sherobod", "Muzrabot", "Angor", "Bandixon",
+        "Denov", "Qiziriq", "Sho'rchi"
     ],
     "Jizzax viloyati": [
-        "Jizzax shahar", "Paxtakor", "Gallaorol", "Do'stlik", "Baxmal",
-        "Arnasoy", "Mirzachul", "Forish", "Yangiobod", "Jizzax"
+        "Jizzax shahar", "Paxtakor", "G'allaorol", "Do'stlik", "Baxmal",
+        "Arnasoy", "Mirzachul", "Forish", "Yangiobod", "Zarbdor",
+        "Zafarobod", "Zomin, "Sh.Rashidov"
     ],
     "Sirdaryo viloyati": [
         "Guliston shahar", "Baxt", "Sirdaryo", "Oqqo'rg'on", "Sayxunobod",
