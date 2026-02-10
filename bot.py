@@ -150,9 +150,8 @@ def delete_master(telegram_id):
 
 # ================= MENUS =================
 MAIN_MENU = ReplyKeyboardMarkup([
-    ["Уста топиш"],
-    ["Уста бўлиш", "Статистика"],
-    ["Менинг профилим"],
+    ["Уста топиш", "Уста бўлиш"],
+    ["Менинг профилим", "Статистика"],
     ["Рўйхатдан чиқиш", "💾 Backup"]
 ], resize_keyboard=True)
 
@@ -220,11 +219,11 @@ async def choose_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Фикр-мулохазалар ва шикоятлар
         feedback_text = ""
         if language == "uz_kr":
-            feedback_text = "💡 Фикр-мулохазалар ва шикоятлар:\n\n📞 +9981234567\n🌐 www.usta-bot.uz\n🤖 Ботдан фойдаланиш учун раҳмат:"
+            feedback_text = "💡 Фикр-мулохазалар ва шикоятлар:\n\n📞 +998994150020\n🤖 Ботдан фойдаланиш учун раҳмат:"
         elif language == "uz_lt":
-            feedback_text = "💡 Fikr-mulohazalar va shikoyatlar:\n\n📞 +9981234567\n🌐 www.usta-bot.uz\n🤖 Botdan foydalanish uchun ma'lumot:"
+            feedback_text = "💡 Fikr-mulohazalar va shikoyatlar:\n\n📞 +998994150020\n🤖 Botdan foydalanish uchun ma'lumot:"
         else:  # ru
-            feedback_text = "💡 Замечания и предложения:\n\n📞 +9981234567\n🌐 www.usta-bot.uz\n🤖 Информация по использованию бота:"
+            feedback_text = "💡 Замечания и предложения:\n\n📞 +998994150020\n🤖 Информация по использованию бота:"
         
         welcome_with_feedback = texts["welcome"] + "\n\n" + feedback_text
         
@@ -677,7 +676,7 @@ async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # Янги майдонларни қўшиш
     if age:
-        profile_text += f"\n🎂 Йош: {age}"
+        profile_text += f"\n🎂 Ёш: {age}"
     if experience:
         profile_text += f"\n💼 Тажриба: {experience}"
     if education:
@@ -902,3 +901,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
