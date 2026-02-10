@@ -12,7 +12,7 @@ from telegram.ext import (
     filters,
 )
 
-TOKEN = "7573364452:AAGLlRK5ig6xb7t1teeXgTRi_5VZKK4Xl0U"
+TOKEN = ""
 
 # ================= DATABASE =================
 def init_db():
@@ -901,6 +901,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
