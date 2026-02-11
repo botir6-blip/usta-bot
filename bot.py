@@ -258,24 +258,18 @@ def log_user(user):
     conn.close()
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        context.user_data.clear()
-        log_user(update.effective_user)
+    log_user(update.effective_user)
 
-        if not context.user_data.get("language"):
-            await update.message.reply_text(
-                "🌐 Tilni tanlang:",
-                reply_markup=build_language_menu()
-            )
-        else:
-            language = context.user_data["language"]
-            texts = get_texts(language)
-            await update.message.reply_text(
-                texts["welcome"],
-                reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True)
-            )
-    except Exception as e:
-        await update.message.reply_text(f"Xato: {e}")
+    language = context.user_data.get("language")
+
+    if not language:
+        await update.message.reply_text("🌐 Tilni tanlang:", reply_markup=build_language_menu())
+        return
+
+    texts = get_texts(language)
+
+    await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
+
 
 # ================= SO'ZLARNI TOZALASH =================
 def clean_text(text):
@@ -899,6 +893,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
