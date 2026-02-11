@@ -257,19 +257,15 @@ def log_user(user):
     conn.commit()
     conn.close()
 
-# ================= START =================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data.clear()
-    log_user(update.effective_user)  # Foydalanuvchini yozish
-    
-    # Agar til tanlanmagan bo'lsa, til tanlash
+    log_user(update.effective_user)
+
     if not context.user_data.get("language"):
         await update.message.reply_text(
             "🌐 Tilni tanlang / Выберите язык:\nChoose language:",
             reply_markup=build_language_menu()
         )
     else:
-        # Til tanlangan bo'lsa, asosiy menuni ko'rsatish
         language = context.user_data["language"]
         texts = get_texts(language)
         await update.message.reply_text(
@@ -898,6 +894,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
