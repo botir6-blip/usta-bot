@@ -891,13 +891,14 @@ def main():
     app.add_handler(MessageHandler(filters.Regex("^(Статистика|Statistika|Статистика)$"), show_stats))
 
     # ⭐ ЭНГ МУҲИМИ
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_router))
+
 
     print("Bot is running...")
     app.run_polling()
 
 if __name__ == "__main__":
     main()
+
 
 
 
