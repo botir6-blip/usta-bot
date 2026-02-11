@@ -65,49 +65,30 @@ def init_db():
 
 # ================= USTA QO‘SHISH =================
 def add_master(telegram_id, name, phone, service, region, district, age=None, experience=None):
-    # Barcha maydonlarni tozalash
-    name = clean_text(name) if name else ""
-    phone = clean_text(phone) if phone else ""
-    service = clean_text(service) if service else ""
-    region = clean_text(region) if region else ""
-    district = clean_text(district) if district else ""
-    
-    # Хақида маълумотларни олиш
-    age = age or ""
-    experience = experience or ""
-    
-    # Minimal tekshirish
-    if not name or not phone or not service or not region or not district:
-        return False
-    
+    from datetime import datetime
+    import psycopg2, os
+
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
 
-    # Avval eski ustani ID sini topamiz
-    c.execute("SELECT id FROM masters WHERE telegram_id=?", (telegram_id,))
-    old_master = c.fetchone()
-    
-    # Yangi ustani qo'shamiz (yoki yangilaymiz)
-    c.execute(""" 
-    INSERT OR REPLACE INTO masters
-    (telegram_id, name, phone, service, region, district, age, experience)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (telegram_id, name, phone, service, region, district, age, experience))
-    
-    # Agar eski usta bo'lsa, reytinglarni yangi ID bilan bog'lash
-    if old_master:
-        old_master_id = old_master[0]
-        new_master_id = c.lastrowid  # Yangi qo'shilgan ustani ID si
-        c.execute(""" 
-        UPDATE ratings 
-        SET master_id = ?
-        WHERE master_id = ?
-        """, (new_master_id, old_master_id))
-    
+    c.execute("""
+    INSERT INTO masters (telegram_id, name, phone, service, region, district, age, experience)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+    ON CONFLICT (telegram_id)
+    DO UPDATE SET
+        name = EXCLUDED.name,
+        phone = EXCLUDED.phone,
+        service = EXCLUDED.service,
+        region = EXCLUDED.region,
+        district = EXCLUDED.district,
+        age = EXCLUDED.age,
+        experience = EXCLUDED.experience
+    """, (
+        telegram_id, name, phone, service, region, district, age, experience
+    ))
+
     conn.commit()
     conn.close()
-    return True
-
 
 # ================= USTANI TOPISH =================
 def find_masters(service, region, district):
@@ -901,6 +882,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
