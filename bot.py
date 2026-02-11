@@ -359,10 +359,12 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texts = get_texts(language)
     
     # ADMIN
-    admin_buttons = [...]
-    if text in admin_buttons:
+    admin_buttons = ["Админга ёзиш", "Написать админу", "Adminga yozish", "📩 Админга ёзиш", "✍️ Админга ёзиш"]
+
+    if "админ" in text.lower() or "yoz" in text.lower():
         await write_admin(update, context)
         return
+
     
     # Статистика
     if text in ["Статистика", "Statistika"]:
@@ -630,8 +632,6 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(text, reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
 
 # ================= PROFILE =================
-
-# ================= PROFILE =================
 async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
@@ -883,6 +883,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
