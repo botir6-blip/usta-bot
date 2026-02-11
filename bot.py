@@ -1,5 +1,5 @@
 import os
-import sqlite3
+import psycopg2
 from services import SERVICES
 from regions import REGIONS
 from languages import LANGUAGES, get_texts, LANGUAGE_NAMES
@@ -16,7 +16,7 @@ from telegram.ext import (
 TOKEN = os.getenv("TOKEN")
 # ================= DATABASE =================
 def init_db():
-    conn = sqlite3.connect("usta.db")
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
 
     # ====== USTALAR ======
@@ -893,6 +893,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
