@@ -358,16 +358,16 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
     
+    # ADMIN
+    admin_buttons = [...]
+    if text in admin_buttons:
+        await write_admin(update, context)
+        return
+    
     # Статистика
     if text in ["Статистика", "Statistika"]:
         await show_stats(update, context)
         return
-
-    if "админ" in text.lower():
-        await write_admin(update, context)
-        return
-
-
 
     # Орқага тугмаси - barcha tillardagi variantlar
     back_variants = ["Орқага", "Orqaga", "Назад"]
@@ -883,6 +883,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
