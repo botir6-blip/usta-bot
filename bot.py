@@ -241,18 +241,20 @@ def log_user(user):
     c = conn.cursor()
     
     c.execute("""
-    INSERT OR REPLACE INTO users 
-    (telegram_id, username, first_name, last_name, join_date, last_active, message_count)
-    VALUES (?, ?, ?, ?, 
-        COALESCE((SELECT join_date FROM users WHERE telegram_id=?), ?),
-        ?, 
-        COALESCE((SELECT message_count FROM users WHERE telegram_id=?), 0) + 1)
-    """, (
-        user.id, user.username, user.first_name, user.last_name,
-        user.id, datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        user.id
-    ))
+INSERT INTO users (telegram_id, username, first_name, last_name, join_date, last_active, message_count)
+VALUES (%s, %s, %s, %s, %s, %s, 1)
+ON CONFLICT (telegram_id)
+DO UPDATE SET
+last_active = EXCLUDED.last_active,
+message_count = users.message_count + 1
+""", (
+    user.id,
+    user.username,
+    user.first_name,
+    user.last_name,
+    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+))
     
     conn.commit()
     conn.close()
@@ -899,6 +901,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
