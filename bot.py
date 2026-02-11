@@ -98,7 +98,7 @@ def find_masters(service, region, district):
     c.execute("""
     SELECT id, name, phone, region, district, service, age, experience
     FROM masters
-    WHERE service LIKE ? AND region LIKE ? AND district LIKE ?
+    WHERE service LIKE %s AND region LIKE %s AND district LIKE %s
     GROUP BY masters.id
     """, ("%" + service + "%", "%" + region + "%", "%" + district + "%"))
 
@@ -113,15 +113,15 @@ def delete_master(telegram_id):
     c = conn.cursor()
 
     # Avval ustani ID sini topamiz
-    c.execute("SELECT id FROM masters WHERE telegram_id=?", (telegram_id,))
+    c.execute("SELECT id FROM masters WHERE telegram_id=%s", (telegram_id,))
     master = c.fetchone()
     
     if master:
         master_id = master[0]
         # AVVAL reytinglarni o'chiramiz
-        c.execute("DELETE FROM ratings WHERE master_id=?", (master_id,))
+        c.execute("DELETE FROM ratings WHERE master_id=%s", (master_id,))
         # KEYIN ustani o'chiramiz
-        c.execute("DELETE FROM masters WHERE telegram_id=?", (telegram_id,))
+        c.execute("DELETE FROM masters WHERE telegram_id=%s", (telegram_id,))
         print(f"Usta {master_id} va uning {c.rowcount} ta reytingi ochirildi")
     
     conn.commit()
@@ -336,13 +336,13 @@ async def choose_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["region"] = region
     context.user_data["step"] = "district"
     
-    # Tilga mos "Қайси шаҳар?" matni
+    # Tilga mos "Қайси шаҳар%s" matni
     if language == "uz_kr":
-        question = "Қайси шаҳар?"
+        question = "Қайси шаҳар%s"
     elif language == "uz_lt":
-        question = "Qaysi shahar?"
+        question = "Qaysi shahar%s"
     else:  # ru
-        question = "Какой город?"
+        question = "Какой город%s"
     
     await update.message.reply_text(question, reply_markup=build_city_menu(region, language))
 
@@ -553,7 +553,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     c.execute("""
     SELECT m.id, m.name, m.phone, m.district, m.age, m.experience
     FROM masters m
-    WHERE m.service=? AND m.region=? AND m.district=?
+    WHERE m.service=%s AND m.region=%s AND m.district=%s
     GROUP BY m.id
     """, (service, region, district))
 
@@ -641,7 +641,7 @@ async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
-    c.execute("SELECT name, phone, service, region, district, age, experience, education, skills FROM masters WHERE telegram_id=?", (user,))
+    c.execute("SELECT name, phone, service, region, district, age, experience, education, skills FROM masters WHERE telegram_id=%s", (user,))
     row = c.fetchone()
     conn.close()
 
@@ -834,7 +834,7 @@ async def backup_database(update: Update, context: ContextTypes.DEFAULT_TYPE):
         c.execute("""
         INSERT OR REPLACE INTO masters 
         (telegram_id, name, phone, service, region, district)
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s)
         """, master)
     
     conn.commit()
@@ -882,6 +882,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
