@@ -79,7 +79,7 @@ def add_master(telegram_id, name, phone, service, region, district, age=None, ex
     if not name or not phone or not service or not region or not district:
         return False
     
-    conn = sqlite3.connect("usta.db")
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
 
     # Avval eski ustani ID sini topamiz
@@ -110,7 +110,7 @@ def add_master(telegram_id, name, phone, service, region, district, age=None, ex
 
 # ================= USTANI TOPISH =================
 def find_masters(service, region, district):
-    conn = sqlite3.connect("usta.db")
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
 
     c.execute("""
@@ -127,7 +127,7 @@ def find_masters(service, region, district):
 
 # ================= RO‘YXATDAN CHIQARISH =================
 def delete_master(telegram_id):
-    conn = sqlite3.connect("usta.db")
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
 
     # Avval ustani ID sini topamiz
@@ -236,7 +236,7 @@ async def choose_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def log_user(user):
     from datetime import datetime
     
-    conn = sqlite3.connect("usta.db")
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
     
     c.execute("""
@@ -563,7 +563,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     region = context.user_data.get("region")
     district = context.user_data.get("district")
 
-    conn = sqlite3.connect("usta.db")
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
 
     c.execute("""
@@ -601,7 +601,7 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
     
-    conn = sqlite3.connect("usta.db")
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
     
     # Jami foydalanuvchilar
@@ -655,7 +655,7 @@ async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     user = update.effective_user.id
 
-    conn = sqlite3.connect("usta.db")
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
     c.execute("SELECT name, phone, service, region, district, age, experience, education, skills FROM masters WHERE telegram_id=?", (user,))
     row = c.fetchone()
@@ -720,7 +720,7 @@ async def backup_database(update: Update, context: ContextTypes.DEFAULT_TYPE):
         import json
         from datetime import datetime
         
-        conn = sqlite3.connect("usta.db")
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
         c = conn.cursor()
         
         # Barcha ustalarni olish
@@ -843,7 +843,7 @@ async def backup_database(update: Update, context: ContextTypes.DEFAULT_TYPE):
         (123456834, "Юлдашев Азиз", "+998926789012", "Асосчи", "Бухоро", "Бухоро шаҳар"),
     ]
     
-    conn = sqlite3.connect("usta.db")
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
     
     for master in sample_masters:
@@ -898,6 +898,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
