@@ -363,9 +363,10 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await show_stats(update, context)
         return
 
-    if text in ["📩 Админга ёзиш", "📩 Написать админу", "📩 Adminga yozish"]:
+    if "админ" in text.lower():
         await write_admin(update, context)
         return
+
 
 
     # Орқага тугмаси - barcha tillardagi variantlar
@@ -882,6 +883,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
