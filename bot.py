@@ -859,6 +859,7 @@ async def backup_database(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("50 ta namuna usta ma'lumotlari bazaga qo'shildi")
 
 def main():
+    print("TOKEN:", TOKEN)
     print("Bot is starting...")
     init_db()
     # populate_sample_data()  # Namuna ma'lumotlarni qo'shish
@@ -897,6 +898,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
