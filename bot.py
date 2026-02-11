@@ -1,3 +1,4 @@
+print("BOT.PY ISHLADI 🔥")
 import os
 import sqlite3
 from services import SERVICES
@@ -898,6 +899,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
