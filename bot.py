@@ -356,11 +356,23 @@ async def choose_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(question, reply_markup=build_city_menu(region, language))
 
 async def write_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton("📩 Админга ёзиш", url="https://t.me/botir_support")]
-    ]
+    language = context.user_data.get("language", "uz_kr")
 
-    await update.message.reply_text("Админ билан боғланиш учун тугмани босинг:", reply_markup=InlineKeyboardMarkup(keyboard))
+    if language == "uz_kr":
+        text = "Админ билан боғланиш учун тугмани босинг:"
+        btn = "📩 Админга ёзиш"
+
+    elif language == "uz_lt":
+        text = "Admin bilan bog'lanish uchun tugmani bosing:"
+        btn = "📩 Adminga yozish"
+
+    else:
+        text = "Нажмите кнопку для связи с админом:"
+        btn = "📩 Написать админу"
+
+    keyboard = [[InlineKeyboardButton(btn, url="https://t.me/botir_support")]]
+
+    await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
@@ -858,6 +870,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
