@@ -608,7 +608,7 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     total_users = c.fetchone()[0]
 
     # Бугунги фаол
-    c.execute("SELECT COUNT(*) FROM users WHERE last_active >= NOW() - INTERVAL '24 HOURS'")
+    c.execute("""SELECT COUNT(*) FROM users WHERE last_active::timestamp >= NOW() - INTERVAL '24 HOURS'""")
     today_users = c.fetchone()[0]
 
     # Жами усталар
@@ -858,6 +858,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
