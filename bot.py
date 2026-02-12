@@ -92,20 +92,24 @@ def add_master(telegram_id, name, phone, service, region, district, age=None, ex
 
 # ================= USTANI TOPISH =================
 def find_masters(service, region, district):
+    import psycopg2, os
+
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
 
     c.execute("""
     SELECT id, name, phone, region, district, service, age, experience
     FROM masters
-    WHERE service LIKE %s AND region LIKE %s AND district LIKE %s
-    GROUP BY masters.id
-    """, ("%" + service + "%", "%" + region + "%", "%" + district + "%"))
+    WHERE service ILIKE %s AND region ILIKE %s AND district ILIKE %s
+    """, (
+        "%" + service + "%",
+        "%" + region + "%",
+        "%" + district + "%"
+    ))
 
     data = c.fetchall()
     conn.close()
     return data
-
 
 # ================= RO‘YXATDAN CHIQARISH =================
 def delete_master(telegram_id):
@@ -217,26 +221,27 @@ async def choose_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ================= FOYDALANUVCHI QO'SHISH =================
 def log_user(user):
     from datetime import datetime
-    
+    import psycopg2, os
+
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
-    
+
     c.execute("""
-INSERT INTO users (telegram_id, username, first_name, last_name, join_date, last_active, message_count)
-VALUES (%s, %s, %s, %s, %s, %s, 1)
-ON CONFLICT (telegram_id)
-DO UPDATE SET
-last_active = EXCLUDED.last_active,
-message_count = users.message_count + 1
-""", (
-    user.id,
-    user.username,
-    user.first_name,
-    user.last_name,
-    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-    datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-))
-    
+    INSERT INTO users (telegram_id, username, first_name, last_name, join_date, last_active, message_count)
+    VALUES (%s, %s, %s, %s, %s, %s, 1)
+    ON CONFLICT (telegram_id)
+    DO UPDATE SET
+        last_active = EXCLUDED.last_active,
+        message_count = users.message_count + 1
+    """, (
+        user.id,
+        user.username,
+        user.first_name,
+        user.last_name,
+        datetime.now(),
+        datetime.now()
+    ))
+
     conn.commit()
     conn.close()
 
@@ -585,28 +590,30 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ================= STATISTIKA =================
 async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    import psycopg2, os
+
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
-    
+
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
-    
-    # Jami foydalanuvchilar
+
+    # Жами фойдаланувчилар
     c.execute("SELECT COUNT(*) FROM users")
     total_users = c.fetchone()[0]
-    
-    # Bugungi faol foydalanuvchilar
-    c.execute("SELECT COUNT(*) FROM users WHERE DATE(last_active) = DATE('now')")
+
+    # Бугунги фаол
+    c.execute("SELECT COUNT(*) FROM users WHERE DATE(last_active) = CURRENT_DATE")
     today_users = c.fetchone()[0]
-    
-    # Jami ustalar
+
+    # Жами усталар
     c.execute("SELECT COUNT(*) FROM masters")
     total_masters = c.fetchone()[0]
-    
-    # Jami baholar
+
+    # Жами баҳолар
     c.execute("SELECT COUNT(*) FROM ratings")
     total_ratings = c.fetchone()[0]
-    
+
     conn.close()
     
     # Tilga mos matnlar
@@ -782,49 +789,6 @@ async def backup_database(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sample_masters = [
         (123456789, "Ахмедов Карим", "+998901234567", "Электрик", "Тошкент", "Мирабад"),
         (123456790, "Умаров Бахтиёр", "+998912345678", "Сантехник", "Тошкент", "Чилонзор"),
-        (123456791, "Рахимова Гулчехра", "+998923456789", "Наккаш", "Самарканд", "Самарканд шаҳар"),
-        (123456792, "Тошев Жамшед", "+998934567890", "Мебел устаси", "Бухоро", "Бухоро шаҳар"),
-        (123456793, "Каримова Дилфуза", "+998945678901", "Тикувчи", "Фарғона", "Фарғона шаҳар"),
-        (123456794, "Саидов Бобур", "+998956789012", "Қурилишчи", "Андижон", "Андижон шаҳар"),
-        (123456795, "Нематова Муҳаббат", "+998967890123", "Ошпаз", "Наманган", "Наманган шаҳар"),
-        (123456796, "Қодиров Элмурод", "+998978901234", "Авто устаси", "Қорақалпоғистон", "Нукус"),
-        (123456797, "Тўхтаева Зарина", "+998989012345", "Сартарош", "Хоразм", "Урганч"),
-        (123456798, "Ҳамроқулов Азиз", "+998990123456", "Компютер устаси", "Тошкент", "Яшнабад"),
-        (123456799, "Солиева Мохира", "+998991234567", "Фотограф", "Самарканд", "Самарканд шаҳар"),
-        (123456800, "Юлдашев Фаррух", "+998992345678", "Асосчи", "Бухоро", "Бухоро шаҳар"),
-        (123456801, "Абдуллаева Рано", "+998993456789", "Гулчӣ", "Фарғона", "Фарғона шаҳар"),
-        (123456802, "Ҳасанов Бехзод", "+998994567890", "Металл ишлари", "Андижон", "Андижон шаҳар"),
-        (123456803, "Мирзаева Муниса", "+998995678901", "Манакур", "Наманган", "Наманган шаҳар"),
-        (123456804, "Рашидов Шерзод", "+998996789012", "Шиша устаси", "Қорақалпоғистон", "Нукус"),
-        (123456805, "Турсунова Дилором", "+998997890123", "Косметолог", "Тошкент", "Мирабад"),
-        (123456806, "Олимов Сардор", "+998998901234", "Электрик", "Тошкент", "Чилонзор"),
-        (123456807, "Қодирова Мохира", "+998999012345", "Тикувчи", "Самарканд", "Самарканд шаҳар"),
-        (123456808, "Умаров Жамшид", "+998900123456", "Сантехник", "Бухоро", "Бухоро шаҳар"),
-        (123456809, "Тўраев Бахтиёр", "+998901234567", "Наккаш", "Фарғона", "Фарғона шаҳар"),
-        (123456810, "Саидова Гулшан", "+998902345678", "Мебел устаси", "Андижон", "Андижон шаҳар"),
-        (123456811, "Рахимов Азиз", "+998903456789", "Қурилишчи", "Наманган", "Наманган шаҳар"),
-        (123456812, "Каримова Зарина", "+998904567890", "Ошпаз", "Қорақалпоғистон", "Нукус"),
-        (123456813, "Тошев Элмурод", "+998905678901", "Авто устаси", "Тошкент", "Яшнабад"),
-        (123456814, "Нематова Дилфуза", "+998906789012", "Сартарош", "Тошкент", "Мирабад"),
-        (123456815, "Ҳамроқулова Мохира", "+998907890123", "Компютер устаси", "Тошкент", "Чилонзор"),
-        (123456816, "Солиев Бехзод", "+998908901234", "Фотограф", "Самарканд", "Самарканд шаҳар"),
-        (123456817, "Юлдашева Рано", "+998909012345", "Асосчи", "Бухоро", "Бухоро шаҳар"),
-        (123456818, "Абдуллаев Шерзод", "+998910123456", "Гулчӣ", "Фарғона", "Фарғона шаҳар"),
-        (123456819, "Ҳасанова Муниса", "+998911234567", "Металл ишлари", "Андижон", "Андижон шаҳар"),
-        (123456820, "Мирзаев Фаррух", "+998912345678", "Манакур", "Наманган", "Наманган шаҳар"),
-        (123456821, "Рашидова Дилором", "+998913456789", "Шиша устаси", "Қорақалпоғистон", "Нукус"),
-        (123456822, "Турсунов Сардор", "+998914567890", "Косметолог", "Тошкент", "Яшнабад"),
-        (123456823, "Олимова Гулчехра", "+998915678901", "Электрик", "Тошкент", "Мирабад"),
-        (123456824, "Қодиров Жамшид", "+998916789012", "Тикувчи", "Самарканд", "Самарканд шаҳар"),
-        (123456825, "Умарова Зарина", "+998917890123", "Сантехник", "Бухоро", "Бухоро шаҳар"),
-        (123456826, "Тўраева Мохира", "+998918901234", "Наккаш", "Фарғона", "Фарғона шаҳар"),
-        (123456827, "Саидов Азиз", "+998919012345", "Мебел устаси", "Андижон", "Андижон шаҳар"),
-        (123456828, "Рахимова Дилфуза", "+998920123456", "Қурилишчи", "Наманган", "Наманган шаҳар"),
-        (123456829, "Каримов Бехзод", "+998921234567", "Ошпаз", "Қорақалпоғистон", "Нукус"),
-        (123456830, "Тошева Рано", "+998922345678", "Авто устаси", "Тошкент", "Чилонзор"),
-        (123456831, "Нематов Шерзод", "+998923456789", "Сартарош", "Тошкент", "Мирабад"),
-        (123456832, "Ҳамроқулов Фаррух", "+998924567890", "Компютер устаси", "Тошкент", "Яшнабад"),
-        (123456833, "Солиева Дилором", "+998925678901", "Фотограф", "Самарканд", "Самарканд шаҳар"),
         (123456834, "Юлдашев Азиз", "+998926789012", "Асосчи", "Бухоро", "Бухоро шаҳар"),
     ]
     
@@ -833,11 +797,17 @@ async def backup_database(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     for master in sample_masters:
         c.execute("""
-        INSERT OR REPLACE INTO masters 
-        (telegram_id, name, phone, service, region, district)
-        VALUES (%s, %s, %s, %s, %s, %s)
-        """, master)
-    
+    INSERT INTO masters (telegram_id, name, phone, service, region, district)
+    VALUES (%s, %s, %s, %s, %s, %s)
+    ON CONFLICT (telegram_id)
+    DO UPDATE SET
+        name = EXCLUDED.name,
+        phone = EXCLUDED.phone,
+        service = EXCLUDED.service,
+        region = EXCLUDED.region,
+        district = EXCLUDED.district
+    """, master)
+
     conn.commit()
     conn.close()
     print("50 ta namuna usta ma'lumotlari bazaga qo'shildi")
@@ -883,6 +853,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
