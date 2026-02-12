@@ -220,32 +220,34 @@ async def choose_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ================= FOYDALANUVCHI QO'SHISH =================
 def log_user(user):
-    import psycopg2, os
     from datetime import datetime
+    import psycopg2, os
+
+    print("LOGGING USER:", user.id)
 
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
 
     c.execute("""
-        INSERT INTO users (telegram_id, username, first_name, last_name, join_date, last_active, message_count)
-        VALUES (%s, %s, %s, %s, %s, %s, 1)
-        ON CONFLICT (telegram_id)
-        DO UPDATE SET
-            last_active = %s,
-            message_count = users.message_count + 1
+    INSERT INTO users (telegram_id, username, first_name, last_name, join_date, last_active, message_count)
+    VALUES (%s, %s, %s, %s, %s, %s, 1)
+    ON CONFLICT (telegram_id)
+    DO UPDATE SET
+        last_active = EXCLUDED.last_active,
+        message_count = users.message_count + 1
     """, (
         user.id,
         user.username,
         user.first_name,
         user.last_name,
-        datetime.now(),   # join
-        datetime.now(),   # active
-        datetime.now()    # update active
+        datetime.now(),
+        datetime.now()
     ))
 
     conn.commit()
     conn.close()
 
+    print("USER SAVED")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     log_user(update.effective_user)
@@ -856,6 +858,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
