@@ -252,11 +252,8 @@ def log_user(user):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     log_user(update.effective_user)
 
-    language = context.user_data.get("language")
-
-    if not language:
-        await update.message.reply_text("🌐 Tilni tanlang:", reply_markup=build_language_menu())
-        return
+    language = context.user_data.get("language", "uz_kr")
+    context.user_data["language"] = language
 
     texts = get_texts(language)
 
@@ -870,4 +867,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
