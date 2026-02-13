@@ -23,7 +23,7 @@ def init_db():
     # ====== USTALAR ======
     c.execute("""
     CREATE TABLE IF NOT EXISTS masters(id SERIAL PRIMARY KEY,
-        telegram_id INTEGER UNIQUE,
+        telegram_id BIGINT UNIQUE,
         name TEXT,
         phone TEXT,
         service TEXT,
@@ -867,5 +867,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
