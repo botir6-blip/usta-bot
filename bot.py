@@ -35,7 +35,7 @@ def init_db():
         skills TEXT
     )
     """)
-
+    
     # ====== BAHOLAR ======
     c.execute("""
     CREATE TABLE IF NOT EXISTS ratings(
@@ -58,6 +58,9 @@ def init_db():
         message_count INTEGER DEFAULT 0
     )
     """)
+   
+    c.execute("ALTER TABLE users ALTER COLUMN telegram_id TYPE BIGINT")
+    c.execute("ALTER TABLE masters ALTER COLUMN telegram_id TYPE BIGINT")
 
     conn.commit()
     conn.close()
@@ -867,6 +870,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
