@@ -6,13 +6,9 @@ from regions import REGIONS
 from languages import LANGUAGES, get_texts, LANGUAGE_NAMES
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    ApplicationBuilder,
-    CommandHandler,
-    MessageHandler,
-    ContextTypes,
-    filters,
+from telegram.ext import (ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters,
 )
+ADMIN_ID = 1970756498
 
 TOKEN = os.getenv("TOKEN")
 # ================= DATABASE =================
@@ -673,6 +669,11 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ================= STATISTIKA =================
 async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("Сиз админ эмассиз")
+        return
+        
     import psycopg2, os
 
     language = context.user_data.get("language", "uz_kr")
@@ -936,6 +937,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
