@@ -195,7 +195,20 @@ def map_district_to_uzkr(selected_region, selected_district):
             return uz_districts[index]
 
     return selected_district
+def map_service_to_uzkr(selected_service):
+    uz_services = SERVICES["uz_kr"]
 
+    if selected_service in uz_services:
+        return selected_service
+
+    for lang in ["uz_lt", "ru"]:
+        other_services = SERVICES.get(lang, [])
+        if selected_service in other_services:
+            index = other_services.index(selected_service)
+            return uz_services[index]
+
+    return selected_service
+    
 # ===========================================
 def build_city_menu(region, language="uz_kr"):
     regions_data = REGIONS.get(language, REGIONS["uz_kr"])
@@ -498,10 +511,12 @@ async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # mapping qilamiz
     uzkr_region = map_region_to_uzkr(context.user_data["region"])
     uzkr_district = map_district_to_uzkr(context.user_data["region"], district)
-
+    uzkr_service = map_service_to_uzkr(context.user_data["service"])
+    
     context.user_data["region"] = uzkr_region
     context.user_data["district"] = uzkr_district
-
+    context.user_data["service"] = uzkr_service
+    
     # ====== АГАР МИЖОЗ БЎЛСА ======
     if context.user_data.get("flow") == "find":
         await show_masters(update, context)
@@ -921,6 +936,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
