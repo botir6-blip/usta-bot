@@ -593,7 +593,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     for i, (mid, name, phone, dist, age, experience) in enumerate(rows, 1):
         text += (
-            f"━━━━━━━━━━\n"
+            f"════════════════════\n"
             f"👷 Уста №{i}\n"
             f"👤 Исм: {name}\n"
             f"📍 Ҳудуд: {dist}\n"
@@ -872,6 +872,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
