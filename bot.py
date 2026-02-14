@@ -164,37 +164,39 @@ def build_region_menu(language="uz_kr"):
 # ================= MAPPING =================
 
 def map_region_to_uzkr(selected_region):
-    for lang, regions in REGIONS.items():
-        for uzkr_region in REGIONS["uz_kr"]:
-            # шу регион бошқа тилда борми?
-            if selected_region == uzkr_region:
-                return uzkr_region
+    # agar allaqachon uz kr bo‘lsa
+    if selected_region in REGIONS["uz_kr"]:
+        return selected_region
 
-            # бошқа тиллардаги номни текшириш
-            if uzkr_region in REGIONS["uz_kr"]:
-                pass
-
-        # аниқ текшириш
-        for region_name in regions:
-            if region_name == selected_region:
-                # индексини топамиз
-                index = list(regions.keys()).index(region_name)
-                return list(REGIONS["uz_kr"].keys())[index]
+    # boshqa tillardan qidiramiz
+    for uz_region in REGIONS["uz_kr"]:
+        for lang in ["uz_lt", "ru"]:
+            if selected_region == list(REGIONS[lang].keys())[list(REGIONS["uz_kr"].keys()).index(uz_region)]:
+                return uz_region
 
     return selected_region
 
-def map_district_to_uzkr(selected_region, selected_district):
-    for lang, regions in REGIONS.items():
-        if selected_region in regions:
-            districts = regions[selected_region]
-            if selected_district in districts:
-                region_index = list(regions.keys()).index(selected_region)
-                uzkr_region = list(REGIONS["uz_kr"].keys())[region_index]
 
-                district_index = districts.index(selected_district)
-                return REGIONS["uz_kr"][uzkr_region][district_index]
+def map_district_to_uzkr(selected_region, selected_district):
+    uz_region = map_region_to_uzkr(selected_region)
+
+    uz_districts = REGIONS["uz_kr"].get(uz_region, [])
+
+    # agar allaqachon uz kr bo‘lsa
+    if selected_district in uz_districts:
+        return selected_district
+
+    for lang in ["uz_lt", "ru"]:
+        other_region = list(REGIONS[lang].keys())[list(REGIONS["uz_kr"].keys()).index(uz_region)]
+        other_districts = REGIONS[lang].get(other_region, [])
+
+        if selected_district in other_districts:
+            index = other_districts.index(selected_district)
+            return uz_districts[index]
 
     return selected_district
+
+# ===========================================
 def build_city_menu(region, language="uz_kr"):
     regions_data = REGIONS.get(language, REGIONS["uz_kr"])
     cities = regions_data.get(region, [])
@@ -919,6 +921,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
