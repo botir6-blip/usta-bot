@@ -389,10 +389,17 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     
     # Статистика
-    if text in ["Статистика", "Statistika"]:
+    if text == texts["statistics"]:
         await show_stats(update, context)
         return
 
+    # Уста топиш
+    if text == texts["find_master"]:
+        context.user_data["flow"] = "find"
+        context.user_data["step"] = "service"
+        await update.message.reply_text(texts["choose_service"], reply_markup=build_service_menu(language))
+    return
+    
     # Орқага тугмаси - barcha tillardagi variantlar
     back_variants = ["Орқага", "Orqaga", "Назад"]
     if text in back_variants:
@@ -872,6 +879,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
