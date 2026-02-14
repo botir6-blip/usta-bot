@@ -64,8 +64,7 @@ def init_db():
 
     conn.commit()
     conn.close()
-
-
+    
 # ================= USTA QO‘SHISH =================
 def add_master(telegram_id, name, phone, service, region, district, age=None, experience=None):
     from datetime import datetime
@@ -162,6 +161,40 @@ def build_region_menu(language="uz_kr"):
     keyboard.append([back_text])
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
+# ================= MAPPING =================
+
+def map_region_to_uzkr(selected_region):
+    for lang, regions in REGIONS.items():
+        for uzkr_region in REGIONS["uz_kr"]:
+            # шу регион бошқа тилда борми?
+            if selected_region == uzkr_region:
+                return uzkr_region
+
+            # бошқа тиллардаги номни текшириш
+            if uzkr_region in REGIONS["uz_kr"]:
+                pass
+
+        # аниқ текшириш
+        for region_name in regions:
+            if region_name == selected_region:
+                # индексини топамиз
+                index = list(regions.keys()).index(region_name)
+                return list(REGIONS["uz_kr"].keys())[index]
+
+    return selected_region
+
+def map_district_to_uzkr(selected_region, selected_district):
+    for lang, regions in REGIONS.items():
+        if selected_region in regions:
+            districts = regions[selected_region]
+            if selected_district in districts:
+                region_index = list(regions.keys()).index(selected_region)
+                uzkr_region = list(REGIONS["uz_kr"].keys())[region_index]
+
+                district_index = districts.index(selected_district)
+                return REGIONS["uz_kr"][uzkr_region][district_index]
+
+    return selected_district
 def build_city_menu(region, language="uz_kr"):
     regions_data = REGIONS.get(language, REGIONS["uz_kr"])
     cities = regions_data.get(region, [])
@@ -459,6 +492,13 @@ async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
         
     context.user_data["district"] = district
+    
+    # mapping qilamiz
+    uzkr_region = map_region_to_uzkr(context.user_data["region"])
+    uzkr_district = map_district_to_uzkr(context.user_data["region"], district)
+
+    context.user_data["region"] = uzkr_region
+    context.user_data["district"] = uzkr_district
 
     # ====== АГАР МИЖОЗ БЎЛСА ======
     if context.user_data.get("flow") == "find":
@@ -879,6 +919,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
