@@ -141,7 +141,17 @@ MAIN_MENU = ReplyKeyboardMarkup([
 
 def build_service_menu(language="uz_kr"):
     services = SERVICES.get(language, SERVICES["uz_kr"])
-    keyboard = [[service] for service in services]
+    keyboard = []
+row = []
+
+for i, service in enumerate(services, 1):
+    row.append(service)
+    if i % 2 == 0:   # 2 та устун
+        keyboard.append(row)
+        row = []
+
+if row:
+    keyboard.append(row)
     
     # Tilga mos "Орқага" tugmasi
     back_text = "Орқага" if language == "uz_kr" else "Orqaga" if language == "uz_lt" else "Назад"
@@ -933,6 +943,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
