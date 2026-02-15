@@ -161,13 +161,23 @@ def build_service_menu(language="uz_kr"):
     
 def build_region_menu(language="uz_kr"):
     regions = REGIONS.get(language, REGIONS["uz_kr"])
-    keyboard = [[region] for region in regions.keys()]
-    
-    # Tilga mos "Орқага" tugmasi
+
+    keyboard = []
+    row = []
+
+    for i, region in enumerate(regions.keys(), 1):
+        row.append(region)
+        if i % 2 == 0:
+            keyboard.append(row)
+            row = []
+
+    if row:
+        keyboard.append(row)
+
     back_text = "Орқага" if language == "uz_kr" else "Orqaga" if language == "uz_lt" else "Назад"
     keyboard.append([back_text])
-    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 # ================= MAPPING =================
 
 def map_region_to_uzkr(selected_region):
@@ -220,13 +230,23 @@ def map_service_to_uzkr(selected_service):
 def build_city_menu(region, language="uz_kr"):
     regions_data = REGIONS.get(language, REGIONS["uz_kr"])
     cities = regions_data.get(region, [])
-    keyboard = [[city] for city in cities]
-    
-    # Tilga mos "Орқага" tugmasi
+
+    keyboard = []
+    row = []
+
+    for i, city in enumerate(cities, 1):
+        row.append(city)
+        if i % 2 == 0:
+            keyboard.append(row)
+            row = []
+
+    if row:
+        keyboard.append(row)
+
     back_text = "Орқага" if language == "uz_kr" else "Orqaga" if language == "uz_lt" else "Назад"
     keyboard.append([back_text])
-    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 # ================= TIL TANLASH =================
 def build_language_menu():
@@ -944,6 +964,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
