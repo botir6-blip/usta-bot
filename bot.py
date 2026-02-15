@@ -167,7 +167,7 @@ def build_region_menu(language="uz_kr"):
 
     for i, region in enumerate(regions.keys(), 1):
         row.append(region)
-        if i % 2 == 0:
+        if i % 3 == 0:
             keyboard.append(row)
             row = []
 
@@ -236,7 +236,7 @@ def build_city_menu(region, language="uz_kr"):
 
     for i, city in enumerate(cities, 1):
         row.append(city)
-        if i % 2 == 0:
+        if i % 3 == 0:
             keyboard.append(row)
             row = []
 
@@ -964,6 +964,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
