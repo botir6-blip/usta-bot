@@ -669,10 +669,6 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ================= STATISTIKA =================
 async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    if text == texts["statistics"]:
-        await show_stats(update, context)
-        return
     
     import psycopg2, os
 
@@ -937,6 +933,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
