@@ -670,10 +670,10 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ================= STATISTIKA =================
 async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text("Сиз админ эмассиз")
+    if text == texts["statistics"]:
+        await show_stats(update, context)
         return
-        
+    
     import psycopg2, os
 
     language = context.user_data.get("language", "uz_kr")
@@ -937,6 +937,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
