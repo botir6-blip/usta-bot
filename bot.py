@@ -714,7 +714,7 @@ async def find_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
-    
+
     service = context.user_data.get("service")
     region = context.user_data.get("region")
     district = context.user_data.get("district")
@@ -730,14 +730,33 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """, (service, region, district))
 
     rows = c.fetchall()
-    conn.close()
 
     if not rows:
-        await update.message.reply_text(texts["no_masters"], reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
+        conn.close()
+        await update.message.reply_text(
+            texts["no_masters"],
+            reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True)
+        )
         return
 
     # 🔥 ҳар бир устани алоҳида чиқарамиз
     for i, (mid, name, phone, dist, age, experience) in enumerate(rows, 1):
+
+        # ⭐ рейтингни оламиз
+        c.execute(
+            "SELECT AVG(rating), COUNT(*) FROM ratings WHERE master_id=%s",
+            (mid,)
+        )
+        result = c.fetchone()
+
+        avg_rating = result[0]
+        votes = result[1]
+
+        if avg_rating:
+            rating_text = f"⭐ Рейтинг: {round(avg_rating, 1)} ({votes} та овоз)"
+        else:
+            rating_text = "⭐ Рейтинг: ҳали йўқ"
+
         text = (
             f"════════════════════\n"
             f"👷 Уста №{i}\n"
@@ -746,6 +765,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"🎂 Ёши: {age}\n"
             f"🧰 Тажриба: {experience} йил\n"
             f"📞 Телефон: +{phone}\n"
+            f"{rating_text}\n"
         )
 
         keyboard = [
@@ -755,6 +775,8 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
 
         await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+
+    conn.close()
 
     kb = [[texts["back"]]]
     await update.message.reply_text("⬅", reply_markup=ReplyKeyboardMarkup(kb, resize_keyboard=True))
@@ -1100,6 +1122,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
