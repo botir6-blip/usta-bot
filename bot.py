@@ -763,14 +763,13 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("⬅", reply_markup=ReplyKeyboardMarkup(kb, resize_keyboard=True))
 
 async def call_master(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print("CALL HANDLER ISHLADI")  # 👈
     query = update.callback_query
     await query.answer()
 
     phone = query.data.split("_", 1)[1]
 
-    await query.message.reply_text(
-        f"📞 Устанинг телефони:\n+{phone}"
-    )
+    await query.message.reply_text(f"📞 +{phone}")
 
 # ================= STATISTIKA =================
 async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1059,6 +1058,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
