@@ -771,6 +771,25 @@ async def call_master(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.message.reply_text(f"📞 +{phone}")
 
+async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    data = query.data
+
+    print("CALLBACK:", data)  # лог учун
+
+    if data.startswith("call_"):
+        phone = data.replace("call_", "")
+        await query.message.reply_text(f"📞 Устанинг телефони:\n+{phone}")
+
+    elif data.startswith("order_"):
+        mid = data.replace("order_", "")
+        await query.message.reply_text("✅ Уста чақирилди")
+
+    elif data.startswith("rate_"):
+        await start_rating(update, context)
+
 # ================= STATISTIKA =================
 async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
@@ -1024,8 +1043,10 @@ def main():
     app.add_handler(CallbackQueryHandler(start_rating, pattern="^rate_"))
 
     # 👇 МАНА ШУ ЕРГА ҚЎШАСАН
-    app.add_handler(CallbackQueryHandler(call_master, pattern="^call:"))
-           
+    # app.add_handler(CallbackQueryHandler(call_master, pattern="^call:"))
+    app.add_handler(CallbackQueryHandler(callback_router))
+
+    
     # til tanlash
     app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^(Узбек \\(кирилл\\)|O'zbek \\(lotin\\)|Русский)$"), choose_language))
 
@@ -1058,15 +1079,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
-
-
-
