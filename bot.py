@@ -1019,14 +1019,15 @@ def main():
     print("NEW VERSION 777")
     print("Bot is starting...")
     init_db()
-    
+
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-
-    from telegram.ext import CallbackQueryHandler
     app.add_handler(CallbackQueryHandler(start_rating, pattern="^rate_"))
-    
+
+    # 👇 МАНА ШУ ЕРГА ҚЎШАСАН
+    app.add_handler(CallbackQueryHandler(call_master, pattern="^call:"))
+           
     # til tanlash
     app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^(Узбек \\(кирилл\\)|O'zbek \\(lotin\\)|Русский)$"), choose_language))
 
@@ -1049,9 +1050,7 @@ def main():
 
     # stats - barcha tillar uchun
     app.add_handler(MessageHandler(filters.Regex("^(Статистика|Statistika|Статистика)$"), show_stats))
-
-    application.add_handler(CallbackQueryHandler(call_master, pattern="^call_"))
-
+    
     # ⭐ ЭНГ МУҲИМИ
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_router))
 
@@ -1061,6 +1060,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
