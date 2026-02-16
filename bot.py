@@ -67,7 +67,8 @@ def init_db():
 
     c.execute("ALTER TABLE users ALTER COLUMN telegram_id TYPE BIGINT")
     c.execute("ALTER TABLE masters ALTER COLUMN telegram_id TYPE BIGINT")
-
+    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT")
+    
     conn.commit()
     conn.close()
     
@@ -400,11 +401,32 @@ async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
 
-    context.user_data["phone"] = contact.phone_number
-    context.user_data["name"] = clean_text(f"{contact.first_name or ''} {contact.last_name or ''}".strip())
+    phone = contact.phone_number
+    user_id = update.message.from_user.id
+
+    # ⭐ БАЗАГА САҚЛАЙМИЗ
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    c = conn.cursor()
+
+    c.execute(
+        "UPDATE users SET phone=%s WHERE telegram_id=%s",
+        (phone, user_id)
+    )
+
+    conn.commit()
+    conn.close()
+
+    # context ham qoladi
+    context.user_data["phone"] = phone
+    context.user_data["name"] = clean_text(
+        f"{contact.first_name or ''} {contact.last_name or ''}".strip()
+    )
     context.user_data["step"] = "service"
 
-    await update.message.reply_text(texts["choose_service"], reply_markup=build_service_menu(language))
+    await update.message.reply_text(
+        texts["choose_service"],
+        reply_markup=build_service_menu(language)
+    )
 
 async def ask_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
@@ -797,10 +819,12 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
     print("CALLBACK:", data)
 
+    # 📞 telefonni ko'rsatish
     if data.startswith("call_"):
         phone = data.replace("call_", "")
         await query.message.reply_text(f"📞 Устанинг телефони:\n+{phone}")
 
+    # ================= ORDER =================
     elif data.startswith("order_"):
         mid = int(data.replace("order_", ""))
         user = query.from_user
@@ -811,47 +835,66 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         c = conn.cursor()
 
         # buyurtma yozamiz
-        c.execute("INSERT INTO orders (user_id, master_id) VALUES (%s, %s)", (user_id, mid))
+        c.execute(
+            "INSERT INTO orders (user_id, master_id) VALUES (%s, %s)",
+            (user_id, mid)
+        )
 
         # ustaning telegram id sini olamiz
         c.execute("SELECT telegram_id, name FROM masters WHERE id=%s", (mid,))
         master = c.fetchone()
 
+        # klient telefonini olamiz
+        c.execute("SELECT phone FROM users WHERE telegram_id=%s", (user_id,))
+        user_phone = c.fetchone()
+
         conn.commit()
         conn.close()
 
-        await query.message.reply_text("✅ Буюртма қабул қилинди. Уста сиз билан боғланади.")
+        await query.message.reply_text(
+            "✅ Буюртма қабул қилинди. Уста сиз билан боғланади."
+        )
 
-        # ⭐ устага хабар
+        # ⭐ usta mavjud bo'lsa habar yuboramiz
         if master:
             master_tg_id = master[0]
             master_name = master[1]
 
+            if user_phone:
+                user_phone = user_phone[0]
+            else:
+                user_phone = "Телефон йўқ"
+
             await context.bot.send_message(
                 chat_id=master_tg_id,
                 text=(
-                    f"📢 Янги клиент!\n\n"
+                    f"📢 Янги буюртма!\n\n"
                     f"👤 Исм: {user_name}\n"
-                    f"🆔 ID: {user_id}\n\n"
-                    f"Телефон орқали боғланинг."
+                    f"📞 Телефон: {user_phone}\n"
+                    f"🆔 ID: {user_id}"
                 )
             )
 
-
+    # ================= RATE =================
     elif data.startswith("rate_"):
         await start_rating(update, context)
 
+    # ================= SET RATE =================
     elif data.startswith("setrate_"):
         parts = data.split("_")
         mid = int(parts[1])
         rating = int(parts[2])
-
         user_id = query.from_user.id
 
         conn = psycopg2.connect(os.getenv("DATABASE_URL"))
         c = conn.cursor()
 
-        c.execute("INSERT INTO ratings (master_id, user_id, rating) VALUES (%s, %s, %s)", (mid, user_id, rating))
+        c.execute("""
+            INSERT INTO ratings (master_id, user_id, rating)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (master_id, user_id)
+            DO UPDATE SET rating = EXCLUDED.rating
+        """, (mid, user_id, rating))
 
         conn.commit()
         conn.close()
@@ -1155,6 +1198,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
