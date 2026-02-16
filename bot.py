@@ -753,13 +753,12 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         keyboard = [
+            [InlineKeyboardButton("📞 Қўнғироқ қилиш", url=f"tel:+{phone}")],
+            [InlineKeyboardButton("✅ Чақирдим", callback_data=f"order_{mid}")],
             [InlineKeyboardButton("⭐ Баҳо бериш", callback_data=f"rate_{mid}")]
         ]
 
-        await update.message.reply_text(
-            text,
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
+        await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
 
     kb = [[texts["back"]]]
     await update.message.reply_text("⬅", reply_markup=ReplyKeyboardMarkup(kb, resize_keyboard=True))
@@ -1050,6 +1049,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
