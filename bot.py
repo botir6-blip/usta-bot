@@ -33,11 +33,11 @@ def init_db():
     
     # ====== BAHOLAR ======
     c.execute("""
-    CREATE TABLE IF NOT EXISTS ratings(
+    CREATE TABLE IF NOT EXISTS ratings (
+        id SERIAL PRIMARY KEY,
         master_id INTEGER,
-        user_id INTEGER,
-        rating INTEGER,
-        UNIQUE(master_id, user_id)
+        user_id BIGINT,
+        rating INTEGER
     )
     """)
 
@@ -788,10 +788,20 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif data.startswith("setrate_"):
         parts = data.split("_")
-        mid = parts[1]
-        rating = parts[2]
+        mid = int(parts[1])
+        rating = int(parts[2])
 
-        await query.message.reply_text(f"✅ Баҳо қабул қилинди: {rating} ⭐")
+        user_id = query.from_user.id
+
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        c = conn.cursor()
+
+        c.execute("INSERT INTO ratings (master_id, user_id, rating) VALUES (%s, %s, %s)", (mid, user_id, rating))
+
+        conn.commit()
+        conn.close()
+
+        await query.message.reply_text(f"✅ Баҳо сақланди: {rating} ⭐")
 
 
 # ================= STATISTIKA =================
@@ -1090,5 +1100,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
