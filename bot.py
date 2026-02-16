@@ -659,8 +659,12 @@ async def save_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     master_id = context.user_data.get("rating_master")
 
-    if not can_rate(user_id, master_id):
+    if not can_rate(update.effective_user.id, master_id):
         await update.message.reply_text("❌ Сиз бу уста билан ишламагансиз.")
+
+        context.user_data.pop("step", None)
+        context.user_data.pop("rating_master", None)
+
         return
 
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
@@ -1054,6 +1058,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
