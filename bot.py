@@ -786,6 +786,14 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data.startswith("rate_"):
         await start_rating(update, context)
 
+    elif data.startswith("setrate_"):
+        parts = data.split("_")
+        mid = parts[1]
+        rating = parts[2]
+
+        await query.message.reply_text(f"✅ Баҳо қабул қилинди: {rating} ⭐")
+
+
 # ================= STATISTIKA =================
 async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
@@ -1002,11 +1010,27 @@ async def start_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    master_id = int(query.data.split("_")[1])
-    context.user_data["rating_master"] = master_id
-    context.user_data["step"] = "rating"
+    data = query.data
+    mid = data.replace("rate_", "")
 
-    await query.message.reply_text("1 дан 5 гача баҳо беринг:")
+    keyboard = [
+        [
+            InlineKeyboardButton("⭐", callback_data=f"setrate_{mid}_1"),
+            InlineKeyboardButton("⭐⭐", callback_data=f"setrate_{mid}_2"),
+            InlineKeyboardButton("⭐⭐⭐", callback_data=f"setrate_{mid}_3"),
+        ],
+        [
+            InlineKeyboardButton("⭐⭐⭐⭐", callback_data=f"setrate_{mid}_4"),
+            InlineKeyboardButton("⭐⭐⭐⭐⭐", callback_data=f"setrate_{mid}_5"),
+        ],
+    ]
+
+    await query.message.reply_text(
+        "Устага нечта юлдуз берасиз?",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+
    
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
@@ -1088,3 +1112,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
