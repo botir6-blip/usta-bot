@@ -450,10 +450,20 @@ async def write_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if not update.message or not update.message.text:
+        return
+
     text = update.message.text
     log_user(update.effective_user)
+
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
+
+    # ⭐ RATING
+    if context.user_data.get("step") == "rating":
+        await save_rating(update, context)
+        return
     
     # ADMIN
     admin_buttons = ["Админга ёзиш", "Написать админу", "Adminga yozish", "📩 Админга ёзиш", "✍️ Админга ёзиш"]
@@ -625,6 +635,38 @@ async def get_experience(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     context.user_data["language"] = language
 
+async def save_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if context.user_data.get("step") != "rating":
+        return
+
+    rating = update.message.text
+
+    if rating not in ["1","2","3","4","5"]:
+        await update.message.reply_text("1 дан 5 гача ёзинг.")
+        return
+
+    user_id = update.effective_user.id
+    master_id = context.user_data.get("rating_master")
+
+    if not can_rate(user_id, master_id):
+        await update.message.reply_text("❌ Сиз бу уста билан ишламагансиз.")
+        return
+
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    c = conn.cursor()
+
+    c.execute("""
+        INSERT INTO ratings(master_id, user_id, rating)
+        VALUES (%s,%s,%s)
+        ON CONFLICT (master_id, user_id) DO NOTHING
+    """, (master_id, user_id, rating))
+
+    conn.commit()
+    conn.close()
+
+    await update.message.reply_text("✅ Раҳмат! Баҳо сақланди.")
+
+    context.user_data["step"] = None
 
 # ================= FIND FLOW =================
 async def start_find(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -682,20 +724,25 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = texts["masters_found"] + "\n\n"
 
-    for i, (mid, name, phone, dist, age, experience) in enumerate(rows, 1):
-        text += (
-            f"════════════════════\n"
-            f"👷 Уста №{i}\n"
-            f"👤 Исм: {name}\n"
-            f"📍 Ҳудуд: {dist}\n"
-            f"🎂 Ёши: {age}\n"
-            f"🧰 Тажриба: {experience} йил\n"
-            f"📞 Телефон: +{phone}\n"
+for i, (mid, name, phone, dist, age, experience) in enumerate(rows, 1):
+    text += (
+        f"════════════════════\n"
+        f"👷 Уста №{i}\n"
+        f"👤 Исм: {name}\n"
+        f"📍 Ҳудуд: {dist}\n"
+        f"🎂 Ёши: {age}\n"
+        f"🧰 Тажриба: {experience} йил\n"
+        f"📞 Телефон: +{phone}\n"
     )
 
-    kb = [[texts["back"]]]
+    keyboard = [
+        [InlineKeyboardButton("⭐ Баҳо бериш", callback_data=f"rate_{mid}")]
+    ]
 
-    await update.message.reply_text(text, reply_markup=ReplyKeyboardMarkup(kb, resize_keyboard=True))
+    await update.message.reply_text("Устадан мамнунмисиз?", reply_markup=InlineKeyboardMarkup(keyboard))
+
+kb = [[texts["back"]]]
+await update.message.reply_text("⬅", reply_markup=ReplyKeyboardMarkup(kb, resize_keyboard=True))
 
 
 # ================= STATISTIKA =================
@@ -894,6 +941,31 @@ async def backup_database(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True)
         )
 
+# ================= DB HELPERS =================
+
+def can_rate(user_id, master_id):
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    c = conn.cursor()
+
+    c.execute("""
+        SELECT 1 FROM orders
+        WHERE user_id=%s AND master_id=%s AND status='completed'
+    """, (user_id, master_id))
+
+    result = c.fetchone()
+    conn.close()
+
+    return result is not None
+    
+async def start_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    master_id = int(query.data.split("_")[1])
+    context.user_data["rating_master"] = master_id
+    context.user_data["step"] = "rating"
+
+    await query.message.reply_text("1 дан 5 гача баҳо беринг:")
 
 # def populate_sample_data():
     """Bazaga 50 ta namuna usta ma'lumotlarini qo'shish"""
@@ -932,6 +1004,9 @@ def main():
 
     app.add_handler(CommandHandler("start", start))
 
+    from telegram.ext import CallbackQueryHandler
+    app.add_handler(CallbackQueryHandler(start_rating, pattern="^rate_"))
+    
     # til tanlash
     app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^(Узбек \\(кирилл\\)|O'zbek \\(lotin\\)|Русский)$"), choose_language))
 
@@ -964,21 +1039,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
