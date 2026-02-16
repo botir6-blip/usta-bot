@@ -61,9 +61,9 @@ def init_db():
         id SERIAL PRIMARY KEY,
         user_id BIGINT,
         master_id INTEGER,
-        status TEXT,
+        status TEXT DEFAULT 'new',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    ) 
+    )
     """)
 
     c.execute("ALTER TABLE users ALTER COLUMN telegram_id TYPE BIGINT")
@@ -1058,6 +1058,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
