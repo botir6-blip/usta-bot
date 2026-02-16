@@ -985,15 +985,7 @@ async def start_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["step"] = "rating"
 
     await query.message.reply_text("1 дан 5 гача баҳо беринг:")
-
-# def populate_sample_data():
-    """Bazaga 50 ta namuna usta ma'lumotlarini qo'shish"""
-    sample_masters = [
-        (123456789, "Ахмедов Карим", "+998901234567", "Электрик", "Тошкент", "Мирабад"),
-        (123456790, "Умаров Бахтиёр", "+998912345678", "Сантехник", "Тошкент", "Чилонзор"),
-        (123456834, "Юлдашев Азиз", "+998926789012", "Асосчи", "Бухоро", "Бухоро шаҳар"),
-    ]
-    
+   
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
     
@@ -1018,7 +1010,7 @@ def main():
     print("NEW VERSION 777")
     print("Bot is starting...")
     init_db()
-    # populate_sample_data()  # Namuna ma'lumotlarni qo'shish
+    
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
@@ -1058,6 +1050,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
