@@ -54,7 +54,18 @@ def init_db():
         message_count INTEGER DEFAULT 0
     )
     """)
-   
+
+    # ====== BUYURTMALAR ======
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS orders(
+        id SERIAL PRIMARY KEY,
+        user_id BIGINT,
+        master_id INTEGER,
+        status TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) 
+    """)
+
     c.execute("ALTER TABLE users ALTER COLUMN telegram_id TYPE BIGINT")
     c.execute("ALTER TABLE masters ALTER COLUMN telegram_id TYPE BIGINT")
 
@@ -1043,5 +1054,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
