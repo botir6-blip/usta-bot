@@ -766,10 +766,10 @@ async def call_master(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    phone = query.data.split("_")[1]
+    phone = query.data.split("_", 1)[1]
 
     await query.message.reply_text(
-        f"📞 Устанинг телефони:\n+{phone}\n\nРақамни босиб нусха олиб қўнғироқ қилинг."
+        f"📞 Устанинг телефони:\n+{phone}"
     )
 
 # ================= STATISTIKA =================
@@ -1059,6 +1059,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
