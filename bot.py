@@ -1030,28 +1030,6 @@ async def start_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-
-   
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-    c = conn.cursor()
-    
-    for master in sample_masters:
-        c.execute("""
-    INSERT INTO masters (telegram_id, name, phone, service, region, district)
-    VALUES (%s, %s, %s, %s, %s, %s)
-    ON CONFLICT (telegram_id)
-    DO UPDATE SET
-        name = EXCLUDED.name,
-        phone = EXCLUDED.phone,
-        service = EXCLUDED.service,
-        region = EXCLUDED.region,
-        district = EXCLUDED.district
-    """, master)
-
-    conn.commit()
-    conn.close()
-    print("50 ta namuna usta ma'lumotlari bazaga qo'shildi")
-
 def main():
     print("NEW VERSION 777")
     print("Bot is starting...")
@@ -1112,4 +1090,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
