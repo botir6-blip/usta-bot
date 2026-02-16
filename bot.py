@@ -719,31 +719,35 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.close()
 
     if not rows:
-        await update.message.reply_text(texts["no_masters"], reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
+        await update.message.reply_text(
+            texts["no_masters"],
+            reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True)
+        )
         return
 
-    text = texts["masters_found"] + "\n\n"
+    # 🔥 ҳар бир устани алоҳида чиқарамиз
+    for i, (mid, name, phone, dist, age, experience) in enumerate(rows, 1):
+        text = (
+            f"════════════════════\n"
+            f"👷 Уста №{i}\n"
+            f"👤 Исм: {name}\n"
+            f"📍 Ҳудуд: {dist}\n"
+            f"🎂 Ёши: {age}\n"
+            f"🧰 Тажриба: {experience} йил\n"
+            f"📞 Телефон: +{phone}\n"
+        )
 
-for i, (mid, name, phone, dist, age, experience) in enumerate(rows, 1):
-    text += (
-        f"════════════════════\n"
-        f"👷 Уста №{i}\n"
-        f"👤 Исм: {name}\n"
-        f"📍 Ҳудуд: {dist}\n"
-        f"🎂 Ёши: {age}\n"
-        f"🧰 Тажриба: {experience} йил\n"
-        f"📞 Телефон: +{phone}\n"
-    )
+        keyboard = [
+            [InlineKeyboardButton("⭐ Баҳо бериш", callback_data=f"rate_{mid}")]
+        ]
 
-    keyboard = [
-        [InlineKeyboardButton("⭐ Баҳо бериш", callback_data=f"rate_{mid}")]
-    ]
+        await update.message.reply_text(
+            text,
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
 
-    await update.message.reply_text("Устадан мамнунмисиз?", reply_markup=InlineKeyboardMarkup(keyboard))
-
-kb = [[texts["back"]]]
-await update.message.reply_text("⬅", reply_markup=ReplyKeyboardMarkup(kb, resize_keyboard=True))
-
+    kb = [[texts["back"]]]
+    await update.message.reply_text("⬅", reply_markup=ReplyKeyboardMarkup(kb, resize_keyboard=True))
 
 # ================= STATISTIKA =================
 async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1039,4 +1043,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
