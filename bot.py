@@ -6,8 +6,7 @@ from regions import REGIONS
 from languages import LANGUAGES, get_texts, LANGUAGE_NAMES
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters,
-)
+from telegram.ext import (ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, CallbackQueryHandler, filters)
 ADMIN_ID = 1970756498
 
 TOKEN = os.getenv("TOKEN")
@@ -1060,6 +1059,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
