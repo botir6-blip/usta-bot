@@ -753,7 +753,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         keyboard = [
-            [InlineKeyboardButton("📞 Қўнғироқ қилиш", url=f"tel:+{phone}")],
+            [InlineKeyboardButton("📞 Қўнғироқ қилиш", callback_data=f"call_{phone}")],
             [InlineKeyboardButton("✅ Чақирдим", callback_data=f"order_{mid}")],
             [InlineKeyboardButton("⭐ Баҳо бериш", callback_data=f"rate_{mid}")]
         ]
@@ -762,6 +762,16 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     kb = [[texts["back"]]]
     await update.message.reply_text("⬅", reply_markup=ReplyKeyboardMarkup(kb, resize_keyboard=True))
+
+async def call_master(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    phone = query.data.split("_")[1]
+
+    await query.message.reply_text(
+        f"📞 Устанинг телефони:\n+{phone}\n\nРақамни босиб нусха олиб қўнғироқ қилинг."
+    )
 
 # ================= STATISTIKA =================
 async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1040,6 +1050,8 @@ def main():
     # stats - barcha tillar uchun
     app.add_handler(MessageHandler(filters.Regex("^(Статистика|Statistika|Статистика)$"), show_stats))
 
+    application.add_handler(CallbackQueryHandler(call_master, pattern="^call_"))
+
     # ⭐ ЭНГ МУҲИМИ
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_router))
 
@@ -1049,6 +1061,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
