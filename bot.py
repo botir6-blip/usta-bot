@@ -802,8 +802,19 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text(f"📞 Устанинг телефони:\n+{phone}")
 
     elif data.startswith("order_"):
-        mid = data.replace("order_", "")
-        await query.message.reply_text("✅ Уста чақирилди")
+        mid = int(data.replace("order_", ""))
+        user_id = query.from_user.id
+
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        c = conn.cursor()
+
+        c.execute("INSERT INTO orders (user_id, master_id) VALUES (%s, %s)", (user_id, mid))
+
+        conn.commit()
+        conn.close()
+
+        await query.message.reply_text("✅ Буюртма қабул қилинди. Уста сиз билан боғланади.")
+
 
     elif data.startswith("rate_"):
         await start_rating(update, context)
@@ -1122,6 +1133,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
