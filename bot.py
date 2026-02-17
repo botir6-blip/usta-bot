@@ -30,7 +30,10 @@ def init_db():
         skills TEXT
     )
     """)
-    
+
+    c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS vip BOOLEAN DEFAULT FALSE")
+    c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS vip_until TIMESTAMP")
+
     # ====== BAHOLAR ======
     c.execute("""
     CREATE TABLE IF NOT EXISTS ratings (
@@ -107,9 +110,14 @@ def find_masters(service, region, district):
     c = conn.cursor()
 
     c.execute("""
-    SELECT id, name, phone, region, district, service, age, experience
+    SELECT id, name, phone, region, district, service, age, experience, vip, vip_until
     FROM masters
-    WHERE service ILIKE %s AND region ILIKE %s AND district ILIKE %s
+    WHERE service ILIKE %s
+      AND region ILIKE %s
+      AND district ILIKE %s
+    ORDER BY 
+        vip DESC,
+        vip_until DESC NULLS LAST
     """, (
         "%" + service + "%",
         "%" + region + "%",
@@ -119,6 +127,7 @@ def find_masters(service, region, district):
     data = c.fetchall()
     conn.close()
     return data
+
 
 # ================= RO‘YXATDAN CHIQARISH =================
 def delete_master(telegram_id):
@@ -347,6 +356,56 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texts = get_texts(language)
 
     await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
+
+async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        return
+
+    keyboard = [
+        [InlineKeyboardButton("⭐ VIP бериш", callback_data="admin_vip")],
+        [InlineKeyboardButton("📊 VIP рўйхати", callback_data="admin_vip_list")]
+    ]
+
+    await update.message.reply_text("🛠 VIP бошқарув панели", reply_markup=InlineKeyboardMarkup(keyboard))
+
+async def admin_vip_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    if query.from_user.id != ADMIN_ID:
+        return
+
+    context.user_data["step"] = "vip_input"
+
+    await query.message.reply_text("VIP бериш учун устанинг telegram_id ни киритинг:")
+
+async def give_vip(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if update.effective_user.id != ADMIN_ID:
+        return
+
+    try:
+        master_tid = int(update.message.text)
+    except:
+        await update.message.reply_text("Тўғри telegram_id киритинг.")
+        return
+
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    c = conn.cursor()
+
+    c.execute("""
+        UPDATE masters
+        SET vip = TRUE,
+            vip_until = NOW() + INTERVAL '30 days'
+        WHERE telegram_id = %s
+    """, (master_tid,))
+
+    conn.commit()
+    conn.close()
+
+    await update.message.reply_text("✅ Уста 30 кунга VIP қилинди.")
+
+    context.user_data.pop("step", None)
 
 
 # ================= SO'ZLARNI TOZALASH =================
@@ -745,10 +804,16 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     c = conn.cursor()
 
     c.execute("""
-    SELECT m.id, m.name, m.phone, m.district, m.age, m.experience
+    SELECT m.id, m.name, m.phone, m.district, 
+           m.age, m.experience,
+           m.vip, m.vip_until
     FROM masters m
-    WHERE m.service=%s AND m.region=%s AND m.district=%s
-    GROUP BY m.id
+    WHERE m.service=%s 
+      AND m.region=%s 
+      AND m.district=%s
+    ORDER BY 
+        m.vip DESC,
+        m.vip_until DESC NULLS LAST
     """, (service, region, district))
 
     rows = c.fetchall()
@@ -762,7 +827,13 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # 🔥 ҳар бир устани алоҳида чиқарамиз
-    for i, (mid, name, phone, dist, age, experience) in enumerate(rows, 1):
+    for i, (mid, name, phone, dist, age, experience, vip, vip_until) in enumerate(rows, 1):
+
+    from datetime import datetime
+
+    is_vip_active = vip and vip_until and vip_until > datetime.now()
+
+    vip_text = "💎 VIP Уста\n" if is_vip_active else ""
 
         # ⭐ рейтингни оламиз
         c.execute(
@@ -781,6 +852,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         text = (
             f"════════════════════\n"
+            f"{vip_text}"
             f"👷 Уста №{i}\n"
             f"👤 Исм: {name}\n"
             f"📍 Ҳудуд: {dist}\n"
@@ -789,6 +861,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"📞 Телефон: +{phone}\n"
             f"{rating_text}\n"
         )
+
 
         keyboard = [
             [InlineKeyboardButton("📞 Қўнғироқ қилиш", callback_data=f"call_{phone}")],
@@ -1148,8 +1221,11 @@ def main():
     # start
     app.add_handler(CommandHandler("start", start))
 
+    app.add_handler(CommandHandler("admin", admin_panel))
+
     # ⭐ БИТТА callback handler — ҳаммасини ушлайди
     app.add_handler(CallbackQueryHandler(callback_router))
+    app.add_handler(CallbackQueryHandler(admin_vip_menu, pattern="^admin_vip"))
 
     # til tanlash
     app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^(Узбек \\(кирилл\\)|O'zbek \\(lotin\\)|Русский)$"),
@@ -1198,6 +1274,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
