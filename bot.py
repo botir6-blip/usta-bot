@@ -793,6 +793,8 @@ async def find_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    from datetime import datetime
+
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
 
@@ -829,13 +831,11 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 🔥 ҳар бир устани алоҳида чиқарамиз
     for i, (mid, name, phone, dist, age, experience, vip, vip_until) in enumerate(rows, 1):
 
-    from datetime import datetime
+        # 💎 VIP текшириш
+        is_vip_active = vip and vip_until and vip_until > datetime.now()
+        vip_text = "💎 VIP Уста\n" if is_vip_active else ""
 
-    is_vip_active = vip and vip_until and vip_until > datetime.now()
-
-    vip_text = "💎 VIP Уста\n" if is_vip_active else ""
-
-        # ⭐ рейтингни оламиз
+        # ⭐ Рейтингни оламиз
         c.execute(
             "SELECT AVG(rating), COUNT(*) FROM ratings WHERE master_id=%s",
             (mid,)
@@ -862,19 +862,25 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"{rating_text}\n"
         )
 
-
         keyboard = [
             [InlineKeyboardButton("📞 Қўнғироқ қилиш", callback_data=f"call_{phone}")],
             [InlineKeyboardButton("✅ Чақирдим", callback_data=f"order_{mid}")],
             [InlineKeyboardButton("⭐ Баҳо бериш", callback_data=f"rate_{mid}")]
         ]
 
-        await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+        await update.message.reply_text(
+            text,
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
 
     conn.close()
 
     kb = [[texts["back"]]]
-    await update.message.reply_text("⬅", reply_markup=ReplyKeyboardMarkup(kb, resize_keyboard=True))
+    await update.message.reply_text(
+        "⬅",
+        reply_markup=ReplyKeyboardMarkup(kb, resize_keyboard=True)
+    )
+
 
 async def call_master(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("CALL HANDLER ISHLADI")  # 👈
@@ -1274,6 +1280,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
