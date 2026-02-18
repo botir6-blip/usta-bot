@@ -802,6 +802,12 @@ async def find_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     from datetime import datetime
 
+    if update.callback_query:
+        message = update.callback_query.message
+    else:
+        message = update.message
+
+
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
 
@@ -811,6 +817,11 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
+
+    page = context.user_data.get("page", 0)
+    limit = 5
+    offset = page * limit
+
 
     c.execute("""
     SELECT m.id, m.name, m.phone, m.district, 
@@ -823,21 +834,34 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ORDER BY 
         m.vip DESC,
         m.vip_until DESC NULLS LAST
-    """, (service, region, district))
-
+        LIMIT %s OFFSET %s
+    """, (service, region, district, limit, offset))
+    
     rows = c.fetchall()
 
     if not rows:
         conn.close()
-        await update.message.reply_text(
-            texts["no_masters"],
-            reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True)
-        )
+        await update.message.reply_text(texts["no_masters"], reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
         return
 
     # 🔥 ҳар бир устани алоҳида чиқарамиз
     for i, (mid, name, phone, dist, age, experience, vip, vip_until) in enumerate(rows, 1):
 
+        nav_buttons = []
+
+    if len(rows) == 5:
+        nav_buttons.append(
+            [InlineKeyboardButton("➡ Кейингиси", callback_data=f"next_{page+1}")]
+        )
+
+    if page > 0:
+        nav_buttons.append(
+            [InlineKeyboardButton("⬅ Олдингиси", callback_data=f"prev_{page-1}")]
+        )
+
+    if nav_buttons:
+        await message.reply_text("Навигация:", reply_markup=InlineKeyboardMarkup(nav_buttons)
+                                       )
         # 💎 VIP текшириш
         is_vip_active = vip and vip_until and vip_until > datetime.now()
         vip_text = "💎 VIP Уста\n" if is_vip_active else ""
@@ -875,18 +899,12 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("⭐ Баҳо бериш", callback_data=f"rate_{mid}")]
         ]
 
-        await update.message.reply_text(
-            text,
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
+        await message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
 
     conn.close()
 
     kb = [[texts["back"]]]
-    await update.message.reply_text(
-        "⬅",
-        reply_markup=ReplyKeyboardMarkup(kb, resize_keyboard=True)
-    )
+    await message.reply_text("⬅", reply_markup=ReplyKeyboardMarkup(kb, resize_keyboard=True))
 
 
 async def call_master(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -921,10 +939,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         c = conn.cursor()
 
         # buyurtma yozamiz
-        c.execute(
-            "INSERT INTO orders (user_id, master_id) VALUES (%s, %s)",
-            (user_id, mid)
-        )
+        c.execute("INSERT INTO orders (user_id, master_id) VALUES (%s, %s)", (user_id, mid))
 
         # ustaning telegram id sini olamiz
         c.execute("SELECT telegram_id, name FROM masters WHERE id=%s", (mid,))
@@ -937,9 +952,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn.commit()
         conn.close()
 
-        await query.message.reply_text(
-            "✅ Буюртма қабул қилинди. Уста сиз билан боғланади."
-        )
+        await query.message.reply_text("✅ Буюртма қабул қилинди. Уста сиз билан боғланади.")
 
         # ⭐ usta mavjud bo'lsa habar yuboramiz
         if master:
@@ -987,6 +1000,21 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await query.message.reply_text(f"✅ Баҳо сақланди: {rating} ⭐")
 
+    # ================= NEXT PAGE =================
+    elif data.startswith("next_"):
+        page = int(data.replace("next_", ""))
+        context.user_data["page"] = page
+
+        await show_masters(update, context)
+        return
+
+    # ================= PREV PAGE =================
+    elif data.startswith("prev_"):
+        page = int(data.replace("prev_", ""))
+        context.user_data["page"] = page
+
+        await show_masters(update, context)
+        return
 
 # ================= STATISTIKA =================
 async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1037,7 +1065,7 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text += f"👷 Всего мастеров: {total_masters}\n"
         text += f"⭐ Всего оценок: {total_ratings}\n"
     
-    await update.message.reply_text(text, reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
+    await message.reply_text(text, reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
 
 # ================= PROFILE =================
 async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1055,7 +1083,7 @@ async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.close()
 
     if not row:
-        await update.message.reply_text(texts["not_master"], reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
+        await message.reply_text(texts["not_master"], reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
         return
 
     name, phone, service, region, district, age, experience, education, skills = row
@@ -1072,10 +1100,7 @@ async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if skills:
         profile_text += f"\n🔧 Кўникмалар: {skills}"
 
-    await update.message.reply_text(
-        profile_text,
-        reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True)
-    )
+    await message.reply_text(profile_text, reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
 
 
 # ================= DELETE =================
@@ -1240,8 +1265,8 @@ def main():
 
     # ⭐ БИТТА callback handler — ҳаммасини ушлайди
     app.add_handler(CallbackQueryHandler(admin_vip_menu, pattern="^admin_vip"))
-    app.add_handler(CallbackQueryHandler(callback_router, pattern="^(call_|order_|rate_|setrate_)"))
-
+    app.add_handler(CallbackQueryHandler(callback_router, pattern="^(call_|order_|rate_|setrate_|next_|prev_)"))
+    
     # til tanlash
     app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^(Узбек \\(кирилл\\)|O'zbek \\(lotin\\)|Русский)$"),
         choose_language
@@ -1289,6 +1314,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
