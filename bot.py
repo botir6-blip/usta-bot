@@ -1018,7 +1018,9 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ================= STATISTIKA =================
 async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    
+
+    message = update.effective_message   # ⭐ МАНА ШУ ЕТАРЛИ
+
     import psycopg2, os
 
     language = context.user_data.get("language", "uz_kr")
@@ -1027,44 +1029,45 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
 
-    # Жами фойдаланувчилар
     c.execute("SELECT COUNT(*) FROM users")
     total_users = c.fetchone()[0]
 
-    # Бугунги фаол
-    c.execute("""SELECT COUNT(*) FROM users WHERE last_active::timestamp >= NOW() - INTERVAL '24 HOURS'""")
+    c.execute("SELECT COUNT(*) FROM users WHERE last_active::timestamp >= NOW() - INTERVAL '24 HOURS'")
     today_users = c.fetchone()[0]
 
-    # Жами усталар
     c.execute("SELECT COUNT(*) FROM masters")
     total_masters = c.fetchone()[0]
 
-    # Жами баҳолар
     c.execute("SELECT COUNT(*) FROM ratings")
     total_ratings = c.fetchone()[0]
 
     conn.close()
-    
-    # Tilga mos matnlar
+
     if language == "uz_kr":
-        text = f"📊 БОТ СТАТИСТИКАСИ:\n\n"
-        text += f"👥 Жами фойдаланувчилар: {total_users}\n"
-        text += f"📅 Бугунги фаоллар: {today_users}\n"
-        text += f"👷 Жами усталар: {total_masters}\n"
-        text += f"⭐ Жами бахолар: {total_ratings}\n"
+        text = (
+            f"📊 БОТ СТАТИСТИКАСИ:\n\n"
+            f"👥 Жами фойдаланувчилар: {total_users}\n"
+            f"📅 Бугунги фаоллар: {today_users}\n"
+            f"👷 Жами усталар: {total_masters}\n"
+            f"⭐ Жами бахолар: {total_ratings}\n"
+        )
     elif language == "uz_lt":
-        text = f"📊 BOT STATISTIKASI:\n\n"
-        text += f"👥 Jami foydalanuvchilar: {total_users}\n"
-        text += f"📅 Bugungi faollar: {today_users}\n"
-        text += f"👷 Jami ustalar: {total_masters}\n"
-        text += f"⭐ Jami baholar: {total_ratings}\n"
-    else:  # ru
-        text = f"📊 СТАТИСТИКА БОТА:\n\n"
-        text += f"👥 Всего пользователей: {total_users}\n"
-        text += f"📅 Активные сегодня: {today_users}\n"
-        text += f"👷 Всего мастеров: {total_masters}\n"
-        text += f"⭐ Всего оценок: {total_ratings}\n"
-    
+        text = (
+            f"📊 BOT STATISTIKASI:\n\n"
+            f"👥 Jami foydalanuvchilar: {total_users}\n"
+            f"📅 Bugungi faollar: {today_users}\n"
+            f"👷 Jami ustalar: {total_masters}\n"
+            f"⭐ Jami baholar: {total_ratings}\n"
+        )
+    else:
+        text = (
+            f"📊 СТАТИСТИКА БОТА:\n\n"
+            f"👥 Всего пользователей: {total_users}\n"
+            f"📅 Активные сегодня: {today_users}\n"
+            f"👷 Всего мастеров: {total_masters}\n"
+            f"⭐ Всего оценок: {total_ratings}\n"
+        )
+
     await message.reply_text(text, reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
 
 # ================= PROFILE =================
@@ -1314,6 +1317,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
