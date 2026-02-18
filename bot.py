@@ -612,10 +612,22 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     log_user(update.effective_user)
 
-    # ⭐ ADMIN VIP STATE — ЭНГ БИРИНЧИ
+    # 🌐 Тил
+    language = context.user_data.get("language", "uz_kr")
+    texts = get_texts(language)
+
+    # =====================================================
+    # ⭐ ADMIN VIP STATE
+    # =====================================================
     state = context.user_data.get("state")
 
     if state == "waiting_vip_id":
+
+        # 🔙 Орқага босилса
+        if text in ["Орқага", "Orqaga", "Назад"]:
+            context.user_data["state"] = None
+            await update.message.reply_text("🔙 Бекор қилинди.")
+            return
 
         # 🔐 ADMIN текширув
         if update.effective_user.id != ADMIN_ID:
@@ -649,74 +661,96 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["state"] = None
         return
 
+    # =====================================================
     # ⭐ RATING
+    # =====================================================
     if context.user_data.get("step") == "rating":
         await save_rating(update, context)
         return
-    
-    # ADMIN
-    admin_buttons = ["Админга ёзиш", "Написать админу", "Adminga yozish", "📩 Админга ёзиш", "✍️ Админга ёзиш"]
 
+    # =====================================================
+    # 📩 ADMIN ЁЗИШ
+    # =====================================================
     if "админ" in text.lower() or "yoz" in text.lower():
         await write_admin(update, context)
         return
 
-    
-    # Статистика
+    # =====================================================
+    # 📊 Статистика
+    # =====================================================
     if text == texts["statistics"]:
         await show_stats(update, context)
         return
 
-    # Уста топиш
+    # =====================================================
+    # 🔎 Уста топиш
+    # =====================================================
     if text == texts["find_master"]:
         context.user_data["flow"] = "find"
         context.user_data["step"] = "service"
-        await update.message.reply_text(texts["choose_service"], reply_markup=build_service_menu(language))
-        return
-    
-    # Орқага тугмаси - barcha tillardagi variantlar
-    back_variants = ["Орқага", "Orqaga", "Назад"]
-    if text in back_variants:
-        # Тилни сақлаб қолиб, қолганини ўчириш
-        language = context.user_data.get("language", "uz_kr")
-        context.user_data.clear()
-        context.user_data["language"] = language
-        await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
+
+        await update.message.reply_text(
+            texts["choose_service"],
+            reply_markup=build_service_menu(language)
+        )
         return
 
+    # =====================================================
+    # 🔙 Орқага
+    # =====================================================
+    if text in ["Орқага", "Orqaga", "Назад"]:
+        context.user_data.pop("step", None)
+        context.user_data.pop("flow", None)
+
+        await update.message.reply_text(
+            texts["welcome"],
+            reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True)
+        )
+        return
+
+    # =====================================================
+    # 🔄 STEP логика
+    # =====================================================
     step = context.user_data.get("step")
 
+    # AGE
     if step == "age":
         await get_age(update, context)
         return
 
+    # EXPERIENCE
     if step == "experience":
         await get_experience(update, context)
         return
-    
+
+    # SERVICE
     if step == "service":
-        # Agar bu "find" jarayoni bo'lsa, tilga mos xizmatlar menyusi
+
         if context.user_data.get("flow") == "find":
             await find_service(update, context)
+            return
         else:
-            # Agar bu "register" jarayoni bo'lsa, tilga mos xizmatlar menyusi
-            language = context.user_data.get("language", "uz_kr")
-            texts = get_texts(language)
             services_list = SERVICES.get(language, SERVICES["uz_kr"])
-            
-            if update.message.text in services_list:
-                context.user_data["service"] = update.message.text
+
+            if text in services_list:
+                context.user_data["service"] = text
                 context.user_data["step"] = "region"
-                await update.message.reply_text(texts["choose_region"], reply_markup=build_region_menu(language))
 
-    elif step == "region":
-        if context.user_data.get("flow") == "find":
-            await ask_region(update, context)
-        else:
-            await ask_region(update, context)
+                await update.message.reply_text(
+                    texts["choose_region"],
+                    reply_markup=build_region_menu(language)
+                )
+                return
 
-    elif step == "district":
+    # REGION
+    if step == "region":
+        await ask_region(update, context)
+        return
+
+    # DISTRICT
+    if step == "district":
         await get_district(update, context)
+        return
 
 async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
@@ -1443,3 +1477,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
