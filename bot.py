@@ -778,6 +778,7 @@ async def start_find(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["language"] = language
     context.user_data["flow"] = "find"
     context.user_data["step"] = "service"
+    context.user_data["page"] = 0
     
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
@@ -801,6 +802,9 @@ async def find_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     from datetime import datetime
+
+    print("PAGE:", page)
+    print("OFFSET:", offset)
 
     if update.callback_query:
         message = update.callback_query.message
@@ -1314,6 +1318,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
