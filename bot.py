@@ -384,15 +384,23 @@ async def give_vip(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         return
 
-    try:
-        master_tid = int(update.message.text)
-    except:
-        await update.message.reply_text("Тўғри telegram_id киритинг.")
+    if not update.message.reply_to_message:
+        await update.message.reply_text("❗ Устанинг хабарини reply қилиб /vip ёзинг.")
         return
+
+    master_tid = update.message.reply_to_message.from_user.id
 
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
 
+    # ⭐ Аввал текширамиз
+    c.execute("SELECT id FROM masters WHERE telegram_id=%s", (master_tid,))
+    if not c.fetchone():
+        conn.close()
+        await update.message.reply_text("❌ Бу фойдаланувчи уста эмас.")
+        return
+
+    # ⭐ Кейин VIP қиламиз
     c.execute("""
         UPDATE masters
         SET vip = TRUE,
@@ -405,8 +413,7 @@ async def give_vip(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text("✅ Уста 30 кунга VIP қилинди.")
 
-    context.user_data.pop("step", None)
-
+    await context.bot.send_message(chat_id=master_tid, text="🌟 Табриклаймиз! Сиз 30 кунга VIP уста бўлдингиз!")
 
 # ================= SO'ZLARNI TOZALASH =================
 def clean_text(text):
@@ -1229,6 +1236,7 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("admin", admin_panel))
     app.add_handler(CommandHandler("id", show_id))
+    app.add_handler(CommandHandler("vip", give_vip))
 
     # ⭐ БИТТА callback handler — ҳаммасини ушлайди
     app.add_handler(CallbackQueryHandler(admin_vip_menu, pattern="^admin_vip"))
@@ -1281,5 +1289,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
