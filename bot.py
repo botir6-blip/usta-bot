@@ -362,11 +362,68 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     keyboard = [
+        [InlineKeyboardButton("📊 Analytics", callback_data="admin_analytics")],
         [InlineKeyboardButton("⭐ VIP бериш", callback_data="admin_vip")],
-        [InlineKeyboardButton("📊 VIP рўйхати", callback_data="admin_vip_list")]
+        [InlineKeyboardButton("📋 VIP рўйхати", callback_data="admin_vip_list")]
     ]
 
-    await update.message.reply_text("🛠 VIP бошқарув панели", reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.message.reply_text("🛠 ADMIN PANEL", reply_markup=InlineKeyboardMarkup(keyboard))
+
+async def admin_analytics(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    if query.from_user.id != ADMIN_ID:
+        return
+
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    c = conn.cursor()
+
+    # Жами фойдаланувчи
+    c.execute("SELECT COUNT(*) FROM users")
+    total_users = c.fetchone()[0]
+
+    # Бугунги янги
+    c.execute("""
+        SELECT COUNT(*) FROM users
+        WHERE join_date::timestamp >= NOW() - INTERVAL '1 DAY'
+    """)
+    today_users = c.fetchone()[0]
+
+    # Жами buyurtma
+    c.execute("SELECT COUNT(*) FROM orders")
+    total_orders = c.fetchone()[0]
+
+    # VIP усталар
+    c.execute("SELECT COUNT(*) FROM masters WHERE vip=TRUE")
+    vip_count = c.fetchone()[0]
+
+    # Энг кўп чақирилган уста
+    c.execute("""
+        SELECT m.name, COUNT(o.id) as order_count
+        FROM masters m
+        JOIN orders o ON m.id=o.master_id
+        GROUP BY m.name
+        ORDER BY order_count DESC
+        LIMIT 1
+    """)
+    top_master = c.fetchone()
+
+    conn.close()
+
+    text = f"""
+    📊 КЕНГАЙТИРИЛГАН АНАЛИТИКА
+
+    👥 Жами фойдаланувчилар: {total_users}
+    📅 Бугунги янги: {today_users}
+    📦 Жами buyurtmalar: {total_orders}
+    ⭐ VIP усталар: {vip_count}
+
+    🏆 Энг фаол уста:
+    {top_master[0] if top_master else "Йўқ"}
+    """
+
+    await query.message.reply_text(text)
 
 async def admin_vip_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -1273,6 +1330,7 @@ def main():
     app.add_handler(CommandHandler("admin", admin_panel))
     app.add_handler(CommandHandler("id", show_id))
     app.add_handler(CommandHandler("vip", give_vip))
+    app.add_handler(CallbackQueryHandler(admin_analytics, pattern="^admin_analytics$"))
 
     # ⭐ БИТТА callback handler — ҳаммасини ушлайди
     app.add_handler(CallbackQueryHandler(admin_vip_menu, pattern="^admin_vip"))
@@ -1325,6 +1383,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
