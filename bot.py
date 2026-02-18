@@ -803,14 +803,10 @@ async def find_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     from datetime import datetime
 
-    print("PAGE:", page)
-    print("OFFSET:", offset)
-
     if update.callback_query:
         message = update.callback_query.message
     else:
         message = update.message
-
 
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
@@ -819,13 +815,15 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     region = context.user_data.get("region")
     district = context.user_data.get("district")
 
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-    c = conn.cursor()
-
     page = context.user_data.get("page", 0)
     limit = 5
     offset = page * limit
 
+    print("PAGE:", page)
+    print("OFFSET:", offset)
+
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    c = conn.cursor()
 
     c.execute("""
     SELECT m.id, m.name, m.phone, m.district, 
@@ -838,47 +836,29 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ORDER BY 
         m.vip DESC,
         m.vip_until DESC NULLS LAST
-        LIMIT %s OFFSET %s
+    LIMIT %s OFFSET %s
     """, (service, region, district, limit, offset))
-    
+
     rows = c.fetchall()
+
+    print("ROWS COUNT:", len(rows))
 
     if not rows:
         conn.close()
-        await update.message.reply_text(texts["no_masters"], reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
+        await message.reply_text(texts["no_masters"])
         return
 
-    # 🔥 ҳар бир устани алоҳида чиқарамиз
+    # 🔥 Усталарни чиқарамиз
     for i, (mid, name, phone, dist, age, experience, vip, vip_until) in enumerate(rows, 1):
 
-        nav_buttons = []
-
-    if len(rows) == 5:
-        nav_buttons.append(
-            [InlineKeyboardButton("➡ Кейингиси", callback_data=f"next_{page+1}")]
-        )
-
-    if page > 0:
-        nav_buttons.append(
-            [InlineKeyboardButton("⬅ Олдингиси", callback_data=f"prev_{page-1}")]
-        )
-
-    if nav_buttons:
-        await message.reply_text("Навигация:", reply_markup=InlineKeyboardMarkup(nav_buttons)
-                                       )
-        # 💎 VIP текшириш
         is_vip_active = vip and vip_until and vip_until > datetime.now()
         vip_text = "💎 VIP Уста\n" if is_vip_active else ""
 
-        # ⭐ Рейтингни оламиз
         c.execute(
             "SELECT AVG(rating), COUNT(*) FROM ratings WHERE master_id=%s",
             (mid,)
         )
-        result = c.fetchone()
-
-        avg_rating = result[0]
-        votes = result[1]
+        avg_rating, votes = c.fetchone()
 
         if avg_rating:
             rating_text = f"⭐ Рейтинг: {round(avg_rating, 1)} ({votes} та овоз)"
@@ -905,10 +885,26 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
 
-    conn.close()
+    # 🔥 Навигация (FOR дан ташқарида!)
+    nav_buttons = []
 
-    kb = [[texts["back"]]]
-    await message.reply_text("⬅", reply_markup=ReplyKeyboardMarkup(kb, resize_keyboard=True))
+    if len(rows) == limit:
+        nav_buttons.append(
+            [InlineKeyboardButton("➡ Кейингиси", callback_data=f"next_{page+1}")]
+        )
+
+    if page > 0:
+        nav_buttons.append(
+            [InlineKeyboardButton("⬅ Олдингиси", callback_data=f"prev_{page-1}")]
+        )
+
+    if nav_buttons:
+        await message.reply_text(
+            "Навигация:",
+            reply_markup=InlineKeyboardMarkup(nav_buttons)
+        )
+
+    conn.close()
 
 
 async def call_master(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1318,6 +1314,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
