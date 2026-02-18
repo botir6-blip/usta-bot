@@ -1072,28 +1072,34 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ================= PROFILE =================
 async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = update.effective_message   # ⭐ МУҲИМ ҚАТОР
+
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
-    
-    print(f"my_profile called - language: {language}, user: {update.effective_user.id}")
-    
+
     user = update.effective_user.id
 
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
-    c.execute("SELECT name, phone, service, region, district, age, experience, education, skills FROM masters WHERE telegram_id=%s", (user,))
+    c.execute("""
+        SELECT name, phone, service, region, district, age, experience, education, skills
+        FROM masters
+        WHERE telegram_id=%s
+    """, (user,))
     row = c.fetchone()
     conn.close()
 
     if not row:
-        await message.reply_text(texts["not_master"], reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
+        await message.reply_text(
+            texts["not_master"],
+            reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True)
+        )
         return
 
     name, phone, service, region, district, age, experience, education, skills = row
 
     profile_text = f"👷 {name}\n📞 {phone}\n🛠 {service}\n📍 {region} / {district}"
-    
-    # Янги майдонларни қўшиш
+
     if age:
         profile_text += f"\n🎂 Ёш: {age}"
     if experience:
@@ -1103,8 +1109,10 @@ async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if skills:
         profile_text += f"\n🔧 Кўникмалар: {skills}"
 
-    await message.reply_text(profile_text, reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
-
+    await message.reply_text(
+        profile_text,
+        reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True)
+    )
 
 # ================= DELETE =================
 async def unregister(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1317,6 +1325,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
