@@ -612,8 +612,42 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     log_user(update.effective_user)
 
-    language = context.user_data.get("language", "uz_kr")
-    texts = get_texts(language)
+    # ⭐ ADMIN VIP STATE — ЭНГ БИРИНЧИ
+    state = context.user_data.get("state")
+
+    if state == "waiting_vip_id":
+
+        # 🔐 ADMIN текширув
+        if update.effective_user.id != ADMIN_ID:
+            await update.message.reply_text("❌ Рухсат йўқ")
+            context.user_data["state"] = None
+            return
+
+        telegram_id = text.strip()
+
+        if not telegram_id.isdigit():
+            await update.message.reply_text("❌ Фақат рақам киритинг!")
+            return
+
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        c = conn.cursor()
+
+        c.execute("SELECT id FROM masters WHERE telegram_id = %s", (telegram_id,))
+        master = c.fetchone()
+
+        if not master:
+            await update.message.reply_text("❌ Бундай telegram_id топилмади!")
+            conn.close()
+            return
+
+        c.execute("UPDATE masters SET vip = TRUE WHERE telegram_id = %s", (telegram_id,))
+        conn.commit()
+        conn.close()
+
+        await update.message.reply_text("✅ Уста VIP қилинди!")
+
+        context.user_data["state"] = None
+        return
 
     # ⭐ RATING
     if context.user_data.get("step") == "rating":
@@ -1073,6 +1107,35 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await show_masters(update, context)
         return
 
+    # ================= ADMIN VIP =================
+    elif data == "admin_vip":
+        context.user_data["state"] = "waiting_vip_id"
+        await query.message.reply_text("⭐ VIP бериш учун устанинг telegram_id ни киритинг:")
+        return
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    state = context.user_data.get("state")
+
+    if state == "waiting_vip_id":
+
+        telegram_id = update.message.text.strip()
+
+        if not telegram_id.isdigit():
+            await update.message.reply_text("❌ Фақат рақам киритинг!")
+            return
+
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        c = conn.cursor()
+
+        c.execute("UPDATE masters SET vip = TRUE WHERE telegram_id = %s", (telegram_id,))
+        conn.commit()
+        conn.close()
+
+        await update.message.reply_text("✅ Уста VIP қилинди!")
+
+        context.user_data["state"] = None
+
 # ================= STATISTIKA =================
 async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -1369,10 +1432,7 @@ def main():
     app.add_handler(MessageHandler(filters.Regex("^🌐 Изменить язык$"), change_language))
 
     # stats
-    app.add_handler(MessageHandler(
-        filters.Regex("^(Статистика|Statistika|Статистика)$"),
-        show_stats
-    ))
+    app.add_handler(MessageHandler(filters.Regex("^(Статистика|Statistika|Статистика)$"), show_stats))
 
     # ⭐ оддий текстлар
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_router))
@@ -1383,12 +1443,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
