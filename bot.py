@@ -1212,10 +1212,11 @@ async def start_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ],
     ]
 
-    await query.message.reply_text(
-        "Устага нечта юлдуз берасиз?",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    await query.message.reply_text("Устага нечта юлдуз берасиз?", reply_markup=InlineKeyboardMarkup(keyboard))
+
+async def show_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    await update.message.reply_text(f"🆔 Сизнинг Telegram ID: {user_id}")
 
 def main():
     print("NEW VERSION 777")
@@ -1226,8 +1227,8 @@ def main():
 
     # start
     app.add_handler(CommandHandler("start", start))
-
     app.add_handler(CommandHandler("admin", admin_panel))
+    app.add_handler(CommandHandler("id", show_id))
 
     # ⭐ БИТТА callback handler — ҳаммасини ушлайди
     app.add_handler(CallbackQueryHandler(admin_vip_menu, pattern="^admin_vip"))
@@ -1280,4 +1281,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
