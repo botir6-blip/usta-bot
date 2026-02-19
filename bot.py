@@ -1023,39 +1023,39 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ==========================
 # 👑 VIP BLOK
 # ==========================
-if page == 0:
-    for mid, name, phone, dist, age, experience in vip_rows:
+    if page == 0:
+        for mid, name, phone, dist, age, experience in vip_rows:
 
-        c.execute("SELECT AVG(rating), COUNT(*) FROM ratings WHERE master_id=%s", (mid,))
-        avg_rating, votes = c.fetchone()
+            c.execute("SELECT AVG(rating), COUNT(*) FROM ratings WHERE master_id=%s", (mid,))
+            avg_rating, votes = c.fetchone()
 
-        rating_text = (
-            f"⭐ {round(avg_rating,1)} ({votes})"
-            if avg_rating else "⭐ Рейтинг йўқ"
-        )
+            rating_text = (
+                f"⭐ {round(avg_rating,1)} ({votes})"
+                if avg_rating else "⭐ Рейтинг йўқ"
+            )
 
-        text = (
-            f"════════════════════\n"
-            f"👑 <b>VIP УСТА</b>\n"
-            f"👤 {name}\n"
-            f"📍 {dist}\n"
-            f"🎂 {age}\n"
-            f"🧰 {experience} йил\n"
-            f"📞 +{phone}\n"
-            f"{rating_text}\n"
-        )
+            text = (
+                f"════════════════════\n"
+                f"👑 <b>VIP УСТА</b>\n"
+                f"👤 {name}\n"
+                f"📍 {dist}\n"
+                f"🎂 {age}\n"
+                f"🧰 {experience} йил\n"
+                f"📞 +{phone}\n"
+                f"{rating_text}\n"
+            )
 
-        keyboard = [
-            [InlineKeyboardButton("📞 Қўнғироқ қилиш", callback_data=f"call_{phone}")],
-            [InlineKeyboardButton("✅ Чақирдим", callback_data=f"order_{mid}")],
-            [InlineKeyboardButton("⭐ Баҳо бериш", callback_data=f"rate_{mid}")]
-        ]
+            keyboard = [
+                [InlineKeyboardButton("📞 Қўнғироқ қилиш", callback_data=f"call_{phone}")],
+                [InlineKeyboardButton("✅ Чақирдим", callback_data=f"order_{mid}")],
+                [InlineKeyboardButton("⭐ Баҳо бериш", callback_data=f"rate_{mid}")]
+            ]
 
-        await message.reply_text(
-            text,
-            parse_mode="HTML",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
+            await message.reply_text(
+                text,
+                parse_mode="HTML",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
  
     # ==========================
     # 📋 NORMAL BLOK
@@ -1561,6 +1561,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
