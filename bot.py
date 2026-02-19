@@ -1054,15 +1054,16 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
             rating_text = "Рейтинг йўқ"
 
         card = f"""
-<b>👷 УСТА</b>
-
-👤 <b>{name}</b>
-📍 {dist}
-🎂 {age} ёш
-🧰 {experience} йил
-📞 <b>+{phone}</b>
-⭐ {rating_text}
-"""
+        {line}
+        <b>👷 УСТА</b>
+        👤 <b>{name}</b>
+        📍 {dist}
+        🎂 {age} ёш
+        🧰 {experience} йил
+        📞 <b>+{phone}</b>
+        ⭐ {rating_text}
+        {line}
+        """
 
         keyboard = [[
             InlineKeyboardButton("📞 Қўнғироқ", callback_data=f"call_{phone}"),
@@ -1070,8 +1071,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton("⭐ Баҳо", callback_data=f"rate_{mid}")
         ]]
 
-        await message.reply_text(card, parse_mode="HTML",
-                                 reply_markup=InlineKeyboardMarkup(keyboard))
+        await message.reply_text(card, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
 
     # ================= PAGINATION =================
     nav = []
@@ -1534,6 +1534,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
