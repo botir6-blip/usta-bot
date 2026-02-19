@@ -641,7 +641,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("❌ Фақат рақам киритинг!")
             return
 
-        telegram_id = int(telegram_id)
+        telegram_id = int(text.strip())
 
         conn = psycopg2.connect(os.getenv("DATABASE_URL"))
         c = conn.cursor()
@@ -654,11 +654,14 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             conn.close()
             return
 
-        c.execute("UPDATE masters SET vip = TRUE WHERE telegram_id = %s", (telegram_id,))
+        master_id = master[0]
+
+        c.execute("UPDATE masters SET vip = TRUE WHERE id = %s", (master_id,))
         conn.commit()
         conn.close()
 
         await update.message.reply_text("✅ Уста VIP қилинди!")
+
 
         context.user_data["state"] = None
         return
@@ -1479,5 +1482,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
