@@ -641,6 +641,8 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("❌ Фақат рақам киритинг!")
             return
 
+        telegram_id = int(telegram_id)
+
         conn = psycopg2.connect(os.getenv("DATABASE_URL"))
         c = conn.cursor()
 
@@ -1477,4 +1479,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
