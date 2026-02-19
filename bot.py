@@ -1034,8 +1034,8 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 if avg_rating else "⭐ Рейтинг йўқ"
             )
 
-            text = (
-                f"════════════════════\n"
+            text = f"""
+            <pre>
                 f"👑 <b>VIP УСТА</b>\n"
                 f"👤 {name}\n"
                 f"📍 {dist}\n"
@@ -1043,7 +1043,8 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"🧰 {experience} йил\n"
                 f"📞 +{phone}\n"
                 f"{rating_text}\n"
-            )
+            </pre>
+            """
 
             keyboard = [
                 [InlineKeyboardButton("📞 Қўнғироқ", callback_data=f"call_{phone}"),
@@ -1559,6 +1560,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
