@@ -1023,7 +1023,9 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ==========================
     # 👑 VIP BLOK
     # ==========================
+    if page == 0:
     for mid, name, phone, dist, age, experience in vip_rows:
+
 
         c.execute("SELECT AVG(rating), COUNT(*) FROM ratings WHERE master_id=%s", (mid,))
         avg_rating, votes = c.fetchone()
@@ -1557,6 +1559,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
