@@ -622,44 +622,44 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # =====================================================
     if context.user_data.get("step") == "vip_input":
 
-    if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text("❌ Рухсат йўқ")
+        if update.effective_user.id != ADMIN_ID:
+            await update.message.reply_text("❌ Рухсат йўқ")
+            context.user_data.pop("step", None)
+            return
+
+        telegram_id = text.strip()
+
+        if not telegram_id.isdigit():
+            await update.message.reply_text("❌ Фақат рақам киритинг!")
+            return
+
+        telegram_id = int(telegram_id)
+
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        c = conn.cursor()
+
+        c.execute("SELECT id FROM masters WHERE telegram_id=%s", (telegram_id,))
+        master = c.fetchone()
+
+        if not master:
+            conn.close()
+            await update.message.reply_text("❌ Бундай telegram_id топилмади!")
+            return
+
+        c.execute("""
+            UPDATE masters
+            SET vip = TRUE,
+                vip_until = NOW() + INTERVAL '30 days'
+            WHERE telegram_id = %s
+        """, (telegram_id,))
+
+        conn.commit()
+        conn.close()
+
+        await update.message.reply_text("✅ Уста 30 кунга VIP қилинди.")
+
         context.user_data.pop("step", None)
         return
-
-    telegram_id = text.strip()
-
-    if not telegram_id.isdigit():
-        await update.message.reply_text("❌ Фақат рақам киритинг!")
-        return
-
-    telegram_id = int(telegram_id)
-
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-    c = conn.cursor()
-
-    c.execute("SELECT id FROM masters WHERE telegram_id=%s", (telegram_id,))
-    master = c.fetchone()
-
-    if not master:
-        conn.close()
-        await update.message.reply_text("❌ Бундай telegram_id топилмади!")
-        return
-
-    c.execute("""
-        UPDATE masters
-        SET vip = TRUE,
-            vip_until = NOW() + INTERVAL '30 days'
-        WHERE telegram_id = %s
-    """, (telegram_id,))
-
-    conn.commit()
-    conn.close()
-
-    await update.message.reply_text("✅ Уста 30 кунга VIP қилинди.")
-
-    context.user_data.pop("step", None)
-    return
 
     # =====================================================
     # ⭐ RATING
@@ -1477,6 +1477,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
