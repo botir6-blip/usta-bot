@@ -1046,17 +1046,12 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
             keyboard = [
-                InlineKeyboardButton("📞 Қўнғироқ қилиш", callback_data=f"call_{phone}"),
+                InlineKeyboardButton("📞 Қўнғироқ", callback_data=f"call_{phone}"),
                 InlineKeyboardButton("✅ Чақирдим", callback_data=f"order_{mid}"),
-                InlineKeyboardButton("⭐ Баҳо бериш", callback_data=f"rate_{mid}")
+                InlineKeyboardButton("⭐ Баҳо", callback_data=f"rate_{mid}")
             ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-
-            await message.reply_text(
-                text,
-                parse_mode="HTML",
-                reply_markup=InlineKeyboardMarkup(keyboard)
-            )
+            
+            await message.reply_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
  
     # ==========================
     # 📋 NORMAL BLOK
@@ -1562,6 +1557,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
