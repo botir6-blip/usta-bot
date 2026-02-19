@@ -1106,8 +1106,10 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     if nav:
-        await message.reply_text(" ", reply_markup=InlineKeyboardMarkup([nav]))
-
+        await message.reply_text(
+    " ",
+    reply_markup=InlineKeyboardMarkup([nav])
+)
     conn.close()
 
 
@@ -1558,6 +1560,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
