@@ -1020,12 +1020,11 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await message.reply_text(texts["no_masters"])
         return
 
-    # ==========================
-    # 👑 VIP BLOK
-    # ==========================
-    if page == 0:
+# ==========================
+# 👑 VIP BLOK
+# ==========================
+if page == 0:
     for mid, name, phone, dist, age, experience in vip_rows:
-
 
         c.execute("SELECT AVG(rating), COUNT(*) FROM ratings WHERE master_id=%s", (mid,))
         avg_rating, votes = c.fetchone()
@@ -1052,9 +1051,12 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("⭐ Баҳо бериш", callback_data=f"rate_{mid}")]
         ]
 
-        await message.reply_text(text, parse_mode="HTML",
-                                 reply_markup=InlineKeyboardMarkup(keyboard))
-
+        await message.reply_text(
+            text,
+            parse_mode="HTML",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+ 
     # ==========================
     # 📋 NORMAL BLOK
     # ==========================
@@ -1559,6 +1561,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
