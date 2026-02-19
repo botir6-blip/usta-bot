@@ -1045,11 +1045,11 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"{rating_text}\n"
             )
 
-            keyboard = [
+            keyboard = [[
                 InlineKeyboardButton("📞 Қўнғироқ", callback_data=f"call_{phone}"),
                 InlineKeyboardButton("✅ Чақирдим", callback_data=f"order_{mid}"),
                 InlineKeyboardButton("⭐ Баҳо", callback_data=f"rate_{mid}")
-            ]
+            ]]
 
             reply_markup = InlineKeyboardMarkup(keyboard)
             
@@ -1559,6 +1559,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
