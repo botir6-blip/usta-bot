@@ -1035,16 +1035,19 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             line = "═══════════════════════════"
 
-            text = (
-                f" {line}\n"
-                f"👑 <b>VIP УСТА</b>\n"
-                f"👤 {name}\n"
-                f"📍 {dist}\n"
-                f"🎂 {age}\n"
-                f"🧰 {experience} йил\n"
-                f"📞 +{phone}\n"
-                f"{rating_text}\n"
-            )
+            card = f"""
+            ━━━━━━━━━━━━━━
+            <b>👑 VIP УСТА</b>
+            ━━━━━━━━━━━━━━
+
+            👤 <b>{name}</b>
+            📍 Қарши ш.
+            🎂 {age} ёш
+            🧰 {experience} йил
+            📞 <b>+{phone}</b>
+            ⭐ {rating_text}
+            """
+
 
             keyboard = [
                 [InlineKeyboardButton("📞 Қўнғироқ", callback_data=f"call_{phone}"),
@@ -1054,7 +1057,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             reply_markup = InlineKeyboardMarkup(keyboard)
             
-            await message.reply_text(text, parse_mode="HTML", reply_markup=reply_markup)
+            await message.reply_text(card, parse_mode="HTML", reply_markup=reply_markup)
  
     # ==========================
     # 📋 NORMAL BLOK
@@ -1566,6 +1569,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
