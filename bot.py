@@ -1105,14 +1105,20 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton("➡ Кейингиси", callback_data=f"next_{page+1}")
         )
 
+    keyboard = [
+        [
+            InlineKeyboardButton("📞 Қўнғироқ", callback_data=f"call_{phone}"),
+            InlineKeyboardButton("✅ Чақирдим", callback_data=f"order_{mid}"),
+            InlineKeyboardButton("⭐ Баҳо", callback_data=f"rate_{mid}")
+        ]
+    ]
+
     if nav:
-        await message.reply_text(
-    " ",
-    reply_markup=InlineKeyboardMarkup([nav])
-)
+        keyboard.append(nav)
+
+    await message.reply_text(card, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
+    
     conn.close()
-
-
 
 async def call_master(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("CALL HANDLER ISHLADI")  # 👈
@@ -1560,6 +1566,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
