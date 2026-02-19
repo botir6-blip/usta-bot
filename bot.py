@@ -1027,7 +1027,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
             👤 <b>{name}</b>
             📍 {dist}
             🎂 {age} ёш
-            🧰 {experience} йил
+            🧰 {experience} йил тажриба
             📞 <b>+{phone}</b>
             ⭐ {rating_text}
             {line}
@@ -1059,7 +1059,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         👤 <b>{name}</b>
         📍 {dist}
         🎂 {age} ёш
-        🧰 {experience} йил
+        🧰 {experience} йил тажриба
         📞 <b>+{phone}</b>
         ⭐ {rating_text}
         {line}
@@ -1534,6 +1534,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
