@@ -961,16 +961,12 @@ async def find_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(texts["choose_region"], reply_markup=build_region_menu(language))
 
 async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    from datetime import datetime
 
     if update.callback_query:
         message = update.callback_query.message
         await update.callback_query.answer()
     else:
         message = update.message
-
-    language = context.user_data.get("language", "uz_kr")
-    texts = get_texts(language)
 
     service = context.user_data.get("service")
     region = context.user_data.get("region")
@@ -983,32 +979,23 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
 
-    # ==========================
-    # 👑 ACTIVE VIP MASTERLAR
-    # ==========================
+    # ================= VIP =================
     c.execute("""
         SELECT id, name, phone, district, age, experience
         FROM masters
-        WHERE service=%s
-          AND region=%s
-          AND district=%s
-          AND vip = TRUE
-          AND vip_until > NOW()
+        WHERE service=%s AND region=%s AND district=%s
+        AND vip=TRUE AND vip_until>NOW()
         ORDER BY vip_until DESC
     """, (service, region, district))
 
     vip_rows = c.fetchall()
 
-    # ==========================
-    # 📋 OD DIY MASTERLAR (pagination)
-    # ==========================
+    # ================= NORMAL =================
     c.execute("""
         SELECT id, name, phone, district, age, experience
         FROM masters
-        WHERE service=%s
-          AND region=%s
-          AND district=%s
-          AND (vip = FALSE OR vip_until IS NULL OR vip_until <= NOW())
+        WHERE service=%s AND region=%s AND district=%s
+        AND (vip=FALSE OR vip_until<=NOW() OR vip_until IS NULL)
         ORDER BY id DESC
         LIMIT %s OFFSET %s
     """, (service, region, district, limit, offset))
@@ -1017,100 +1004,85 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not vip_rows and not normal_rows:
         conn.close()
-        await message.reply_text(texts["no_masters"])
+        await message.reply_text("Усталар топилмади.")
         return
 
-# ==========================
-# 👑 VIP BLOK
-# ==========================
+    # ================= VIP BLOK =================
     if page == 0:
-        for mid, name, phone, dist, age, experience in normal_rows:
+        for mid, name, phone, dist, age, experience in vip_rows:
+
+            c.execute("SELECT AVG(rating), COUNT(*) FROM ratings WHERE master_id=%s", (mid,))
+            avg_rating, votes = c.fetchone()
+
+            if avg_rating:
+                rating_text = f"{round(avg_rating,1)} ({votes})"
+            else:
+                rating_text = "Рейтинг йўқ"
 
             card = f"""
-        <b>👷 УСТА</b>
+<b>👑 VIP УСТА</b>
 
-        👤 <b>{name}</b>
-        📍 {dist}\n"
-        🎂 {age} ёш
-        🧰 {experience} йил
-        📞 <b>+{phone}</b>
-        ⭐ {rating_text}
-        """
+👤 <b>{name}</b>
+📍 {dist}
+🎂 {age} ёш
+🧰 {experience} йил
+📞 <b>+{phone}</b>
+⭐ {rating_text}
+"""
 
             keyboard = [[
-        InlineKeyboardButton("📞 Қўнғироқ", callback_data=f"call_{phone}"),
-        InlineKeyboardButton("✅ Чақирдим", callback_data=f"order_{mid}"),
-        InlineKeyboardButton("⭐ Баҳо", callback_data=f"rate_{mid}")
+                InlineKeyboardButton("📞 Қўнғироқ", callback_data=f"call_{phone}"),
+                InlineKeyboardButton("✅ Чақирдим", callback_data=f"order_{mid}"),
+                InlineKeyboardButton("⭐ Баҳо", callback_data=f"rate_{mid}")
             ]]
 
-            await message.reply_text(
-                card,
-                parse_mode="HTML",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-            )
- 
-    # ==========================
-    # 📋 NORMAL BLOK
-    # ==========================
-    for i, (mid, name, phone, dist, age, experience) in enumerate(normal_rows, 1):
+            await message.reply_text(card, parse_mode="HTML",
+                                     reply_markup=InlineKeyboardMarkup(keyboard))
+
+    # ================= NORMAL BLOK =================
+    for mid, name, phone, dist, age, experience in normal_rows:
 
         c.execute("SELECT AVG(rating), COUNT(*) FROM ratings WHERE master_id=%s", (mid,))
         avg_rating, votes = c.fetchone()
 
-        rating_text = (
-            f"⭐ {round(avg_rating,1)} ({votes})"
-            if avg_rating else "⭐ Рейтинг йўқ"
-        )
-        line = "═══════════════════════════"
+        if avg_rating:
+            rating_text = f"{round(avg_rating,1)} ({votes})"
+        else:
+            rating_text = "Рейтинг йўқ"
 
-        text = (
-            f"{line}\n"
-            f"👷 Уста\n"
-            f"👤 {name}\n"
-            f"📍 {dist}\n"
-            f"🎂 {age}\n"
-            f"🧰 {experience} йил\n"
-            f"📞 +{phone}\n"
-            f"{rating_text}\n"
-        )
+        card = f"""
+<b>👷 УСТА</b>
 
-        keyboard = [
-            [InlineKeyboardButton("📞 Қўнғироқ", callback_data=f"call_{phone}"),
-            InlineKeyboardButton("✅ Чақирдим", callback_data=f"order_{mid}"),
-            InlineKeyboardButton("⭐ Баҳо", callback_data=f"rate_{mid}")]
-        ]
+👤 <b>{name}</b>
+📍 {dist}
+🎂 {age} ёш
+🧰 {experience} йил
+📞 <b>+{phone}</b>
+⭐ {rating_text}
+"""
 
-        await message.reply_text(text, parse_mode="HTML",
-                                 reply_markup=InlineKeyboardMarkup(keyboard))
-
-    # ==========================
-    # PAGINATION
-    # ==========================
-    nav = []
-
-    if page > 0:
-        nav.append(
-            InlineKeyboardButton("⬅ Олдингиси", callback_data=f"prev_{page-1}")
-        )
-
-    if len(normal_rows) == limit:
-        nav.append(
-            InlineKeyboardButton("➡ Кейингиси", callback_data=f"next_{page+1}")
-        )
-
-    keyboard = [
-        [
+        keyboard = [[
             InlineKeyboardButton("📞 Қўнғироқ", callback_data=f"call_{phone}"),
             InlineKeyboardButton("✅ Чақирдим", callback_data=f"order_{mid}"),
             InlineKeyboardButton("⭐ Баҳо", callback_data=f"rate_{mid}")
-        ]
-    ]
+        ]]
+
+        await message.reply_text(card, parse_mode="HTML",
+                                 reply_markup=InlineKeyboardMarkup(keyboard))
+
+    # ================= PAGINATION =================
+    nav = []
+
+    if page > 0:
+        nav.append(InlineKeyboardButton("⬅ Олдингиси", callback_data=f"prev_{page-1}"))
+
+    if len(normal_rows) == limit:
+        nav.append(InlineKeyboardButton("➡ Кейингиси", callback_data=f"next_{page+1}"))
 
     if nav:
-        keyboard.append(nav)
+        await message.reply_text("📄 Саҳифалар:",
+                                 reply_markup=InlineKeyboardMarkup([nav]))
 
-    await message.reply_text(card, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
-    
     conn.close()
 
 async def call_master(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1559,6 +1531,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
