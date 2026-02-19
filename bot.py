@@ -616,55 +616,50 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
 
+  
     # =====================================================
-    # ⭐ ADMIN VIP STATE
+    # ⭐ ADMIN VIP INPUT
     # =====================================================
-    state = context.user_data.get("state")
+    if context.user_data.get("step") == "vip_input":
 
-    if state == "waiting_vip_id":
-
-        # 🔙 Орқага босилса
-        if text in ["Орқага", "Orqaga", "Назад"]:
-            context.user_data["state"] = None
-            await update.message.reply_text("🔙 Бекор қилинди.")
-            return
-
-        # 🔐 ADMIN текширув
-        if update.effective_user.id != ADMIN_ID:
-            await update.message.reply_text("❌ Рухсат йўқ")
-            context.user_data["state"] = None
-            return
-
-        telegram_id = text.strip()
-
-        if not telegram_id.isdigit():
-            await update.message.reply_text("❌ Фақат рақам киритинг!")
-            return
-
-        telegram_id = int(text.strip())
-
-        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-        c = conn.cursor()
-
-        c.execute("SELECT id FROM masters WHERE telegram_id = %s", (telegram_id,))
-        master = c.fetchone()
-
-        if not master:
-            await update.message.reply_text("❌ Бундай telegram_id топилмади!")
-            conn.close()
-            return
-
-        master_id = master[0]
-
-        c.execute("UPDATE masters SET vip = TRUE WHERE id = %s", (master_id,))
-        conn.commit()
-        conn.close()
-
-        await update.message.reply_text("✅ Уста VIP қилинди!")
-
-
-        context.user_data["state"] = None
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("❌ Рухсат йўқ")
+        context.user_data.pop("step", None)
         return
+
+    telegram_id = text.strip()
+
+    if not telegram_id.isdigit():
+        await update.message.reply_text("❌ Фақат рақам киритинг!")
+        return
+
+    telegram_id = int(telegram_id)
+
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    c = conn.cursor()
+
+    c.execute("SELECT id FROM masters WHERE telegram_id=%s", (telegram_id,))
+    master = c.fetchone()
+
+    if not master:
+        conn.close()
+        await update.message.reply_text("❌ Бундай telegram_id топилмади!")
+        return
+
+    c.execute("""
+        UPDATE masters
+        SET vip = TRUE,
+            vip_until = NOW() + INTERVAL '30 days'
+        WHERE telegram_id = %s
+    """, (telegram_id,))
+
+    conn.commit()
+    conn.close()
+
+    await update.message.reply_text("✅ Уста 30 кунга VIP қилинди.")
+
+    context.user_data.pop("step", None)
+    return
 
     # =====================================================
     # ⭐ RATING
@@ -1482,6 +1477,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
