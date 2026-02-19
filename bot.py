@@ -1019,20 +1019,20 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 rating_text = "Рейтинг йўқ"
                 
-line = "════════════════════════"
+            line = "════════════════════════"
 
-card = f"""
-{line}
-<b>👑 VIP УСТА</b>
-{line}
+            card = f"""
+            {line}
+            <b>👑 VIP УСТА</b>
+            {line}
 
-👤 <b>{name}</b>
-📍 {dist}
-🎂 {age} ёш
-🧰 {experience} йил
-📞 <b>+{phone}</b>
-⭐ {rating_text}
-"""
+            👤 <b>{name}</b>
+            📍 {dist}
+            🎂 {age} ёш
+            🧰 {experience} йил
+            📞 <b>+{phone}</b>
+            ⭐ {rating_text}
+            """
 
 
             keyboard = [[
@@ -1536,6 +1536,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
