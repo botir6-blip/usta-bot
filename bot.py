@@ -1033,7 +1033,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"⭐ {round(avg_rating,1)} ({votes})"
                 if avg_rating else "⭐ Рейтинг йўқ"
             )
-            line = "________________________"
+            line = "═══════════════════════════════"
 
             text = (
                 f" {line}\n"
@@ -1560,6 +1560,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
