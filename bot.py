@@ -436,6 +436,42 @@ async def admin_vip_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.message.reply_text("VIP бериш учун устанинг telegram_id ни киритинг:")
 
+async def admin_vip_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    if query.from_user.id != ADMIN_ID:
+        return
+
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    c = conn.cursor()
+
+    c.execute("""
+        SELECT name, telegram_id, vip_until
+        FROM masters
+        WHERE vip = TRUE
+        ORDER BY vip_until DESC NULLS LAST
+    """)
+
+    vip_masters = c.fetchall()
+    conn.close()
+
+    if not vip_masters:
+        await query.message.reply_text("⭐ VIP усталар йўқ.")
+        return
+
+    text = "⭐ VIP УСТАЛАР РЎЙХАТИ:\n\n"
+
+    for i, master in enumerate(vip_masters, start=1):
+        name, telegram_id, vip_until = master
+
+        if vip_until:
+            text += f"{i}. {name}\n🆔 {telegram_id}\n⏳ {vip_until.strftime('%Y-%m-%d')}\n\n"
+        else:
+            text += f"{i}. {name}\n🆔 {telegram_id}\n\n"
+
+    await query.message.reply_text(text)
+
 async def give_vip(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if update.effective_user.id != ADMIN_ID:
@@ -1478,6 +1514,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
