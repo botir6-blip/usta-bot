@@ -12,18 +12,24 @@ ADMIN_ID = 1970756498
 TOKEN = os.getenv("TOKEN")
 
 def ensure_code_column():
+    print("🔍 ensure_code_column ишлаяпти...")
+
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
 
+    # code устуни борми текшириш
     c.execute("""
         SELECT column_name 
         FROM information_schema.columns 
         WHERE table_name='masters' AND column_name='code';
     """)
-    
+
     exists = c.fetchone()
 
-    if not exists:
+    if exists:
+        print("✅ code устуни аллақачон бор")
+    else:
+        print("⚙ code устуни яратиляпти...")
         c.execute("ALTER TABLE masters ADD COLUMN code VARCHAR(4);")
         c.execute("ALTER TABLE masters ADD CONSTRAINT unique_master_code UNIQUE (code);")
         print("✅ code устуни яратилди")
@@ -1536,6 +1542,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
