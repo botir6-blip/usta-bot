@@ -10,6 +10,27 @@ from telegram.ext import (ApplicationBuilder, CommandHandler, MessageHandler, Co
 ADMIN_ID = 1970756498
 
 TOKEN = os.getenv("TOKEN")
+
+def ensure_code_column():
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    c = conn.cursor()
+
+    c.execute("""
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name='masters' AND column_name='code';
+    """)
+    
+    exists = c.fetchone()
+
+    if not exists:
+        c.execute("ALTER TABLE masters ADD COLUMN code VARCHAR(4);")
+        c.execute("ALTER TABLE masters ADD CONSTRAINT unique_master_code UNIQUE (code);")
+        print("✅ code устуни яратилди")
+
+    conn.commit()
+    conn.close()
+    
 # ================= DATABASE =================
 def init_db():
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
@@ -1455,6 +1476,7 @@ def main():
     print("NEW VERSION 777")
     print("Bot is starting...")
     init_db()
+    ensure_code_column()
 
     app = ApplicationBuilder().token(TOKEN).build()
 
@@ -1514,6 +1536,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
