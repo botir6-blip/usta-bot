@@ -989,7 +989,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         m.experience,
         m.vip,
         COALESCE(AVG(r.rating), 0) as avg_rating,
-        COUNT(r.id) as votes
+        COUNT(r.rating) as votes
     FROM masters m
     LEFT JOIN ratings r ON m.id = r.master_id
     WHERE m.service=%s 
@@ -1005,8 +1005,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         m.vip
     ORDER BY 
         m.vip DESC,
-        avg_rating DESC,
-        votes DESC
+        avg_rating DESC
     LIMIT %s OFFSET %s
 """, (service, region, district, limit, offset))
 
@@ -1515,6 +1514,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
