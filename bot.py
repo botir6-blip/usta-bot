@@ -71,7 +71,8 @@ def init_db():
     c.execute("ALTER TABLE users ALTER COLUMN telegram_id TYPE BIGINT")
     c.execute("ALTER TABLE masters ALTER COLUMN telegram_id TYPE BIGINT")
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT")
-    
+    c.execute("""ALTER TABLE ratings ADD CONSTRAINT IF NOT EXISTS unique_rating UNIQUE(master_id, user_id)""")
+
     conn.commit()
     conn.close()
     
@@ -789,39 +790,34 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
 async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    language = context.user_data.get("language", "uz_kr")
-    texts = get_texts(language)
-    regions_data = REGIONS.get(language, REGIONS["uz_kr"])
-    
-    region = context.user_data.get("region", "")
-    districts_list = regions_data.get(region, [])
-    
-    district = update.message.text
-    
-    # Faqat shu viloyatdagi tumanlarni qabul qilish
-    if district not in districts_list:
+
+    selected_region = context.user_data.get("region")
+    selected_district = update.message.text
+
+    # 🔥 Mapping аввал
+    uz_region = map_region_to_uzkr(selected_region)
+    uz_district = map_district_to_uzkr(selected_region, selected_district)
+    uz_service = map_service_to_uzkr(context.user_data.get("service"))
+
+    # 🔥 Текшириш фақат uz_kr бўйича
+    if uz_district not in REGIONS["uz_kr"].get(uz_region, []):
         return
-        
-    context.user_data["district"] = district
-    
-    # mapping qilamiz
-    uzkr_region = map_region_to_uzkr(context.user_data["region"])
-    uzkr_district = map_district_to_uzkr(context.user_data["region"], district)
-    uzkr_service = map_service_to_uzkr(context.user_data["service"])
-    
-    context.user_data["region"] = uzkr_region
-    context.user_data["district"] = uzkr_district
-    context.user_data["service"] = uzkr_service
-    
-    # ====== АГАР МИЖОЗ БЎЛСА ======
+
+    context.user_data["region"] = uz_region
+    context.user_data["district"] = uz_district
+    context.user_data["service"] = uz_service
+
+    # ===== FIND =====
     if context.user_data.get("flow") == "find":
         await show_masters(update, context)
         return
 
-    # ====== АГАР УСТА БЎЛСА ======
+    # ===== REGISTER =====
     if context.user_data.get("flow") == "register":
-        # Ёшни сўраш
-        await update.message.reply_text("Ёшингизни киритинг:", reply_markup=ReplyKeyboardRemove())
+        await update.message.reply_text(
+            "Ёшингизни киритинг:",
+            reply_markup=ReplyKeyboardRemove()
+        )
         context.user_data["step"] = "age"
 
 async def get_age(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -836,10 +832,11 @@ async def get_age(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     age = clean_text(update.message.text)
     
+    # 🔥 МАНА ШУ ЕРГА return қўшамиз
     if not age or not age.isdigit() or len(age) > 2:
-        
         await update.message.reply_text(texts["enter_age"])
-    
+        return   # 👈 МАНА ШУ ЕР МУҲИМ
+
     context.user_data["age"] = age
     
     await update.message.reply_text(texts["enter_experience"])
@@ -979,91 +976,58 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
 
-    # ================= VIP =================
-    c.execute("""
-        SELECT id, name, phone, district, age, experience
-        FROM masters
-        WHERE service=%s AND region=%s AND district=%s
-        AND vip=TRUE AND vip_until>NOW()
-        ORDER BY vip_until DESC
-    """, (service, region, district))
+    line = "══════════════════════════"
 
-    vip_rows = c.fetchall()
-
-    # ================= NORMAL =================
+    # ⭐ VIP + NORMAL битта JOIN билан
     c.execute("""
-        SELECT id, name, phone, district, age, experience
-        FROM masters
-        WHERE service=%s AND region=%s AND district=%s
-        AND (vip=FALSE OR vip_until<=NOW() OR vip_until IS NULL)
-        ORDER BY id DESC
+        SELECT 
+            m.id,
+            m.name,
+            m.phone,
+            m.district,
+            m.age,
+            m.experience,
+            m.vip,
+            COALESCE(AVG(r.rating), 0) as avg_rating,
+            COUNT(r.id) as votes
+        FROM masters m
+        LEFT JOIN ratings r ON m.id = r.master_id
+        WHERE m.service=%s 
+          AND m.region=%s 
+          AND m.district=%s
+        GROUP BY m.id
+        ORDER BY m.vip DESC, avg_rating DESC
         LIMIT %s OFFSET %s
     """, (service, region, district, limit, offset))
 
-    normal_rows = c.fetchall()
+    rows = c.fetchall()
 
-    if not vip_rows and not normal_rows:
+    if not rows:
         conn.close()
         await message.reply_text("Усталар топилмади.")
         return
 
-    # ================= VIP BLOK =================
-    if page == 0:
-        for mid, name, phone, dist, age, experience in vip_rows:
+    for mid, name, phone, dist, age, experience, vip, avg_rating, votes in rows:
 
-            c.execute("SELECT AVG(rating), COUNT(*) FROM ratings WHERE master_id=%s", (mid,))
-            avg_rating, votes = c.fetchone()
+        rating_text = (
+            f"{round(avg_rating,1)} ({votes})"
+            if votes > 0 else "Рейтинг йўқ"
+        )
 
-            if avg_rating:
-                rating_text = f"{round(avg_rating,1)} ({votes})"
-            else:
-                rating_text = "Рейтинг йўқ"
-                
-            line = "══════════════════════════"
-
-            card = f"""
-            {line}
-            <b>👑 VIP УСТА</b>
-            👤 <b>{name}</b>
-            📍 {dist}
-            🎂 {age} ёш
-            🧰 {experience} йил тажриба
-            📞 <b>+{phone}</b>
-            ⭐ {rating_text}
-            {line}
-            """
-
-            keyboard = [[
-                InlineKeyboardButton("📞 Қўнғироқ", callback_data=f"call_{phone}"),
-                InlineKeyboardButton("✅ Чақирдим", callback_data=f"order_{mid}"),
-                InlineKeyboardButton("⭐ Баҳо", callback_data=f"rate_{mid}")
-            ]]
-
-            await message.reply_text(card, parse_mode="HTML",
-                                     reply_markup=InlineKeyboardMarkup(keyboard))
-
-    # ================= NORMAL BLOK =================
-    for mid, name, phone, dist, age, experience in normal_rows:
-
-        c.execute("SELECT AVG(rating), COUNT(*) FROM ratings WHERE master_id=%s", (mid,))
-        avg_rating, votes = c.fetchone()
-
-        if avg_rating:
-            rating_text = f"{round(avg_rating,1)} ({votes})"
-        else:
-            rating_text = "Рейтинг йўқ"
+        badge = "👑 VIP УСТА" if vip else "👷 УСТА"
 
         card = f"""
-        {line}
-        <b>👷 УСТА</b>
-        👤 <b>{name}</b>
-        📍 {dist}
-        🎂 {age} ёш
-        🧰 {experience} йил тажриба
-        📞 <b>+{phone}</b>
-        ⭐ {rating_text}
-        {line}
-        """
+{line}
+<b>{badge}</b>
+
+👤 <b>{name}</b>
+📍 {dist}
+🎂 {age} ёш
+🧰 {experience} йил тажриба
+📞 <b>+{phone}</b>
+⭐ {rating_text}
+{line}
+"""
 
         keyboard = [[
             InlineKeyboardButton("📞 Қўнғироқ", callback_data=f"call_{phone}"),
@@ -1071,20 +1035,26 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton("⭐ Баҳо", callback_data=f"rate_{mid}")
         ]]
 
-        await message.reply_text(card, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
+        await message.reply_text(
+            card,
+            parse_mode="HTML",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
 
-    # ================= PAGINATION =================
+    # 🔁 Pagination
     nav = []
 
     if page > 0:
         nav.append(InlineKeyboardButton("⬅ Олдингиси", callback_data=f"prev_{page-1}"))
 
-    if len(normal_rows) == limit:
+    if len(rows) == limit:
         nav.append(InlineKeyboardButton("➡ Кейингиси", callback_data=f"next_{page+1}"))
 
     if nav:
-        await message.reply_text("📄 Саҳифалар:",
-                                 reply_markup=InlineKeyboardMarkup([nav]))
+        await message.reply_text(
+            "📄 Саҳифалар:",
+            reply_markup=InlineKeyboardMarkup([nav])
+        )
 
     conn.close()
 
@@ -1367,7 +1337,8 @@ async def backup_database(update: Update, context: ContextTypes.DEFAULT_TYPE):
         SELECT m.id, m.telegram_id, m.name, m.phone, m.service, 
                m.region, m.district,
                COUNT(r.rating) as rating_count,
-               IFNULL(AVG(r.rating), 0) as avg_rating
+               COALESCE(AVG(r.rating), 0)
+
         FROM masters m
         LEFT JOIN ratings r ON m.id = r.master_id
         GROUP BY m.id
@@ -1534,6 +1505,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
