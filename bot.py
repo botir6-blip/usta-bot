@@ -44,6 +44,8 @@ def init_db():
     )
     """)
 
+    c.execute("""CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_rating ON ratings(master_id, user_id)""")
+
     # ====== FOYDALANUVCHILAR ======
     c.execute("""
     CREATE TABLE IF NOT EXISTS users(
@@ -1505,6 +1507,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
