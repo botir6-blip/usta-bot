@@ -36,6 +36,15 @@ def ensure_code_column():
 
     conn.commit()
     conn.close()
+
+import random
+
+def generate_unique_code(cursor):
+    while True:
+        code = str(random.randint(1000, 9999))
+        cursor.execute("SELECT 1 FROM masters WHERE code = %s", (code,))
+        if not cursor.fetchone():
+            return code
     
 # ================= DATABASE =================
 def init_db():
@@ -105,15 +114,23 @@ def init_db():
     
 # ================= USTA QO‘SHISH =================
 def add_master(telegram_id, name, phone, service, region, district, age=None, experience=None):
-    from datetime import datetime
     import psycopg2, os
 
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
 
+    # 🔎 Аввал код борми текшириш
+    c.execute("SELECT code FROM masters WHERE telegram_id = %s", (telegram_id,))
+    existing = c.fetchone()
+
+    if existing:
+        code = existing[0]  # эски кодни оламиз
+    else:
+        code = generate_unique_code(c)  # янги код яратамиз
+
     c.execute("""
-    INSERT INTO masters (telegram_id, name, phone, service, region, district, age, experience)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+    INSERT INTO masters (telegram_id, name, phone, service, region, district, age, experience, code)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
     ON CONFLICT (telegram_id)
     DO UPDATE SET
         name = EXCLUDED.name,
@@ -124,7 +141,7 @@ def add_master(telegram_id, name, phone, service, region, district, age=None, ex
         age = EXCLUDED.age,
         experience = EXCLUDED.experience
     """, (
-        telegram_id, name, phone, service, region, district, age, experience
+        telegram_id, name, phone, service, region, district, age, experience, code
     ))
 
     conn.commit()
@@ -1542,6 +1559,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
