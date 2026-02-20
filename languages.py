@@ -17,9 +17,9 @@ UZ_KR = {
     # Asosiy menyular
     "main_menu": [
         ["Уста топиш", "Уста бўлиш"],
-        ["Статистика", "Менинг профилим"],
-        ["Рўйхатдан чиқиш", "Админга ёзиш"],
-        ["🌐 Тилни ўзгартиш"]
+        ["🔎 Код орқали қидириш", "Менинг профилим"],
+        ["Статистика", "Рўйхатдан чиқиш"],
+        ["Админга ёзиш", "🌐 Тилни ўзгартиш"]
     ],
     "welcome": "Ассалому алайкум! Танланг:",
     "back": "Орқага",
@@ -79,10 +79,11 @@ UZ_LT = {
     # Asosiy menyular
     "main_menu": [
         ["Usta topish", "Usta bo'lish"],
-        ["Statistika", "Mening profilim"],
-        ["Ro'yxatdan chiqish", "Adminga yozish"],
-        ["🌐 Tilni o'zgartirish"]
+        ["🔎 Kod orqali qidirish", "Mening profilim"],
+        ["Statistika", "Ro'yxatdan chiqish"],
+        ["Adminga yozish", "🌐 Tilni o'zgartirish"]
     ],
+  
     "welcome": "Assalomu alaykum! Tanlang:",
     "back": "Orqaga",
     "choose_language": "Tilni tanlang:",
@@ -141,9 +142,9 @@ RU = {
     # Основные меню
     "main_menu": [
         ["Найти мастера", "Стать мастером"],
-        ["Статистика", "Мой профиль"],
-        ["Выйти", "Написать админу"],
-        ["🌐 Изменить язык"]
+        ["🔎 Поиск по коду", "Мой профиль"],
+        ["Статистика", "Выйти"],
+        ["Написать админу", "🌐 Изменить язык"]
     ],
     "welcome": "Здравствуйте! Выберите:",
     "back": "Назад",
