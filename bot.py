@@ -49,7 +49,7 @@ def init_db():
     # ====== FOYDALANUVCHILAR ======
     c.execute("""
     CREATE TABLE IF NOT EXISTS users(
-        telegram_id INTEGER PRIMARY KEY,
+        telegram_id BIGINT PRIMARY KEY,
         username TEXT,
         first_name TEXT,
         last_name TEXT,
@@ -70,11 +70,9 @@ def init_db():
     )
     """)
 
-    c.execute("ALTER TABLE users ALTER COLUMN telegram_id TYPE BIGINT")
     c.execute("ALTER TABLE masters ALTER COLUMN telegram_id TYPE BIGINT")
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT")
-    c.execute("""ALTER TABLE ratings ADD CONSTRAINT IF NOT EXISTS unique_rating UNIQUE(master_id, user_id)""")
-
+    
     conn.commit()
     conn.close()
     
@@ -982,25 +980,35 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # ⭐ VIP + NORMAL битта JOIN билан
     c.execute("""
-        SELECT 
-            m.id,
-            m.name,
-            m.phone,
-            m.district,
-            m.age,
-            m.experience,
-            m.vip,
-            COALESCE(AVG(r.rating), 0) as avg_rating,
-            COUNT(r.id) as votes
-        FROM masters m
-        LEFT JOIN ratings r ON m.id = r.master_id
-        WHERE m.service=%s 
-          AND m.region=%s 
-          AND m.district=%s
-        GROUP BY m.id
-        ORDER BY m.vip DESC, avg_rating DESC
-        LIMIT %s OFFSET %s
-    """, (service, region, district, limit, offset))
+    SELECT 
+        m.id,
+        m.name,
+        m.phone,
+        m.district,
+        m.age,
+        m.experience,
+        m.vip,
+        COALESCE(AVG(r.rating), 0) as avg_rating,
+        COUNT(r.id) as votes
+    FROM masters m
+    LEFT JOIN ratings r ON m.id = r.master_id
+    WHERE m.service=%s 
+      AND m.region=%s 
+      AND m.district=%s
+    GROUP BY 
+        m.id,
+        m.name,
+        m.phone,
+        m.district,
+        m.age,
+        m.experience,
+        m.vip
+    ORDER BY 
+        m.vip DESC,
+        avg_rating DESC,
+        votes DESC
+    LIMIT %s OFFSET %s
+""", (service, region, district, limit, offset))
 
     rows = c.fetchall()
 
@@ -1507,6 +1515,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
