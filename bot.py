@@ -1032,6 +1032,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         m.age,
         m.experience,
         m.vip,
+        m.code,
         COALESCE(AVG(r.rating), 0) as avg_rating,
         COUNT(r.rating) as votes
     FROM masters m
@@ -1046,13 +1047,14 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         m.district,
         m.age,
         m.experience,
-        m.vip
+        m.vip,
+        m.code
     ORDER BY 
         m.vip DESC,
         avg_rating DESC
     LIMIT %s OFFSET %s
-""", (service, region, district, limit, offset))
-
+    """, (service, region, district, limit, offset))
+    
     rows = c.fetchall()
 
     if not rows:
@@ -1060,14 +1062,14 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await message.reply_text("Усталар топилмади.")
         return
 
-    for mid, name, phone, dist, age, experience, vip, avg_rating, votes in rows:
+    for mid, name, phone, dist, age, experience, vip, code, avg_rating, votes in rows:
 
         rating_text = (
             f"{round(avg_rating,1)} ({votes})"
             if votes > 0 else "Рейтинг йўқ"
         )
 
-        badge = "👑 VIP УСТА" if vip else "👷 УСТА"
+        badge = f"👑 VIP УСТА • 🆔 {code}" if vip else f"👷 УСТА • 🆔 {code}"
 
         card = f"""
 {line}
@@ -1559,6 +1561,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
