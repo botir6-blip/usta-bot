@@ -111,6 +111,22 @@ def init_db():
     
     conn.commit()
     conn.close()
+
+def fill_missing_codes():
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    c = conn.cursor()
+
+    c.execute("SELECT id FROM masters WHERE code IS NULL")
+    masters = c.fetchall()
+
+    for (mid,) in masters:
+        code = generate_unique_code(c)
+        c.execute("UPDATE masters SET code = %s WHERE id = %s", (code, mid))
+
+    conn.commit()
+    conn.close()
+
+    print("✅ Барча эски усталарга код берилди")
     
 # ================= USTA QO‘SHISH =================
 def add_master(telegram_id, name, phone, service, region, district, age=None, experience=None):
@@ -1502,6 +1518,7 @@ def main():
     print("Bot is starting...")
     init_db()
     ensure_code_column()
+    fill_missing_codes()
 
     app = ApplicationBuilder().token(TOKEN).build()
 
@@ -1561,6 +1578,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
