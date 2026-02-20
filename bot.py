@@ -697,7 +697,40 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 🌐 Тил
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
+    
+    # 🔎 Код орқали қидиришни бошлаш
+    if text in [
+        "🔎 Код орқали қидириш",
+        "🔎 Kod orqali qidirish",
+        "🔎 Поиск по коду"
+    ]:
+        context.user_data["waiting_for_code"] = True
 
+        await update.message.reply_text(
+            "🆔 Уста кодини киритинг (4 рақам):\n\n"
+            "❌ Бекор қилиш учун 'Орқага' деб ёзинг."
+        )
+        return
+        
+    # 🔢 Код киритиш режими
+    if context.user_data.get("waiting_for_code"):
+
+        # 🔙 Орқага босилса
+        if text in ["Орқага", "Orqaga", "Назад"]:
+            context.user_data["waiting_for_code"] = False
+            await update.message.reply_text("🔙 Бекор қилинди.", reply_markup=MAIN_MENU)
+            return
+
+        code = text.strip()
+
+        if not code.isdigit() or len(code) != 4:
+            await update.message.reply_text(
+                "❌ Код 4 хоналик рақам бўлиши керак.\n\n"
+                "Қайта киритинг ёки 'Орқага' деб ёзинг."
+            )
+            return
+
+    # 🔍 Базадан излаш (буни кейин қўшган эдинг)    
   
     # =====================================================
     # ⭐ ADMIN VIP INPUT
@@ -1562,6 +1595,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
