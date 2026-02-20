@@ -713,77 +713,77 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # 🔢 Код киритиш режими
-if context.user_data.get("waiting_for_code"):
+    if context.user_data.get("waiting_for_code"):
 
-    # 🔙 Орқага
-    if text in ["Орқага", "Orqaga", "Назад"]:
-        context.user_data["waiting_for_code"] = False
-        await update.message.reply_text(
-            texts["welcome"],
-            reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True)
-        )
+        # 🔙 Орқага
+        if text in ["Орқага", "Orqaga", "Назад"]:
+            context.user_data["waiting_for_code"] = False
+            await update.message.reply_text(
+                texts["welcome"],
+                reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True)
+            )
+            return
+
+        code = text.strip()
+
+        if not code.isdigit() or len(code) != 4:
+            await update.message.reply_text(
+                "❌ Код 4 хоналик рақам бўлиши керак.\n\n"
+                "Қайта киритинг ёки 'Орқага' деб ёзинг."
+            )
+            return
+
+        # 🔍 БАЗАДАН ҚИДИРИШ
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        c = conn.cursor()
+
+        c.execute("""
+            SELECT id, name, phone, district, age, experience, vip
+            FROM masters
+            WHERE code = %s
+        """, (code,))
+
+        master = c.fetchone()
+        conn.close()
+
+        if master:
+            mid, name, phone, district, age, experience, vip = master
+
+            badge = f"👑 VIP УСТА • 🆔 {code}" if vip else f"👷 УСТА • 🆔 {code}"
+
+            text_msg = f"""
+    ══════════════════════════
+    <b>{badge}</b>
+
+    👤 <b>{name}</b>
+    📍 {district}
+    🎂 {age} ёш
+    🧰 {experience} йил тажриба
+    📞 <b>+{phone}</b>
+    ══════════════════════════
+    """
+
+            keyboard = [[
+                InlineKeyboardButton("📞 Қўнғироқ", callback_data=f"call_{phone}"),
+                InlineKeyboardButton("✅ Чақирдим", callback_data=f"order_{mid}"),
+                InlineKeyboardButton("⭐ Баҳо", callback_data=f"rate_{mid}")
+            ]]
+
+            await update.message.reply_text(
+                text_msg,
+                parse_mode="HTML",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+
+            context.user_data["waiting_for_code"] = False
+
+        else:
+            await update.message.reply_text(
+                "❌ Бундай код топилмади.\n\n"
+                "Қайта киритинг ёки 'Орқага' деб ёзинг."
+            )
+
         return
-
-    code = text.strip()
-
-    if not code.isdigit() or len(code) != 4:
-        await update.message.reply_text(
-            "❌ Код 4 хоналик рақам бўлиши керак.\n\n"
-            "Қайта киритинг ёки 'Орқага' деб ёзинг."
-        )
-        return
-
-    # 🔍 БАЗАДАН ҚИДИРИШ
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-    c = conn.cursor()
-
-    c.execute("""
-        SELECT id, name, phone, district, age, experience, vip
-        FROM masters
-        WHERE code = %s
-    """, (code,))
-
-    master = c.fetchone()
-    conn.close()
-
-    if master:
-        mid, name, phone, district, age, experience, vip = master
-
-        badge = f"👑 VIP УСТА • 🆔 {code}" if vip else f"👷 УСТА • 🆔 {code}"
-
-        text_msg = f"""
-══════════════════════════
-<b>{badge}</b>
-
-👤 <b>{name}</b>
-📍 {district}
-🎂 {age} ёш
-🧰 {experience} йил тажриба
-📞 <b>+{phone}</b>
-══════════════════════════
-"""
-
-        keyboard = [[
-            InlineKeyboardButton("📞 Қўнғироқ", callback_data=f"call_{phone}"),
-            InlineKeyboardButton("✅ Чақирдим", callback_data=f"order_{mid}"),
-            InlineKeyboardButton("⭐ Баҳо", callback_data=f"rate_{mid}")
-        ]]
-
-        await update.message.reply_text(
-            text_msg,
-            parse_mode="HTML",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-
-        context.user_data["waiting_for_code"] = False
-
-    else:
-        await update.message.reply_text(
-            "❌ Бундай код топилмади.\n\n"
-            "Қайта киритинг ёки 'Орқага' деб ёзинг."
-        )
-
-    return
         
   
     # =====================================================
@@ -1649,6 +1649,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
