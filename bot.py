@@ -1405,7 +1405,7 @@ async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
     c.execute("""
-        SELECT name, phone, service, region, district, age, experience, education, skills
+        SELECT name, phone, service, region, district, age, experience, education, skills, code
         FROM masters
         WHERE telegram_id=%s
     """, (user,))
@@ -1419,9 +1419,15 @@ async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    name, phone, service, region, district, age, experience, education, skills = row
+    name, phone, service, region, district, age, experience, education, skills, code = row
 
-    profile_text = f"👷 {name}\n📞 {phone}\n🛠 {service}\n📍 {region} / {district}"
+    profile_text = (
+        f"👷 {name}\n"
+        f"🆔 Код: {code}\n"
+        f"📞 {phone}\n"
+        f"🛠 {service}\n"
+        f"📍 {region} / {district}"
+    )
 
     if age:
         profile_text += f"\n🎂 Ёш: {age}"
@@ -1432,11 +1438,8 @@ async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if skills:
         profile_text += f"\n🔧 Кўникмалар: {skills}"
 
-    await message.reply_text(
-        profile_text,
-        reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True)
-    )
-
+    await message.reply_text(profile_text, reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True)
+                            )
 # ================= DELETE =================
 async def unregister(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
@@ -1649,6 +1652,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
