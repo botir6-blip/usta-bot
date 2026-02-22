@@ -2057,6 +2057,78 @@ async def admin_top_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text += f"{i}. {row[0]} (🆔 {row[1]})\n"
 
     await update.message.reply_text(text)
+
+async def admin_week_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if update.effective_user.id != ADMIN_ID:
+        return
+
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    c = conn.cursor()
+
+    # 📦 7 кундаги буюртмалар
+    c.execute("""
+        SELECT COUNT(*) 
+        FROM orders
+        WHERE created_at >= NOW() - INTERVAL '7 days'
+    """)
+    week_orders = c.fetchone()[0]
+
+    # ⭐ 7 кундаги рейтинглар
+    c.execute("""
+        SELECT COUNT(*)
+        FROM ratings
+        WHERE id IN (
+            SELECT id FROM ratings
+        )
+        AND id IS NOT NULL
+    """)
+    week_ratings = c.fetchone()[0]
+
+    # 👥 7 кундаги янги фойдаланувчилар
+    c.execute("""
+        SELECT COUNT(*)
+        FROM users
+        WHERE join_date::timestamp >= NOW() - INTERVAL '7 days'
+    """)
+    week_users = c.fetchone()[0]
+
+    # 👷 7 кундаги янги усталар
+    c.execute("""
+        SELECT COUNT(*)
+        FROM masters
+        WHERE id IN (
+            SELECT id FROM masters
+        )
+    """)
+    week_masters = c.fetchone()[0]
+
+    # 🥇 Энг фаол уста (7 кунда)
+    c.execute("""
+        SELECT m.name, m.code, COUNT(o.id) as total
+        FROM masters m
+        JOIN orders o ON m.id = o.master_id
+        WHERE o.created_at >= NOW() - INTERVAL '7 days'
+        GROUP BY m.name, m.code
+        ORDER BY total DESC
+        LIMIT 1
+    """)
+    top_master = c.fetchone()
+
+    conn.close()
+
+    text = "📊 7 КУНЛИК АНАЛИТИКА\n\n"
+    text += f"📦 Буюртмалар: {week_orders}\n"
+    text += f"⭐ Рейтинглар: {week_ratings}\n"
+    text += f"👥 Янги фойдаланувчилар: {week_users}\n"
+    text += f"👷 Янги усталар: {week_masters}\n\n"
+
+    if top_master:
+        text += f"🥇 Энг фаол уста:\n{top_master[0]} (🆔 {top_master[1]}) — {top_master[2]} та\n"
+    else:
+        text += "🥇 Энг фаол уста йўқ\n"
+
+    await update.message.reply_text(text)
     
 def main():
     print("NEW VERSION 777")
@@ -2111,6 +2183,7 @@ def main():
     app.add_handler(MessageHandler(filters.Regex("^(Статистика|Statistika|Статистика)$"), show_stats))
     app.add_handler(CommandHandler("mstat", admin_master_stats))
     app.add_handler(CommandHandler("topmasters", admin_top_masters))
+    app.add_handler(CommandHandler("weekstats", admin_week_stats))
 
     # ⭐ оддий текстлар
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_router))
@@ -2121,6 +2194,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
