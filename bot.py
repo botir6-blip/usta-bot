@@ -1512,6 +1512,16 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await my_profile(update, context)
         return
 
+    elif data == "edit_status":
+
+        keyboard = [
+            [InlineKeyboardButton("🟢 Бўш", callback_data="set_free")],
+            [InlineKeyboardButton("🔴 Банд", callback_data="set_busy")]
+        ]
+
+        await query.message.reply_text("Ҳолатни танланг:", reply_markup=InlineKeyboardMarkup(keyboard))
+        return
+
     # ================= ADMIN VIP =================
     elif data == "admin_vip":
         context.user_data["state"] = "waiting_vip_id"
@@ -1856,6 +1866,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
