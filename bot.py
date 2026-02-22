@@ -1670,7 +1670,7 @@ def main():
     # ⭐ БИТТА callback handler — ҳаммасини ушлайди
     app.add_handler(CallbackQueryHandler(admin_vip_menu, pattern="^admin_vip$"))
     app.add_handler(CallbackQueryHandler(admin_vip_list, pattern="^admin_vip_list$"))
-    app.add_handler(CallbackQueryHandler(callback_router, pattern="^(call_|order_|rate_|setrate_|next_|prev_|edit_)"))
+    app.add_handler(CallbackQueryHandler(callback_router))
     
     # til tanlash
     app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^(Узбек \\(кирилл\\)|O'zbek \\(lotin\\)|Русский)$"),
@@ -1716,6 +1716,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
