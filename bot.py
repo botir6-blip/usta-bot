@@ -1665,8 +1665,7 @@ def main():
     app.add_handler(CommandHandler("admin", admin_panel))
     app.add_handler(CommandHandler("id", show_id))
     app.add_handler(CommandHandler("vip", give_vip))
-    app.add_handler(CallbackQueryHandler(admin_analytics, pattern="^admin_analytics$"))
-
+    
     # ⭐ БИТТА callback handler — ҳаммасини ушлайди
     app.add_handler(CallbackQueryHandler(callback_router))
     
@@ -1714,6 +1713,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
