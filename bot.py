@@ -1347,6 +1347,28 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await show_masters(update, context)
         return
 
+    # ================= EDIT PROFILE =================
+    elif data == "edit_profile":
+
+        keyboard = [
+            [InlineKeyboardButton("📝 Иш турлари", callback_data="edit_description")],
+            [InlineKeyboardButton("📞 Телефон", callback_data="edit_phone")],
+            [InlineKeyboardButton("🧰 Тажриба", callback_data="edit_experience")],
+            [InlineKeyboardButton("🎂 Ёш", callback_data="edit_age")],
+            [InlineKeyboardButton("⬅ Орқага", callback_data="back_to_profile")]
+        ]
+
+        await query.message.reply_text("Қайсини ўзгартирмоқчисиз?", reply_markup=InlineKeyboardMarkup(keyboard))
+        return
+
+
+    elif data == "edit_description":
+
+        context.user_data["step"] = "edit_description"
+
+        await query.message.reply_text("📝 Янги иш турларини ёзинг (300 белгидан оширманг):")
+        return
+
     # ================= ADMIN VIP =================
     elif data == "admin_vip":
         context.user_data["state"] = "waiting_vip_id"
@@ -1475,8 +1497,13 @@ async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if skills:
         profile_text += f"\n🔧 Кўникмалар: {skills}"
 
-    await message.reply_text(profile_text, reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True)
-                            )
+    keyboard = [
+        [InlineKeyboardButton("⚙ Профилни таҳрир қилиш", callback_data="edit_profile")],
+        [InlineKeyboardButton("❌ Рўйхатдан чиқиш", callback_data="delete_profile")]
+    ]
+
+    await message.reply_text(profile_text, reply_markup=InlineKeyboardMarkup(keyboard))
+
 # ================= DELETE =================
 async def unregister(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
@@ -1643,7 +1670,7 @@ def main():
     # ⭐ БИТТА callback handler — ҳаммасини ушлайди
     app.add_handler(CallbackQueryHandler(admin_vip_menu, pattern="^admin_vip$"))
     app.add_handler(CallbackQueryHandler(admin_vip_list, pattern="^admin_vip_list$"))
-    app.add_handler(CallbackQueryHandler(callback_router, pattern="^(call_|order_|rate_|setrate_|next_|prev_)"))
+    app.add_handler(CallbackQueryHandler(callback_router, pattern="^(call_|order_|rate_|setrate_|next_|prev_|edit_)"))
     
     # til tanlash
     app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^(Узбек \\(кирилл\\)|O'zbek \\(lotin\\)|Русский)$"),
@@ -1689,6 +1716,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
