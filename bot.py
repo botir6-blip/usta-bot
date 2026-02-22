@@ -2074,17 +2074,6 @@ async def admin_week_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """)
     week_orders = c.fetchone()[0]
 
-    # ⭐ 7 кундаги рейтинглар
-    c.execute("""
-        SELECT COUNT(*)
-        FROM ratings
-        WHERE id IN (
-            SELECT id FROM ratings
-        )
-        AND id IS NOT NULL
-    """)
-    week_ratings = c.fetchone()[0]
-
     # 👥 7 кундаги янги фойдаланувчилар
     c.execute("""
         SELECT COUNT(*)
@@ -2092,16 +2081,6 @@ async def admin_week_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         WHERE join_date::timestamp >= NOW() - INTERVAL '7 days'
     """)
     week_users = c.fetchone()[0]
-
-    # 👷 7 кундаги янги усталар
-    c.execute("""
-        SELECT COUNT(*)
-        FROM masters
-        WHERE id IN (
-            SELECT id FROM masters
-        )
-    """)
-    week_masters = c.fetchone()[0]
 
     # 🥇 Энг фаол уста (7 кунда)
     c.execute("""
@@ -2119,9 +2098,7 @@ async def admin_week_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = "📊 7 КУНЛИК АНАЛИТИКА\n\n"
     text += f"📦 Буюртмалар: {week_orders}\n"
-    text += f"⭐ Рейтинглар: {week_ratings}\n"
-    text += f"👥 Янги фойдаланувчилар: {week_users}\n"
-    text += f"👷 Янги усталар: {week_masters}\n\n"
+    text += f"👥 Янги фойдаланувчилар: {week_users}\n\n"
 
     if top_master:
         text += f"🥇 Энг фаол уста:\n{top_master[0]} (🆔 {top_master[1]}) — {top_master[2]} та\n"
@@ -2194,6 +2171,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
