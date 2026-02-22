@@ -73,6 +73,9 @@ def init_db():
     c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS is_busy BOOLEAN DEFAULT FALSE")
     c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS busy_until DATE")
     c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE")
+    c.execute("ALTER TABLE ratings ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
 
     # ====== BAHOLAR ======
     c.execute("""
@@ -2074,13 +2077,29 @@ async def admin_week_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """)
     week_orders = c.fetchone()[0]
 
+    # ⭐ 7 кундаги рейтинглар
+    c.execute("""
+        SELECT COUNT(*)
+        FROM ratings
+        WHERE created_at >= NOW() - INTERVAL '7 days'
+    """)
+    week_ratings = c.fetchone()[0]
+
     # 👥 7 кундаги янги фойдаланувчилар
     c.execute("""
         SELECT COUNT(*)
         FROM users
-        WHERE join_date::timestamp >= NOW() - INTERVAL '7 days'
+        WHERE created_at >= NOW() - INTERVAL '7 days'
     """)
     week_users = c.fetchone()[0]
+
+    # 👷 7 кундаги янги усталар
+    c.execute("""
+        SELECT COUNT(*)
+        FROM masters
+        WHERE created_at >= NOW() - INTERVAL '7 days'
+    """)
+    week_masters = c.fetchone()[0]
 
     # 🥇 Энг фаол уста (7 кунда)
     c.execute("""
@@ -2096,9 +2115,11 @@ async def admin_week_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     conn.close()
 
-    text = "📊 7 КУНЛИК АНАЛИТИКА\n\n"
+    text = "📊 ПРО 7 КУНЛИК АНАЛИТИКА\n\n"
     text += f"📦 Буюртмалар: {week_orders}\n"
-    text += f"👥 Янги фойдаланувчилар: {week_users}\n\n"
+    text += f"⭐ Рейтинглар: {week_ratings}\n"
+    text += f"👥 Янги фойдаланувчилар: {week_users}\n"
+    text += f"👷 Янги усталар: {week_masters}\n\n"
 
     if top_master:
         text += f"🥇 Энг фаол уста:\n{top_master[0]} (🆔 {top_master[1]}) — {top_master[2]} та\n"
@@ -2171,6 +2192,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
