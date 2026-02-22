@@ -1311,7 +1311,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         card = f"""
 {line}
 <b>{badge}</b>
-
+<b>{status_text}</b>
 👤 <b>{name}</b>
 📍 {dist}
 🎂 {age} ёш
@@ -1855,6 +1855,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
