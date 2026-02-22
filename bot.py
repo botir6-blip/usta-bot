@@ -930,6 +930,35 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("✅ Тажриба янгиланди.")
         context.user_data["step"] = None
         return
+       
+    # ================= EDIT AGE =================
+    if step == "edit_age":
+
+        age = update.message.text.strip()
+
+        if not age.isdigit():
+            await update.message.reply_text("❗ Фақат рақам киритинг.")
+            return
+
+        if int(age) < 16 or int(age) > 80:
+            await update.message.reply_text("❗ Ёш нотўғри киритилди.")
+            return
+
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        c = conn.cursor()
+
+        c.execute("""
+            UPDATE masters
+            SET age=%s
+            WHERE telegram_id=%s
+        """, (age, update.effective_user.id))
+
+        conn.commit()
+        conn.close()
+
+        await update.message.reply_text("✅ Ёш янгиланди.")
+        context.user_data["step"] = None
+        return
         
     # ================= EDIT DESCRIPTION =================
     if step == "edit_description":
@@ -1815,6 +1844,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
