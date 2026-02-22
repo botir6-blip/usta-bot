@@ -884,6 +884,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 🔄 STEP логика
     # =====================================================
     step = context.user_data.get("step")
+    
     # ================= EDIT PHONE =================
     if step == "edit_phone":
 
@@ -904,7 +905,32 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("✅ Телефон янгиланди.")
         context.user_data["step"] = None
         return
-    
+
+    # ================= EDIT EXPERIENCE =================
+    if step == "edit_experience":
+
+        exp = update.message.text.strip()
+
+        if not exp.isdigit():
+            await update.message.reply_text("❗ Фақат рақам киритинг.")
+            return
+
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        c = conn.cursor()
+
+        c.execute("""
+            UPDATE masters
+            SET experience=%s
+            WHERE telegram_id=%s
+        """, (exp, update.effective_user.id))
+
+        conn.commit()
+        conn.close()
+
+        await update.message.reply_text("✅ Тажриба янгиланди.")
+        context.user_data["step"] = None
+        return
+        
     # ================= EDIT DESCRIPTION =================
     if step == "edit_description":
 
@@ -1789,6 +1815,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
