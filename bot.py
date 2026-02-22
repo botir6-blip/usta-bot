@@ -1276,7 +1276,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         m.code,
         m.service_description,
         m.is_busy,
-        m.busy_until,
+        m.busy_until
     ORDER BY 
         m.vip DESC,
         avg_rating DESC
@@ -1853,6 +1853,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
