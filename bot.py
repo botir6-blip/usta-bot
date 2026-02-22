@@ -1271,7 +1271,6 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     c = conn.cursor()
 
     from datetime import date
-
     today = date.today()
 
     # 🔄 Автоматик равишда муддати ўтган бандликни тозалаш
@@ -1282,6 +1281,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         WHERE is_busy = TRUE
           AND busy_until IS NOT NULL
           AND busy_until < %s
+          AND is_active = TRUE
     """, (today,))
 
     line = "══════════════════════════"
@@ -1343,10 +1343,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print("DEBUG:", is_busy, busy_until)
         
         badge = f"👑 VIP УСТА • 🆔 {code}" if vip else f"👷 УСТА • 🆔 {code}"
-        from datetime import date
-
-        today = date.today()
-
+       
         if is_busy and busy_until and busy_until >= today:
             status_text = f"🔴 Банд ({busy_until})"
         else:
@@ -1705,7 +1702,7 @@ async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     c.execute("""
         SELECT name, phone, service, region, district, age, experience, education, skills, code
         FROM masters
-        WHERE telegram_id=%s
+        WHERE telegram_id=%s AND is_active=TRUE
     """, (user,))
     row = c.fetchone()
     conn.close()
@@ -1952,73 +1949,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
