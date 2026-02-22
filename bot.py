@@ -887,6 +887,28 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # =====================================================
     step = context.user_data.get("step")
     
+    # ================= SET BUSY DATE =================
+    if step == "set_busy_date":
+
+        date_text = update.message.text.strip()
+
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        c = conn.cursor()
+
+        c.execute("""
+            UPDATE masters
+            SET is_busy = TRUE,
+                busy_until = %s
+            WHERE telegram_id = %s
+        """, (date_text, update.effective_user.id))
+
+        conn.commit()
+        conn.close()
+
+        await update.message.reply_text(f"🔴 Сиз {date_text} гача бандсиз.")
+        context.user_data["step"] = None
+        return
+        
     # ================= EDIT PHONE =================
     if step == "edit_phone":
 
@@ -1521,7 +1543,32 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await query.message.reply_text("Ҳолатни танланг:", reply_markup=InlineKeyboardMarkup(keyboard))
         return
+        
+    elif data == "set_free":
 
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        c = conn.cursor()
+
+        c.execute("""
+            UPDATE masters
+            SET is_busy = FALSE,
+                busy_until = NULL
+            WHERE telegram_id = %s
+        """, (query.from_user.id,))
+
+        conn.commit()
+        conn.close()
+
+        await query.message.reply_text("🟢 Сиз энди бўшсиз.")
+        return
+
+    elif data == "set_busy":
+
+        context.user_data["step"] = "set_busy_date"
+
+        await query.message.reply_text("📅 Қайси кунгача бандсиз?\n" "Формат: YYYY-MM-DD\n" "Масалан: 2026-02-25")
+        return
+        
     # ================= ADMIN VIP =================
     elif data == "admin_vip":
         context.user_data["state"] = "waiting_vip_id"
@@ -1866,6 +1913,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
