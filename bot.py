@@ -72,6 +72,7 @@ def init_db():
     c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS service_description VARCHAR(300)")
     c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS is_busy BOOLEAN DEFAULT FALSE")
     c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS busy_until DATE")
+    c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE")
 
     # ====== BAHOLAR ======
     c.execute("""
@@ -145,7 +146,8 @@ def add_master(telegram_id, name, phone, service, region, district, age=None, ex
         district = EXCLUDED.district,
         age = EXCLUDED.age,
         experience = EXCLUDED.experience,
-        service_description = EXCLUDED.service_description
+        service_description = EXCLUDED.service_description,
+        is_active = TRUE
     """, (
         telegram_id, name, phone, service, region, district, age, experience, code, service_description
     ))
@@ -166,6 +168,7 @@ def find_masters(service, region, district):
     WHERE service ILIKE %s
       AND region ILIKE %s
       AND district ILIKE %s
+      AND m.is_active = TRUE
     ORDER BY 
         vip DESC,
         vip_until DESC NULLS LAST
@@ -180,27 +183,30 @@ def find_masters(service, region, district):
     return data
 
 
-# ================= RO‘YXATDAN CHIQARISH =================
+# ================= RO‘YXATDAN CHIQАРИШ (SOFT DELETE) =================
 def delete_master(telegram_id):
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
 
-    # Avval ustani ID sini topamiz
+    # Уста мавжудми текширамиз
     c.execute("SELECT id FROM masters WHERE telegram_id=%s", (telegram_id,))
     master = c.fetchone()
-    
+
     if master:
         master_id = master[0]
-        # AVVAL reytinglarni o'chiramiz
-        c.execute("DELETE FROM ratings WHERE master_id=%s", (master_id,))
-        # KEYIN ustani o'chiramiz
-        c.execute("DELETE FROM masters WHERE telegram_id=%s", (telegram_id,))
-        print(f"Usta {master_id} va uning {c.rowcount} ta reytingi ochirildi")
-    
+
+        # ❗ Энди ўчирмаймиз, фақат фаол эмас қиламиз
+        c.execute("""
+            UPDATE masters
+            SET is_active = FALSE
+            WHERE telegram_id = %s
+        """, (telegram_id,))
+
+        print(f"Usta {master_id} soft delete qilindi (is_active=FALSE)")
+
     conn.commit()
     conn.close()
     return master is not None
-
 
 # ================= MENUS =================
 MAIN_MENU = ReplyKeyboardMarkup([
@@ -1264,6 +1270,20 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
 
+    from datetime import date
+
+    today = date.today()
+
+    # 🔄 Автоматик равишда муддати ўтган бандликни тозалаш
+    c.execute("""
+        UPDATE masters
+        SET is_busy = FALSE,
+            busy_until = NULL
+        WHERE is_busy = TRUE
+          AND busy_until IS NOT NULL
+          AND busy_until < %s
+    """, (today,))
+
     line = "══════════════════════════"
 
     # ⭐ VIP + NORMAL битта JOIN билан
@@ -1287,6 +1307,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     WHERE m.service=%s 
       AND m.region=%s 
       AND m.district=%s
+      AND m.is_active = TRUE
     GROUP BY 
         m.id,
         m.name,
@@ -1913,6 +1934,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
