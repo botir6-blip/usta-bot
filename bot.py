@@ -1471,6 +1471,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("📞 Телефон", callback_data="edit_phone")],
             [InlineKeyboardButton("🧰 Тажриба", callback_data="edit_experience")],
             [InlineKeyboardButton("🎂 Ёш", callback_data="edit_age")],
+            [InlineKeyboardButton("🟢/🔴 Ҳолат", callback_data="edit_status")],
             [InlineKeyboardButton("⬅ Орқага", callback_data="back_to_profile")]
         ]
 
@@ -1855,6 +1856,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
