@@ -1150,6 +1150,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         m.experience,
         m.vip,
         m.code,
+        m.service_description,
         COALESCE(AVG(r.rating), 0) as avg_rating,
         COUNT(r.rating) as votes
     FROM masters m
@@ -1165,7 +1166,8 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         m.age,
         m.experience,
         m.vip,
-        m.code
+        m.code,
+        m.service_description
     ORDER BY 
         m.vip DESC,
         avg_rating DESC
@@ -1179,8 +1181,8 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await message.reply_text("Усталар топилмади.")
         return
 
-    for mid, name, phone, dist, age, experience, vip, code, avg_rating, votes in rows:
-
+    for mid, name, phone, dist, age, experience, vip, code, desc, avg_rating, votes in rows:
+        
         rating_text = (
             f"{round(avg_rating,1)} ({votes})"
             if votes > 0 else "Рейтинг йўқ"
@@ -1198,9 +1200,15 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 🧰 {experience} йил тажриба
 📞 <b>+{phone}</b>
 ⭐ {rating_text}
-{line}
 """
+        # 🔥 Description алоҳида қўшилади
+        if desc:
+            short_desc = desc[:150]
+            if len(desc) > 150:
+                short_desc += "..."
+            card += f"\n📝 {short_desc}\n"
 
+        card += f"\n{line}"
         keyboard = [[
             InlineKeyboardButton("📞 Қўнғироқ", callback_data=f"call_{phone}"),
             InlineKeyboardButton("✅ Чақирдим", callback_data=f"order_{mid}"),
@@ -1681,6 +1689,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
