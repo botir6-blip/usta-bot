@@ -2129,69 +2129,124 @@ async def admin_week_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(text)
     
 def main():
-    print("NEW VERSION 777")
-    print("Bot is starting...")
+    print("PRO VERSION STARTING...")
     init_db()
     ensure_code_column()
-    
+
     app = ApplicationBuilder().token(TOKEN).build()
 
-    # start
+    # =========================
+    # 🔹 COMMAND HANDLERS
+    # =========================
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("admin", admin_panel))
     app.add_handler(CommandHandler("id", show_id))
     app.add_handler(CommandHandler("vip", give_vip))
-    
-    # ⭐ БИТТА callback handler — ҳаммасини ушлайди
-    app.add_handler(CallbackQueryHandler(callback_router))
-    
-    # til tanlash
-    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^(Узбек \\(кирилл\\)|O'zbek \\(lotin\\)|Русский)$"),
-        choose_language
-    ))
 
-    # register
-    app.add_handler(MessageHandler(filters.Regex("^(Уста бўлиш|Usta bo'lish|Стать мастером)$"),
-        start_register
-    ))
-    app.add_handler(MessageHandler(filters.CONTACT, get_phone))
-
-    # find
-    app.add_handler(MessageHandler(filters.Regex("^(Уста топиш|Usta topish|Найти мастера)$"),
-        start_find
-    ))
-
-    # profile
-    app.add_handler(MessageHandler(filters.Regex("^(Менинг профилим|Mening profilim|Мой профиль)$"),
-        my_profile
-    ))
-    app.add_handler(MessageHandler(filters.Regex("^(Рўйхатдан чиқиш|Ro'yxatdan chiqish|Выйти)$"),
-        unregister
-    ))
-
-    # backup
-    app.add_handler(MessageHandler(filters.Regex("^💾 Backup$"), backup_database))
-
-    # til o'zgartirish
-    app.add_handler(MessageHandler(filters.Regex("^🌐 Тилни ўзгартиш$"), change_language))
-    app.add_handler(MessageHandler(filters.Regex("^🌐 Tilni o'zgartirish$"), change_language))
-    app.add_handler(MessageHandler(filters.Regex("^🌐 Изменить язык$"), change_language))
-
-    # stats
-    app.add_handler(MessageHandler(filters.Regex("^(Статистика|Statistika|Статистика)$"), show_stats))
+    # 📊 ADMIN ANALYTICS COMMANDS
     app.add_handler(CommandHandler("mstat", admin_master_stats))
     app.add_handler(CommandHandler("topmasters", admin_top_masters))
     app.add_handler(CommandHandler("weekstats", admin_week_stats))
 
-    # ⭐ оддий текстлар
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_router))
+    # =========================
+    # 🔹 ADMIN CALLBACKS (Алоҳида!)
+    # =========================
+    app.add_handler(CallbackQueryHandler(admin_analytics, pattern="^admin_analytics$"))
+    app.add_handler(CallbackQueryHandler(admin_vip_menu, pattern="^admin_vip$"))
+    app.add_handler(CallbackQueryHandler(admin_vip_list, pattern="^admin_vip_list$"))
 
-    print("Bot is running...")
+    # =========================
+    # 🔹 УНИВЕРСАЛ CALLBACK ROUTER
+    # =========================
+    app.add_handler(CallbackQueryHandler(callback_router))
+
+    # =========================
+    # 🔹 LANGUAGE SELECTION
+    # =========================
+    app.add_handler(MessageHandler(
+        filters.TEXT & filters.Regex("^(Узбек \\(кирилл\\)|O'zbek \\(lotin\\)|Русский)$"),
+        choose_language
+    ))
+
+    # =========================
+    # 🔹 REGISTER FLOW
+    # =========================
+    app.add_handler(MessageHandler(
+        filters.Regex("^(Уста бўлиш|Usta bo'lish|Стать мастером)$"),
+        start_register
+    ))
+
+    app.add_handler(MessageHandler(filters.CONTACT, get_phone))
+
+    # =========================
+    # 🔹 FIND FLOW
+    # =========================
+    app.add_handler(MessageHandler(
+        filters.Regex("^(Уста топиш|Usta topish|Найти мастера)$"),
+        start_find
+    ))
+
+    # =========================
+    # 🔹 PROFILE
+    # =========================
+    app.add_handler(MessageHandler(
+        filters.Regex("^(Менинг профилим|Mening profilim|Мой профиль)$"),
+        my_profile
+    ))
+
+    app.add_handler(MessageHandler(
+        filters.Regex("^(Рўйхатдан чиқиш|Ro'yxatdan chiqish|Выйти)$"),
+        unregister
+    ))
+
+    # =========================
+    # 🔹 BACKUP
+    # =========================
+    app.add_handler(MessageHandler(
+        filters.Regex("^💾 Backup$"),
+        backup_database
+    ))
+
+    # =========================
+    # 🔹 LANGUAGE CHANGE
+    # =========================
+    app.add_handler(MessageHandler(
+        filters.Regex("^🌐 Тилни ўзгартиш$"),
+        change_language
+    ))
+
+    app.add_handler(MessageHandler(
+        filters.Regex("^🌐 Tilni o'zgartirish$"),
+        change_language
+    ))
+
+    app.add_handler(MessageHandler(
+        filters.Regex("^🌐 Изменить язык$"),
+        change_language
+    ))
+
+    # =========================
+    # 🔹 STATISTICS
+    # =========================
+    app.add_handler(MessageHandler(
+        filters.Regex("^(Статистика|Statistika|Статистика)$"),
+        show_stats
+    ))
+
+    # =========================
+    # 🔹 TEXT ROUTER (ЭНГ ОХИРИДА!)
+    # =========================
+    app.add_handler(MessageHandler(
+        filters.TEXT & ~filters.COMMAND,
+        text_router
+    ))
+
+    print("BOT IS RUNNING...")
     app.run_polling()
-
 
 if __name__ == "__main__":
     main()
+
 
 
 
