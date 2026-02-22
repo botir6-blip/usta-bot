@@ -1668,8 +1668,6 @@ def main():
     app.add_handler(CallbackQueryHandler(admin_analytics, pattern="^admin_analytics$"))
 
     # ⭐ БИТТА callback handler — ҳаммасини ушлайди
-    app.add_handler(CallbackQueryHandler(admin_vip_menu, pattern="^admin_vip$"))
-    app.add_handler(CallbackQueryHandler(admin_vip_list, pattern="^admin_vip_list$"))
     app.add_handler(CallbackQueryHandler(callback_router))
     
     # til tanlash
@@ -1716,6 +1714,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
