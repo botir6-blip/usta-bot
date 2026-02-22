@@ -494,7 +494,7 @@ async def admin_vip_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data["step"] = "vip_input"
 
-    await query.message.reply_text("VIP бериш учун устанинг telegram_id ни киритинг:")
+    await query.message.reply_text("⭐ VIP бериш учун устанинг кодини киритинг:")
 
 async def admin_vip_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -537,37 +537,44 @@ async def give_vip(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         return
 
-    if not update.message.reply_to_message:
-        await update.message.reply_text("❗ Устанинг хабарини reply қилиб /vip ёзинг.")
+    if not context.args:
+        await update.message.reply_text("Фойдаланиш: /vip 1234")
         return
 
-    master_tid = update.message.reply_to_message.from_user.id
+    code = context.args[0]
+
+    if not code.isdigit() or len(code) != 4:
+        await update.message.reply_text("❌ Код 4 хоналик рақам бўлиши керак.")
+        return
 
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
 
-    # ⭐ Аввал текширамиз
-    c.execute("SELECT id FROM masters WHERE telegram_id=%s", (master_tid,))
-    if not c.fetchone():
-        conn.close()
-        await update.message.reply_text("❌ Бу фойдаланувчи уста эмас.")
-        return
-
-    # ⭐ Кейин VIP қиламиз
     c.execute("""
         UPDATE masters
         SET vip = TRUE,
             vip_until = NOW() + INTERVAL '30 days'
-        WHERE telegram_id = %s
-    """, (master_tid,))
+        WHERE code = %s
+        RETURNING telegram_id
+    """, (code,))
 
+    result = c.fetchone()
     conn.commit()
     conn.close()
 
-    await update.message.reply_text("✅ Уста 30 кунга VIP қилинди.")
+    if not result:
+        await update.message.reply_text("❌ Бундай кодли уста топилмади.")
+        return
 
-    await context.bot.send_message(chat_id=master_tid, text="🌟 Табриклаймиз! Сиз 30 кунга VIP уста бўлдингиз!")
+    master_tg_id = result[0]
 
+    await update.message.reply_text(f"✅ Уста (🆔 {code}) 30 кунга VIP қилинди.")
+
+    # Устага хабар бериш
+    await context.bot.send_message(
+        chat_id=master_tg_id,
+        text="🌟 Табриклаймиз! Сиз 30 кунга VIP уста бўлдингиз!"
+    )
 # ================= SO'ZLARNI TOZALASH =================
 def clean_text(text):
     """Noto'g'ri so'zlarni filtrlash"""
@@ -799,9 +806,8 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         return
         
-  
     # =====================================================
-    # ⭐ ADMIN VIP INPUT
+    # ⭐ ADMIN VIP INPUT (CODE ORQALI)
     # =====================================================
     if context.user_data.get("step") == "vip_input":
 
@@ -810,40 +816,48 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.user_data.pop("step", None)
             return
 
-        telegram_id = text.strip()
+        code = text.strip()
 
-        if not telegram_id.isdigit():
-            await update.message.reply_text("❌ Фақат рақам киритинг!")
+        if not code.isdigit() or len(code) != 4:
+            await update.message.reply_text("❌ Код 4 хоналик рақам бўлиши керак!")
             return
-
-        telegram_id = int(telegram_id)
 
         conn = psycopg2.connect(os.getenv("DATABASE_URL"))
         c = conn.cursor()
 
-        c.execute("SELECT id FROM masters WHERE telegram_id=%s", (telegram_id,))
+        # Код бўйича устани топамиз
+        c.execute("SELECT telegram_id FROM masters WHERE code=%s", (code,))
         master = c.fetchone()
 
         if not master:
             conn.close()
-            await update.message.reply_text("❌ Бундай telegram_id топилмади!")
+            await update.message.reply_text("❌ Бундай кодли уста топилмади!")
             return
 
+        master_tg_id = master[0]
+
+        # VIP қиламиз
         c.execute("""
             UPDATE masters
             SET vip = TRUE,
                 vip_until = NOW() + INTERVAL '30 days'
-            WHERE telegram_id = %s
-        """, (telegram_id,))
+            WHERE code = %s
+        """, (code,))
 
         conn.commit()
         conn.close()
 
-        await update.message.reply_text("✅ Уста 30 кунга VIP қилинди.")
+        await update.message.reply_text(f"✅ Уста (🆔 {code}) 30 кунга VIP қилинди.")
+
+        # Устага хабар
+        await context.bot.send_message(
+            chat_id=master_tg_id,
+            text="🌟 Табриклаймиз! Сиз 30 кунга VIP уста бўлдингиз!"
+        )
 
         context.user_data.pop("step", None)
         return
-
+  
     # =====================================================
     # ⭐ RATING
     # =====================================================
@@ -2246,6 +2260,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
