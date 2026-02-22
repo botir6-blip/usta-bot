@@ -912,7 +912,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         context.user_data["step"] = None
         return
-
+            
     # ================= DESCRIPTION =================
     if step == "description":
 
@@ -1399,6 +1399,32 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text("📝 Янги иш турларини ёзинг (300 белгидан оширманг):")
         return
 
+    elif data == "edit_phone":
+
+        context.user_data["step"] = "edit_phone"
+
+        await query.message.reply_text("📞 Янги телефон рақамни ёзинг:")
+        return
+
+    elif data == "edit_experience":
+
+        context.user_data["step"] = "edit_experience"
+
+        await query.message.reply_text("🧰 Янги тажрибангиз (йилларда):")
+        return
+
+    elif data == "edit_age":
+
+        context.user_data["step"] = "edit_age"
+
+        await query.message.reply_text("🎂 Янги ёшингизни киритинг:")
+        return
+
+    elif data == "back_to_profile":
+
+        await my_profile(update, context)
+        return
+
     # ================= ADMIN VIP =================
     elif data == "admin_vip":
         context.user_data["state"] = "waiting_vip_id"
@@ -1743,6 +1769,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
