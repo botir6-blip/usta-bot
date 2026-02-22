@@ -1915,6 +1915,86 @@ async def show_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     await update.message.reply_text(f"🆔 Сизнинг Telegram ID: {user_id}")
 
+async def admin_master_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if update.effective_user.id != ADMIN_ID:
+        return
+
+    if not context.args:
+        await update.message.reply_text("Фойдаланиш: /mstat 1234")
+        return
+
+    code = context.args[0]
+
+    if not code.isdigit():
+        await update.message.reply_text("Код рақам бўлиши керак.")
+        return
+
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    c = conn.cursor()
+
+    c.execute("""
+        SELECT 
+            m.name,
+            m.phone,
+            m.service,
+            m.region,
+            m.district,
+            COUNT(o.id) as total_orders,
+            COALESCE(AVG(r.rating), 0) as avg_rating,
+            COUNT(r.rating) as total_votes,
+            m.is_busy,
+            m.busy_until,
+            m.is_active
+        FROM masters m
+        LEFT JOIN orders o ON m.id = o.master_id
+        LEFT JOIN ratings r ON m.id = r.master_id
+        WHERE m.code=%s
+        GROUP BY 
+            m.name, m.phone, m.service, m.region, m.district,
+            m.is_busy, m.busy_until, m.is_active
+    """, (code,))
+
+    row = c.fetchone()
+    conn.close()
+
+    if not row:
+        await update.message.reply_text("Уста топилмади.")
+        return
+
+    name, phone, service, region, district, total_orders, avg_rating, total_votes, is_busy, busy_until, is_active = row
+
+    # статус
+    if not is_active:
+        active_status = "❌ НОАКТИВ"
+    else:
+        active_status = "✅ АКТИВ"
+
+    if is_busy:
+        busy_status = f"🔴 Банд ({busy_until})"
+    else:
+        busy_status = "🟢 Бўш"
+
+    text = f"""
+👷 УСТА СТАТИСТИКАСИ
+
+🆔 Код: {code}
+👤 {name}
+📞 {phone}
+🛠 {service}
+📍 {region} / {district}
+
+📊 Статистика:
+📞 Жами буюртма: {total_orders}
+⭐ Ўртача рейтинг: {round(avg_rating,1)}
+🗳 Жами баҳолар: {total_votes}
+
+{busy_status}
+{active_status}
+"""
+
+    await update.message.reply_text(text)
+    
 def main():
     print("NEW VERSION 777")
     print("Bot is starting...")
@@ -1966,6 +2046,7 @@ def main():
 
     # stats
     app.add_handler(MessageHandler(filters.Regex("^(Статистика|Statistika|Статистика)$"), show_stats))
+    app.add_handler(CommandHandler("mstat", admin_master_stats))
 
     # ⭐ оддий текстлар
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_router))
@@ -1976,5 +2057,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
