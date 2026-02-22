@@ -70,6 +70,8 @@ def init_db():
     c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS vip BOOLEAN DEFAULT FALSE")
     c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS vip_until TIMESTAMP")
     c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS service_description VARCHAR(300)")
+    c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS is_busy BOOLEAN DEFAULT FALSE")
+    c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS busy_until DATE")
 
     # ====== BAHOLAR ======
     c.execute("""
@@ -1254,6 +1256,8 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         m.vip,
         m.code,
         m.service_description,
+        m.is_busy,
+        m.busy_until,
         COALESCE(AVG(r.rating), 0) as avg_rating,
         COUNT(r.rating) as votes
     FROM masters m
@@ -1270,7 +1274,9 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         m.experience,
         m.vip,
         m.code,
-        m.service_description
+        m.service_description,
+        m.is_busy,
+        m.busy_until,
     ORDER BY 
         m.vip DESC,
         avg_rating DESC
@@ -1284,7 +1290,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await message.reply_text("Усталар топилмади.")
         return
 
-    for mid, name, phone, dist, age, experience, vip, code, desc, avg_rating, votes in rows:
+    for mid, name, phone, dist, age, experience, vip, code, desc, is_busy, busy_until, avg_rating, votes in rows:
         
         rating_text = (
             f"{round(avg_rating,1)} ({votes})"
@@ -1292,7 +1298,14 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         badge = f"👑 VIP УСТА • 🆔 {code}" if vip else f"👷 УСТА • 🆔 {code}"
-
+        # 🟢 / 🔴 Ҳолат
+        if is_busy:
+            if busy_until:
+                status_text = f"🔴 Банд ({busy_until})"
+            else:
+                status_text = "🔴 Банд"
+        else:
+            status_text = "🟢 Бўш"
         card = f"""
 {line}
 <b>{badge}</b>
@@ -1318,11 +1331,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton("⭐ Баҳо", callback_data=f"rate_{mid}")
         ]]
 
-        await message.reply_text(
-            card,
-            parse_mode="HTML",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
+        await message.reply_text(card, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
 
     # 🔁 Pagination
     nav = []
@@ -1844,6 +1853,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
