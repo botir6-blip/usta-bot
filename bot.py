@@ -1350,7 +1350,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ================= EDIT PROFILE =================
     elif data == "edit_profile":
 
-print("EDIT PROFILE BLOCK ISHLADI")
+        print("EDIT PROFILE BLOCK ISHLADI")
 
         keyboard = [
             [InlineKeyboardButton("📝 Иш турлари", callback_data="edit_description")],
@@ -1715,6 +1715,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
