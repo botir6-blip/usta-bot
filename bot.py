@@ -1296,14 +1296,16 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"{round(avg_rating,1)} ({votes})"
             if votes > 0 else "Рейтинг йўқ"
         )
-
+        
+        print("DEBUG:", is_busy, busy_until)
+        
         badge = f"👑 VIP УСТА • 🆔 {code}" if vip else f"👷 УСТА • 🆔 {code}"
-        # 🟢 / 🔴 Ҳолат
-        if is_busy:
-            if busy_until:
-                status_text = f"🔴 Банд ({busy_until})"
-            else:
-                status_text = "🔴 Банд"
+        from datetime import date
+
+        today = date.today()
+
+        if is_busy and busy_until and busy_until >= today:
+            status_text = f"🔴 Банд ({busy_until})"
         else:
             status_text = "🟢 Бўш"
         card = f"""
@@ -1853,6 +1855,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
