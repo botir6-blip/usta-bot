@@ -1416,6 +1416,24 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         phone = data.replace("call_", "")
         await query.message.reply_text(f"📞 Устанинг телефони:\n+{phone}")
 
+    # ================= DELETE PROFILE =================
+    elif data == "delete_profile":
+
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        c = conn.cursor()
+
+        c.execute("""
+            UPDATE masters
+            SET is_active = FALSE
+            WHERE telegram_id = %s
+        """, (query.from_user.id,))
+
+        conn.commit()
+        conn.close()
+
+        await query.message.reply_text("❌ Сиз рўйхатдан чиқдингиз.")
+        return
+
     # ================= ORDER =================
     elif data.startswith("order_"):
         mid = int(data.replace("order_", ""))
@@ -1934,6 +1952,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
