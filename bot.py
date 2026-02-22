@@ -1994,6 +1994,69 @@ async def admin_master_stats(update: Update, context: ContextTypes.DEFAULT_TYPE)
 """
 
     await update.message.reply_text(text)
+
+async def admin_top_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if update.effective_user.id != ADMIN_ID:
+        return
+
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    c = conn.cursor()
+
+    # 🥇 Энг кўп буюртма
+    c.execute("""
+        SELECT m.name, m.code, COUNT(o.id) as total_orders
+        FROM masters m
+        LEFT JOIN orders o ON m.id = o.master_id
+        WHERE m.is_active=TRUE
+        GROUP BY m.name, m.code
+        ORDER BY total_orders DESC
+        LIMIT 10
+    """)
+    top_orders = c.fetchall()
+
+    # ⭐ Энг юқори рейтинг
+    c.execute("""
+        SELECT m.name, m.code, COALESCE(AVG(r.rating),0) as avg_rating
+        FROM masters m
+        LEFT JOIN ratings r ON m.id = r.master_id
+        WHERE m.is_active=TRUE
+        GROUP BY m.name, m.code
+        HAVING COUNT(r.rating) > 0
+        ORDER BY avg_rating DESC
+        LIMIT 10
+    """)
+    top_rating = c.fetchall()
+
+    # 📉 Буюртмасиз усталар
+    c.execute("""
+        SELECT m.name, m.code
+        FROM masters m
+        LEFT JOIN orders o ON m.id = o.master_id
+        WHERE m.is_active=TRUE
+        GROUP BY m.name, m.code
+        HAVING COUNT(o.id)=0
+        LIMIT 10
+    """)
+    no_orders = c.fetchall()
+
+    conn.close()
+
+    text = "📊 АДМИН АНАЛИТИКА\n\n"
+
+    text += "🥇 ЭНГ КЎП БУЮРТМА:\n"
+    for i, row in enumerate(top_orders, 1):
+        text += f"{i}. {row[0]} (🆔 {row[1]}) — {row[2]} та\n"
+
+    text += "\n⭐ ЭНГ ЮҚОРИ РЕЙТИНГ:\n"
+    for i, row in enumerate(top_rating, 1):
+        text += f"{i}. {row[0]} (🆔 {row[1]}) — {round(row[2],1)} ⭐\n"
+
+    text += "\n📉 БУЮРТМАСИЗ УСТАЛАР:\n"
+    for i, row in enumerate(no_orders, 1):
+        text += f"{i}. {row[0]} (🆔 {row[1]})\n"
+
+    await update.message.reply_text(text)
     
 def main():
     print("NEW VERSION 777")
@@ -2047,6 +2110,7 @@ def main():
     # stats
     app.add_handler(MessageHandler(filters.Regex("^(Статистика|Statistika|Статистика)$"), show_stats))
     app.add_handler(CommandHandler("mstat", admin_master_stats))
+    app.add_handler(CommandHandler("topmasters", admin_top_masters))
 
     # ⭐ оддий текстлар
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_router))
@@ -2057,6 +2121,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
