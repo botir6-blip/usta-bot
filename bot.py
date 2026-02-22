@@ -1700,9 +1700,28 @@ async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
     c.execute("""
-        SELECT name, phone, service, region, district, age, experience, education, skills, code
-        FROM masters
-        WHERE telegram_id=%s AND is_active=TRUE
+        SELECT 
+            m.name,
+            m.phone,
+            m.service,
+            m.region,
+            m.district,
+            m.age,
+            m.experience,
+            m.education,
+            m.skills,
+            m.code,
+            COUNT(o.id) as total_orders,
+            COALESCE(AVG(r.rating), 0) as avg_rating,
+            COUNT(r.rating) as total_votes
+        FROM masters m
+        LEFT JOIN orders o ON m.id = o.master_id
+        LEFT JOIN ratings r ON m.id = r.master_id
+        WHERE m.telegram_id=%s
+          AND m.is_active=TRUE
+        GROUP BY 
+            m.name, m.phone, m.service, m.region, m.district,
+            m.age, m.experience, m.education, m.skills, m.code
     """, (user,))
     row = c.fetchone()
     conn.close()
@@ -1714,7 +1733,7 @@ async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    name, phone, service, region, district, age, experience, education, skills, code = row
+    name, phone, service, region, district, age, experience, education, skills, code, total_orders, avg_rating, total_votes = row
 
     profile_text = (
         f"👷 {name}\n"
@@ -1732,6 +1751,14 @@ async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
         profile_text += f"\n🎓 Маълумот: {education}"
     if skills:
         profile_text += f"\n🔧 Кўникмалар: {skills}"
+
+    # 🔥 СТАТИСТИКА ҚЎШАМИЗ
+    profile_text += (
+        f"\n\n📊 СТАТИСТИКА:\n"
+        f"📞 Жами чақирилган: {total_orders}\n"
+        f"⭐ Ўртача рейтинг: {round(avg_rating,1)}\n"
+        f"🗳 Жами баҳолар: {total_votes}"
+    )
 
     keyboard = [
         [InlineKeyboardButton("⚙ Профилни таҳрир қилиш", callback_data="edit_profile")],
@@ -1949,4 +1976,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
