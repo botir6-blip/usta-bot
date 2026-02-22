@@ -69,6 +69,7 @@ def init_db():
 
     c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS vip BOOLEAN DEFAULT FALSE")
     c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS vip_until TIMESTAMP")
+    c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS service_description VARCHAR(300)")
 
     # ====== BAHOLAR ======
     c.execute("""
@@ -114,7 +115,7 @@ def init_db():
 
 
 # ================= USTA QO‘SHISH =================
-def add_master(telegram_id, name, phone, service, region, district, age=None, experience=None):
+def add_master(telegram_id, name, phone, service, region, district, age=None, experience=None, service_description=None):
     import psycopg2, os
 
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
@@ -130,8 +131,9 @@ def add_master(telegram_id, name, phone, service, region, district, age=None, ex
         code = generate_unique_code(c)  # янги код яратамиз
 
     c.execute("""
-    INSERT INTO masters (telegram_id, name, phone, service, region, district, age, experience, code)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    INSERT INTO masters 
+    (telegram_id, name, phone, service, region, district, age, experience, code, service_description)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     ON CONFLICT (telegram_id)
     DO UPDATE SET
         name = EXCLUDED.name,
@@ -140,9 +142,10 @@ def add_master(telegram_id, name, phone, service, region, district, age=None, ex
         region = EXCLUDED.region,
         district = EXCLUDED.district,
         age = EXCLUDED.age,
-        experience = EXCLUDED.experience
+        experience = EXCLUDED.experience,
+        service_description = EXCLUDED.service_description
     """, (
-        telegram_id, name, phone, service, region, district, age, experience, code
+        telegram_id, name, phone, service, region, district, age, experience, code, service_description
     ))
 
     conn.commit()
@@ -882,6 +885,45 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # =====================================================
     step = context.user_data.get("step")
 
+    # ================= DESCRIPTION =================
+    if step == "description":
+
+        text_input = update.message.text.strip()
+
+        if text_input == "-":
+            description = None
+        else:
+            if len(text_input) > 300:
+                await update.message.reply_text("❗ 300 белгидан оширманг.")
+                return
+
+            description = clean_text(text_input)
+
+        telegram_id = update.effective_user.id
+
+        add_master(
+            telegram_id,
+            context.user_data.get("name"),
+            context.user_data.get("phone"),
+            context.user_data.get("service"),
+            context.user_data.get("region"),
+            context.user_data.get("district"),
+            context.user_data.get("age"),
+            context.user_data.get("experience"),
+            description
+        )
+
+        await update.message.reply_text(
+            "✅ Муваффақият! Сиз уста сифатида рўйхатдан ўтдингиз.",
+            reply_markup=ReplyKeyboardMarkup(get_texts(language)["main_menu"], resize_keyboard=True)
+        )
+
+        language = context.user_data.get("language", "uz_kr")
+        context.user_data.clear()
+        context.user_data["language"] = language
+
+        return
+    
     # AGE
     if step == "age":
         await get_age(update, context)
@@ -996,33 +1038,20 @@ async def get_experience(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("Пожалуйста, введите ваш опыт):", reply_markup=ReplyKeyboardRemove())
         return
    
-         
     context.user_data["experience"] = experience
-    
-    # Барча маълумотларни олиб устани қўшамиз
-    telegram_id = update.effective_user.id
-    add_master(telegram_id,
-        context.user_data.get("name"),
-        context.user_data.get("phone"),
-        context.user_data.get("service"),
-        context.user_data.get("region"),
-        context.user_data.get("district"),
-        context.user_data.get("age"),
-        context.user_data.get("experience")
-    )
-    
-    if language == "uz_kr":
-        await update.message.reply_text("✅ Муваффақият! Сиз уста сифатида рўйхатдан ўтдингиз.", reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
-    elif language == "uz_lt":
-        await update.message.reply_text("✅ Muvaffaqiyat! Siz usta sifatida ro'yxatdan o'tdingiz.", reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
-    else:  # ru
-        await update.message.reply_text("✅ Успешно! Вы зарегистрировались как мастер.", reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
-    
-    # Тилни сақлаб қолиб, қолганини ўчириш
-    language = context.user_data.get("language", "uz_kr")
-    context.user_data.clear()
-    context.user_data["language"] = language
 
+    # 🔥 Янги қадам
+    context.user_data["step"] = "description"
+
+    await update.message.reply_text(
+        "📝 Қандай ишлар қиласиз?\n\n"
+        "Ихтиёрий (300 белгидан оширманг).\n"
+        "Ўтказиб юбориш учун '-' юборинг.",
+        reply_markup=ReplyKeyboardRemove()
+    )
+
+    return     
+ 
 async def save_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get("step") != "rating":
         return
@@ -1652,6 +1681,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
