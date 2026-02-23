@@ -719,15 +719,13 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texts = get_texts(language)
 
     # =====================================================
-    # 🔎 КОД ОРҚАЛИ ҚИДИРИШНИ БОШЛАШ
+    # 🔎 КОД ОРҚАЛИ ҚИДИРИШ
     # =====================================================
     if text in [
         "🔎 Код орқали қидириш",
         "🔎 Kod orqali qidirish",
         "🔎 Поиск по коду"
     ]:
-        context.user_data.clear()
-        context.user_data["language"] = language
         context.user_data["waiting_for_code"] = True
 
         await update.message.reply_text(
@@ -737,14 +735,12 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # =====================================================
-    # 🔢 КОД КИРИТИШ РЕЖИМИ
+    # 🔢 КОД КИРИТИШ
     # =====================================================
     if context.user_data.get("waiting_for_code"):
 
         if text in ["Орқага", "Orqaga", "Назад"]:
-            context.user_data.clear()
-            context.user_data["language"] = language
-
+            context.user_data["waiting_for_code"] = False
             await update.message.reply_text(
                 texts["welcome"],
                 reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True)
@@ -752,10 +748,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         if not text.isdigit() or len(text) != 4:
-            await update.message.reply_text(
-                "❌ Код 4 хоналик рақам бўлиши керак.\n\n"
-                "Қайта киритинг ёки 'Орқага' деб ёзинг."
-            )
+            await update.message.reply_text("❌ Код 4 хоналик рақам бўлиши керак.")
             return
 
         code = text
@@ -764,8 +757,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         c = conn.cursor()
 
         c.execute("""
-            SELECT id, name, phone, district, age, experience,
-                   vip, is_busy, busy_until
+            SELECT id, name, phone, district, age, experience, vip
             FROM masters
             WHERE code=%s AND is_active=TRUE
         """, (code,))
@@ -774,50 +766,22 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn.close()
 
         if not master:
-            await update.message.reply_text(
-                "❌ Бундай код топилмади."
-            )
+            await update.message.reply_text("❌ Код топилмади.")
             return
 
-        mid, name, phone, district, age, experience, vip, is_busy, busy_until = master
-
-        # Рейтинг
-        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-        c = conn.cursor()
-        c.execute("""
-            SELECT COALESCE(AVG(rating),0), COUNT(rating)
-            FROM ratings
-            WHERE master_id=%s
-        """, (mid,))
-        avg_rating, votes = c.fetchone()
-        conn.close()
-
-        rating_text = (
-            f"{round(avg_rating,1)} ({votes})"
-            if votes > 0 else "Рейтинг йўқ"
-        )
+        mid, name, phone, district, age, experience, vip = master
 
         badge = f"👑 VIP УСТА • 🆔 {code}" if vip else f"👷 УСТА • 🆔 {code}"
-
-        from datetime import date
-        today = date.today()
-
-        if is_busy and busy_until and busy_until >= today:
-            status_text = f"🔴 Банд ({busy_until})"
-        else:
-            status_text = "🟢 Бўш"
 
         text_msg = f"""
 ══════════════════════════
 <b>{badge}</b>
-<b>{status_text}</b>
 
 👤 <b>{name}</b>
 📍 {district}
 🎂 {age} ёш
 🧰 {experience} йил тажриба
 📞 <b>+{phone}</b>
-⭐ {rating_text}
 ══════════════════════════
 """
 
@@ -833,64 +797,15 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
-        context.user_data.clear()
-        context.user_data["language"] = language
-        return
-
-    # =====================================================
-    # ⭐ ADMIN VIP INPUT (CODE ORQALI)
-    # =====================================================
-    if context.user_data.get("step") == "vip_input":
-
-        if update.effective_user.id != ADMIN_ID:
-            context.user_data.pop("step", None)
-            return
-
-        code = text
-
-        if not code.isdigit() or len(code) != 4:
-            await update.message.reply_text("❌ Код 4 хоналик бўлиши керак!")
-            return
-
-        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-        c = conn.cursor()
-
-        c.execute("SELECT telegram_id FROM masters WHERE code=%s", (code,))
-        master = c.fetchone()
-
-        if not master:
-            conn.close()
-            await update.message.reply_text("❌ Код топилмади!")
-            return
-
-        master_tg_id = master[0]
-
-        c.execute("""
-            UPDATE masters
-            SET vip=TRUE,
-                vip_until=NOW() + INTERVAL '30 days'
-            WHERE code=%s
-        """, (code,))
-
-        conn.commit()
-        conn.close()
-
-        await update.message.reply_text(f"✅ Уста (🆔 {code}) VIP қилинди.")
-
-        await context.bot.send_message(
-            chat_id=master_tg_id,
-            text="🌟 Сиз 30 кунга VIP бўлдингиз!"
-        )
-
-        context.user_data.pop("step", None)
+        context.user_data["waiting_for_code"] = False
         return
 
     # =====================================================
     # 🔙 ОРҚАГА
     # =====================================================
     if text in ["Орқага", "Orqaga", "Назад"]:
-        context.user_data.clear()
-        context.user_data["language"] = language
+        context.user_data.pop("step", None)
+        context.user_data.pop("flow", None)
 
         await update.message.reply_text(
             texts["welcome"],
@@ -899,7 +814,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # =====================================================
-    # ҚОЛГАН STEP ЛОГИКАЛАР
+    # 🔄 STEP ЛОГИКА (REGISTER + FIND)
     # =====================================================
     step = context.user_data.get("step")
 
@@ -909,6 +824,26 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if step == "experience":
         await get_experience(update, context)
+        return
+
+    if step == "description":
+        await handle_description(update, context)
+        return
+
+    if step == "edit_description":
+        await handle_edit_description(update, context)
+        return
+
+    if step == "edit_phone":
+        await handle_edit_phone(update, context)
+        return
+
+    if step == "edit_experience":
+        await handle_edit_experience(update, context)
+        return
+
+    if step == "edit_age":
+        await handle_edit_age(update, context)
         return
 
     if step == "service":
@@ -2071,6 +2006,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
