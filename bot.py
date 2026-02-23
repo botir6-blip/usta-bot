@@ -715,6 +715,9 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip()
     log_user(update.effective_user)
 
+    if context.user_data.get("waiting_for_code") and not text.isdigit():
+    context.user_data["waiting_for_code"] = False
+        
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
 
@@ -2100,4 +2103,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
