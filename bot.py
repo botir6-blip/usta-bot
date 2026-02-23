@@ -718,14 +718,13 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
 
+    step = context.user_data.get("step")
+    flow = context.user_data.get("flow")
+
     # =====================================================
     # 🔎 КОД ОРҚАЛИ ҚИДИРИШ
     # =====================================================
-    if text in [
-        "🔎 Код орқали қидириш",
-        "🔎 Kod orqali qidirish",
-        "🔎 Поиск по коду"
-    ]:
+    if text in ["🔎 Код орқали қидириш", "🔎 Kod orqali qidirish", "🔎 Поиск по коду"]:
         context.user_data["waiting_for_code"] = True
 
         await update.message.reply_text(
@@ -801,23 +800,134 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # =====================================================
-    # 🔙 ОРҚАГА
+    # 🔴 БАНД САНА КИРИТИШ
     # =====================================================
-    if text in ["Орқага", "Orqaga", "Назад"]:
-        context.user_data.pop("step", None)
-        context.user_data.pop("flow", None)
+    if step == "set_busy_date":
 
-        await update.message.reply_text(
-            texts["welcome"],
-            reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True)
-        )
+        from datetime import datetime
+
+        try:
+            busy_date = datetime.strptime(text, "%Y-%m-%d").date()
+        except:
+            await update.message.reply_text("❌ Формат: YYYY-MM-DD")
+            return
+
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        c = conn.cursor()
+
+        c.execute("""
+            UPDATE masters
+            SET is_busy = TRUE,
+                busy_until = %s
+            WHERE telegram_id = %s
+        """, (busy_date, update.effective_user.id))
+
+        conn.commit()
+        conn.close()
+
+        await update.message.reply_text("🔴 Сиз банд қилиндингиз.")
+        context.user_data["step"] = None
         return
 
     # =====================================================
-    # 🔄 STEP ЛОГИКА (REGISTER + FIND)
+    # ✏ EDIT PHONE
     # =====================================================
-    step = context.user_data.get("step")
+    if step == "edit_phone":
 
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        c = conn.cursor()
+
+        c.execute("""
+            UPDATE masters
+            SET phone=%s
+            WHERE telegram_id=%s
+        """, (text, update.effective_user.id))
+
+        conn.commit()
+        conn.close()
+
+        await update.message.reply_text("✅ Телефон янгиланди.")
+        context.user_data["step"] = None
+        return
+
+    # =====================================================
+    # ✏ EDIT EXPERIENCE
+    # =====================================================
+    if step == "edit_experience":
+
+        if not text.isdigit():
+            await update.message.reply_text("❌ Фақат рақам киритинг.")
+            return
+
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        c = conn.cursor()
+
+        c.execute("""
+            UPDATE masters
+            SET experience=%s
+            WHERE telegram_id=%s
+        """, (text, update.effective_user.id))
+
+        conn.commit()
+        conn.close()
+
+        await update.message.reply_text("✅ Тажриба янгиланди.")
+        context.user_data["step"] = None
+        return
+
+    # =====================================================
+    # ✏ EDIT AGE
+    # =====================================================
+    if step == "edit_age":
+
+        if not text.isdigit():
+            await update.message.reply_text("❌ Фақат рақам киритинг.")
+            return
+
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        c = conn.cursor()
+
+        c.execute("""
+            UPDATE masters
+            SET age=%s
+            WHERE telegram_id=%s
+        """, (text, update.effective_user.id))
+
+        conn.commit()
+        conn.close()
+
+        await update.message.reply_text("✅ Ёш янгиланди.")
+        context.user_data["step"] = None
+        return
+
+    # =====================================================
+    # ✏ EDIT DESCRIPTION
+    # =====================================================
+    if step == "edit_description":
+
+        if len(text) > 300:
+            await update.message.reply_text("❗ 300 белгидан оширманг.")
+            return
+
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        c = conn.cursor()
+
+        c.execute("""
+            UPDATE masters
+            SET service_description=%s
+            WHERE telegram_id=%s
+        """, (clean_text(text), update.effective_user.id))
+
+        conn.commit()
+        conn.close()
+
+        await update.message.reply_text("✅ Иш турлари янгиланди.")
+        context.user_data["step"] = None
+        return
+
+    # =====================================================
+    # 🔄 REGISTER FLOW
+    # =====================================================
     if step == "age":
         await get_age(update, context)
         return
@@ -830,25 +940,11 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handle_description(update, context)
         return
 
-    if step == "edit_description":
-        await handle_edit_description(update, context)
-        return
-
-    if step == "edit_phone":
-        await handle_edit_phone(update, context)
-        return
-
-    if step == "edit_experience":
-        await handle_edit_experience(update, context)
-        return
-
-    if step == "edit_age":
-        await handle_edit_age(update, context)
-        return
-
-    if step == "service":
-        if context.user_data.get("flow") == "find":
-            await find_service(update, context)
+    # =====================================================
+    # 🔎 FIND FLOW
+    # =====================================================
+    if step == "service" and flow == "find":
+        await find_service(update, context)
         return
 
     if step == "region":
@@ -857,6 +953,19 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if step == "district":
         await get_district(update, context)
+        return
+
+    # =====================================================
+    # 🔙 ОРҚАГА
+    # =====================================================
+    if text in ["Орқага", "Orqaga", "Назад"]:
+        context.user_data.pop("step", None)
+        context.user_data.pop("flow", None)
+
+        await update.message.reply_text(
+            texts["welcome"],
+            reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True)
+        )
         return
 
 async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1996,16 +2105,15 @@ def main():
     # =========================
     # 🔹 TEXT ROUTER (ЭНГ ОХИРИДА!)
     # =========================
-    app.add_handler(MessageHandler(
-        filters.TEXT & ~filters.COMMAND,
-        text_router
-    ))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message), group=0)
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_router), group=1)
 
     print("BOT IS RUNNING...")
     app.run_polling()
 
 if __name__ == "__main__":
     main()
+
 
 
 
