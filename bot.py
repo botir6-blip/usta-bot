@@ -718,6 +718,15 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
 
+    # 🔴 GLOBAL BACK (ЭНГ ЮҚОРИДА!)
+    if text in ["Орқага", "Orqaga", "Назад"]:
+
+        context.user_data.clear()
+        context.user_data["language"] = language
+
+        await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
+        return
+
     step = context.user_data.get("step")
     flow = context.user_data.get("flow")
 
@@ -2113,6 +2122,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
