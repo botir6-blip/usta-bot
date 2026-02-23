@@ -1518,6 +1518,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ================= STATISTIKA =================
 async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    context.user_data["waiting_for_code"] = False
+    
     message = update.effective_message   # ⭐ МАНА ШУ ЕТАРЛИ
 
     import psycopg2, os
@@ -2059,57 +2061,33 @@ def main():
     # =========================
     # 🔹 FIND FLOW
     # =========================
-    app.add_handler(MessageHandler(
-        filters.Regex("^(Уста топиш|Usta topish|Найти мастера)$"),
-        start_find
-    ))
+    app.add_handler(MessageHandler(filters.Regex("^(Уста топиш|Usta topish|Найти мастера)$"), start_find))
 
     # =========================
     # 🔹 PROFILE
     # =========================
-    app.add_handler(MessageHandler(
-        filters.Regex("^(Менинг профилим|Mening profilim|Мой профиль)$"),
-        my_profile
-    ))
+    app.add_handler(MessageHandler(filters.Regex("^(Менинг профилим|Mening profilim|Мой профиль)$"), my_profile))
 
-    app.add_handler(MessageHandler(
-        filters.Regex("^(Рўйхатдан чиқиш|Ro'yxatdan chiqish|Выйти)$"),
-        unregister
-    ))
+    app.add_handler(MessageHandler(filters.Regex("^(Рўйхатдан чиқиш|Ro'yxatdan chiqish|Выйти)$"), unregister))
 
     # =========================
     # 🔹 BACKUP
     # =========================
-    app.add_handler(MessageHandler(
-        filters.Regex("^💾 Backup$"),
-        backup_database
-    ))
+    app.add_handler(MessageHandler(filters.Regex("^💾 Backup$"), backup_database))
 
     # =========================
     # 🔹 LANGUAGE CHANGE
     # =========================
-    app.add_handler(MessageHandler(
-        filters.Regex("^🌐 Тилни ўзгартиш$"),
-        change_language
-    ))
+    app.add_handler(MessageHandler(filters.Regex("^🌐 Тилни ўзгартиш$"), change_language))
 
-    app.add_handler(MessageHandler(
-        filters.Regex("^🌐 Tilni o'zgartirish$"),
-        change_language
-    ))
+    app.add_handler(MessageHandler(filters.Regex("^🌐 Tilni o'zgartirish$"), change_language))
 
-    app.add_handler(MessageHandler(
-        filters.Regex("^🌐 Изменить язык$"),
-        change_language
-    ))
+    app.add_handler(MessageHandler(filters.Regex("^🌐 Изменить язык$"), change_language))
 
     # =========================
     # 🔹 STATISTICS
     # =========================
-    app.add_handler(MessageHandler(
-        filters.Regex("^(Статистика|Statistika|Статистика)$"),
-        show_stats
-    ))
+    app.add_handler(MessageHandler(filters.Regex("^(Статистика|Statistika|Статистика)$"), show_stats))
 
     # =========================
     # 🔹 TEXT ROUTER (ЭНГ ОХИРИДА!)
@@ -2122,16 +2100,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
-
-
-
 
