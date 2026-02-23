@@ -964,6 +964,17 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await get_district(update, context)
         return
 
+    if step == "service" and flow == "register":
+
+        language = context.user_data.get("language", "uz_kr")
+        texts = get_texts(language)
+
+        context.user_data["service"] = text
+        context.user_data["step"] = "region"
+
+        await update.message.reply_text(texts["choose_region"], reply_markup=build_region_menu(language))
+        return
+
     # =====================================================
     # 🔙 ОРҚАГА
     # =====================================================
@@ -2100,6 +2111,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
