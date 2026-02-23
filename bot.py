@@ -2126,6 +2126,81 @@ async def show_news(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     await update.message.reply_text(text, parse_mode="HTML")
+
+async def broadcast_news(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if update.effective_user.id != ADMIN_ID:
+        return
+
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    c = conn.cursor()
+
+    # 👥 Барча фойдаланувчилар
+    c.execute("SELECT telegram_id FROM users")
+    users = c.fetchall()
+
+    # 👷 Барча актив усталар
+    c.execute("SELECT telegram_id FROM masters WHERE is_active = TRUE")
+    masters = c.fetchall()
+
+    conn.close()
+
+    # 🔥 Дубликатсиз бирлаштириш
+    all_ids = set()
+
+    for u in users:
+        all_ids.add(u[0])
+
+    for m in masters:
+        all_ids.add(m[0])
+
+    if not all_ids:
+        await update.message.reply_text("❌ Фойдаланувчилар топилмади.")
+        return
+
+    sent = 0
+    failed = 0
+
+    for user_id in all_ids:
+
+        try:
+            # 🔹 Ҳар бир фойдаланувчининг тилини аниқлаймиз
+            conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+            c = conn.cursor()
+
+            c.execute("SELECT telegram_id FROM users WHERE telegram_id = %s", (user_id,))
+            user_exists = c.fetchone()
+
+            conn.close()
+
+            # Агар users таблицада бўлмаса, default тил
+            language = "uz_kr"
+
+            # 🔹 show_news логикасини қайта ишлатамиз
+            if language == "uz_kr":
+                text = (
+                    "📢 <b>БОТ ЯНГИЛИКЛАРИ</b>\n\n"
+                    "🆕 <b>23.02.2026</b>\n"
+                    "🚀 Усталар учун катта янгилик!\n"
+                    "➕ Қўшимча хизмат турлари қўшилди.\n"
+                    "🔎 Код орқали қидириш имконияти.\n"
+                    "🟢🔴 Банд/Бўш ҳолат кўрсатиш.\n"
+                    "✏️ Профилни таҳрирлаш мумкин.\n\n"
+                    "🔥 Пайвандчи хизмати қўшилди.\n\n"
+                    "🚀 Бот расман ишга тушди ва доимий равишда ривожланмоқда!"
+                )
+            else:
+                text = "📢 Yangiliklar..."
+
+            await context.bot.send_message(chat_id=user_id, text=text, parse_mode="HTML")
+
+            sent += 1
+
+        except:
+            failed += 1
+            continue
+
+    await update.message.reply_text(f"✅ Юборилди: {sent}\n❌ Юборилмади: {failed}")
     
 def main():
     print("PRO VERSION STARTING...")
@@ -2141,6 +2216,7 @@ def main():
     app.add_handler(CommandHandler("admin", admin_panel))
     app.add_handler(CommandHandler("id", show_id))
     app.add_handler(CommandHandler("vip", give_vip))
+    app.add_handler(CommandHandler("broadcast", broadcast_news))
 
     # 📊 ADMIN ANALYTICS COMMANDS
     app.add_handler(CommandHandler("mstat", admin_master_stats))
@@ -2214,6 +2290,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
