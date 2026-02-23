@@ -1075,7 +1075,44 @@ async def get_experience(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=ReplyKeyboardRemove()
     )
 
-    return     
+    return   
+
+async def handle_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if context.user_data.get("flow") != "register":
+        return
+
+    description = update.message.text.strip()
+
+    # "-" юборса ўтказиб юбориш
+    if description == "-":
+        description = ""
+
+    if len(description) > 300:
+        await update.message.reply_text("❗ 300 белгидан оширманг.")
+        return
+
+    context.user_data["service_description"] = clean_text(description)
+
+    # 🔥 ЭНДИ САҚЛАЙМИЗ
+    add_master(
+        telegram_id=update.effective_user.id,
+        name=context.user_data.get("name"),
+        phone=context.user_data.get("phone"),
+        service=context.user_data.get("service"),
+        region=context.user_data.get("region"),
+        district=context.user_data.get("district"),
+        age=context.user_data.get("age"),
+        experience=context.user_data.get("experience"),
+        service_description=context.user_data.get("service_description")
+    )
+
+    await update.message.reply_text(
+        "✅ Сиз муваффақиятли рўйхатдан ўтдингиз!",
+        reply_markup=MAIN_MENU
+    )
+
+    context.user_data.clear()
  
 async def save_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get("step") != "rating":
@@ -2111,6 +2148,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
