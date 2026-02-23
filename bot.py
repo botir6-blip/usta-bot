@@ -2055,6 +2055,77 @@ async def admin_week_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text += "🥇 Энг фаол уста йўқ\n"
 
     await update.message.reply_text(text)
+
+async def show_news(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    language = context.user_data.get("language", "uz_kr")
+
+    if language == "uz_kr":
+        text = (
+            "📢 <b>БОТ ЯНГИЛИКЛАРИ</b>\n\n"
+
+            "🆕 <b>23.02.2026</b>\n"
+            "🚀 Усталар учун катта янгилик!\n"
+            "➕ Қўшимча хизмат турларини белгилаш имконияти қўшилди.\n"
+            "🔎 Энди устани махсус 4 хонали код орқали тез топиш мумкин.\n"
+            "🟢🔴 Профилда банд ёки бўш ҳолатни кўрсатиш имконияти яратилди.\n"
+            "✏️ Профил маълумотларини таҳрирлаш мумкин.\n"
+            "⚠️ Илтимос, профилингизни янгилаб чиқинг!\n\n"
+
+            "🆕 <b>23.02.2026</b>\n"
+            "🔥 Пайвандчи хизмати қўшилди\n\n"
+                
+            "🆕 <b>15.02.2026</b>\n"
+            "🚀 Уста топиш боти расман ишга тушди!\n"
+            "🔎 Турли соҳа усталарини осон ва тез топиш мумкин.\n"
+            "📞 Бевосита қўнғироқ қилиш имконияти мавжуд.\n"
+            "⭐ Усталарни баҳолаш тизими жорий қилинди.\n\n"
+        )
+
+    elif language == "uz_lt":
+        text = (
+            "📢 <b>BOT YANGILIKLARI</b>\n\n"
+
+            "🆕 <b>23.02.2026</b>\n"
+            "🚀 Ustalar uchun katta yangilik!\n"
+            "➕ Qo'shimcha xizmat turlarini belgilash imkoniyati qo'shildi.\n"
+            "🔎 Endi ustani maxsus 4 xonali kod orqali tez topish mumkin.\n"
+            "🟢🔴 Profilda band yoki bo'sh holatni ko'rsatish imkoniyati yaratildi.\n"
+            "✏️ Profil ma'lumotlarini tahrirlash mumkin.\n"
+            "⚠️ Iltimos, profilingizni yangilab chiqing!\n\n"
+
+            "🆕 <b>23.02.2026</b>\n"
+            "🔥 Payvandchi xizmati qo'shildi\n\n"
+
+            "🆕 <b>15.02.2026</b>\n"
+            "🚀 Usta topish boti rasman ishga tushdi!\n"
+            "🔎 Turli soha ustalarini oson va tez topish mumkin.\n"
+            "📞 Bevosita qo'ng'iroq qilish imkoniyati mavjud.\n"
+            "⭐ Ustalarni baholash tizimi joriy qilindi.\n\n"
+        )
+    else:
+        text = (
+            "📢 <b>НОВОСТИ БОТА</b>\n\n"
+
+            "🆕 <b>23.02.2026</b>\n"
+            "🚀 Важное обновление для мастеров!\n"
+            "➕ Добавлена возможность указывать дополнительные виды услуг.\n"
+            "🔎 Теперь мастера можно быстро найти по специальному 4-значному коду.\n"
+            "🟢🔴 Добавлена возможность указывать статус: занят или свободен.\n"
+            "✏️ Появилась возможность редактировать профиль.\n"
+            "⚠️ Рекомендуем обновить свой профиль!\n\n"
+
+            "🆕 <b>23.02.2026</b>\n"
+            "🔥 Добавлена услуга: Сварщик\n\n"
+
+            "🆕 <b>15.02.2026</b>\n"
+            "🚀 Бот для поиска мастеров официально запущен!\n"
+            "🔎 Теперь можно быстро находить мастеров разных сфер.\n"
+            "📞 Есть возможность напрямую позвонить мастеру.\n"
+            "⭐ Введена система рейтингов.\n\n"
+        )
+
+    await update.message.reply_text(text, parse_mode="HTML")
     
 def main():
     print("PRO VERSION STARTING...")
@@ -2091,18 +2162,12 @@ def main():
     # =========================
     # 🔹 LANGUAGE SELECTION
     # =========================
-    app.add_handler(MessageHandler(
-        filters.TEXT & filters.Regex("^(Узбек \\(кирилл\\)|O'zbek \\(lotin\\)|Русский)$"),
-        choose_language
-    ))
+    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^(Узбек \\(кирилл\\)|O'zbek \\(lotin\\)|Русский)$"), choose_language))
 
     # =========================
     # 🔹 REGISTER FLOW
     # =========================
-    app.add_handler(MessageHandler(
-        filters.Regex("^(Уста бўлиш|Usta bo'lish|Стать мастером)$"),
-        start_register
-    ))
+    app.add_handler(MessageHandler(filters.Regex("^(Уста бўлиш|Usta bo'lish|Стать мастером)$"), start_register))
 
     app.add_handler(MessageHandler(filters.CONTACT, get_phone))
 
@@ -2121,6 +2186,7 @@ def main():
     # =========================
     # 🔹 BACKUP
     # =========================
+    app.add_handler(MessageHandler(filters.Regex("^(📢 Бот янгиликлари|📢 Bot yangiliklari|📢 Новости бота)$"), show_news))
     app.add_handler(MessageHandler(filters.Regex("^💾 Backup$"), backup_database))
 
     # =========================
@@ -2148,6 +2214,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
