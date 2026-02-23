@@ -714,10 +714,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = update.message.text.strip()
     log_user(update.effective_user)
-
-    if context.user_data.get("waiting_for_code") and not text.isdigit():
-    context.user_data["waiting_for_code"] = False
-        
+          
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
 
@@ -748,7 +745,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # =====================================================
     # 🔢 КОД КИРИТИШ
     # =====================================================
-    if context.user_data.get("waiting_for_code"):
+    if context.user_data.get("waiting_for_code") and text.isdigit():
 
         if text in ["Орқага", "Orqaga", "Назад"]:
             context.user_data["waiting_for_code"] = False
@@ -2103,5 +2100,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
