@@ -2207,6 +2207,9 @@ async def activestats(update, context):
         await update.message.reply_text("❌ Рухсат йўқ")
         return
 
+    conn = psycopg2.connect(DATABASE_URL)  # сиздаги DB маълумоти
+    c = conn.cursor()
+
     c.execute("""
         SELECT COUNT(*)
         FROM users
@@ -2216,6 +2219,8 @@ async def activestats(update, context):
 
     c.execute("SELECT COUNT(*) FROM users")
     total = c.fetchone()[0]
+
+    conn.close()
 
     percent = round((active / total) * 100, 1) if total > 0 else 0
 
@@ -2314,6 +2319,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
