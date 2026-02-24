@@ -2207,13 +2207,13 @@ async def activestats(update, context):
         await update.message.reply_text("❌ Рухсат йўқ")
         return
 
-    conn = psycopg2.connect(DATABASE_URL)  # сиздаги DB маълумоти
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
 
     c.execute("""
         SELECT COUNT(*)
         FROM users
-        WHERE last_active >= NOW() - INTERVAL '7 days'
+        WHERE last_active::timestamp >= NOW() - INTERVAL '7 days'
     """)
     active = c.fetchone()[0]
 
@@ -2319,6 +2319,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
