@@ -2201,6 +2201,29 @@ async def broadcast_news(update: Update, context: ContextTypes.DEFAULT_TYPE):
             continue
 
     await update.message.reply_text(f"✅ Юборилди: {sent}\n❌ Юборилмади: {failed}")
+
+async def activestats(update, context):
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("❌ Рухсат йўқ")
+        return
+
+    c.execute("""
+        SELECT COUNT(*)
+        FROM users
+        WHERE last_active >= NOW() - INTERVAL '7 days'
+    """)
+    active = c.fetchone()[0]
+
+    c.execute("SELECT COUNT(*) FROM users")
+    total = c.fetchone()[0]
+
+    percent = round((active / total) * 100, 1) if total > 0 else 0
+
+    await update.message.reply_text(
+        f"📊 7 кунлик актив: {active}\n"
+        f"👥 Жами фойдаланувчи: {total}\n"
+        f"📈 Активлик: {percent}%"
+    )
     
 def main():
     print("PRO VERSION STARTING...")
@@ -2222,6 +2245,7 @@ def main():
     app.add_handler(CommandHandler("mstat", admin_master_stats))
     app.add_handler(CommandHandler("topmasters", admin_top_masters))
     app.add_handler(CommandHandler("weekstats", admin_week_stats))
+    application.add_handler(CommandHandler("activestats", activestats))
 
     # =========================
     # 🔹 ADMIN CALLBACKS (Алоҳида!)
@@ -2290,6 +2314,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
