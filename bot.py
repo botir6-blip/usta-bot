@@ -2245,7 +2245,7 @@ def main():
     app.add_handler(CommandHandler("mstat", admin_master_stats))
     app.add_handler(CommandHandler("topmasters", admin_top_masters))
     app.add_handler(CommandHandler("weekstats", admin_week_stats))
-    application.add_handler(CommandHandler("activestats", activestats))
+    app.add_handler(CommandHandler("activestats", activestats))
 
     # =========================
     # 🔹 ADMIN CALLBACKS (Алоҳида!)
@@ -2314,6 +2314,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
