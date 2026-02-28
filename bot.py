@@ -369,7 +369,7 @@ async def choose_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data.clear()
         context.user_data["language"] = language
         
-       conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
         c = conn.cursor()
 
         c.execute("""
@@ -2322,6 +2322,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
