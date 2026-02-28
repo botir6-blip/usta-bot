@@ -658,7 +658,7 @@ async def ask_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
     regions_data = REGIONS.get(language, REGIONS["uz_kr"])
-    
+
     region = update.message.text
 
     if region not in regions_data:
@@ -1181,7 +1181,9 @@ async def find_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(texts["choose_region"], reply_markup=build_region_menu(language))
 
 async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
+    print("SERVICE:", service)
+    print("REGION:", region)
+    print("DISTRICT:", district)
     if update.callback_query:
         message = update.callback_query.message
         await update.callback_query.answer()
@@ -2319,6 +2321,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
