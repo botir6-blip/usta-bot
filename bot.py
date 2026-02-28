@@ -2297,13 +2297,14 @@ def main():
     # =========================
     # 🔹 TEXT ROUTER (ЭНГ ОХИРИДА!)
     # =========================
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message), group=1)
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_router), group=2)
+    #app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message), group=1)
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_router), group=1)
 
     print("BOT IS RUNNING...")
     app.run_polling()
 
 if __name__ == "__main__":
     main()
+
 
 
