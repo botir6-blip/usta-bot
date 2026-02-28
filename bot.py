@@ -79,6 +79,8 @@ def init_db():
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0")
     c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0")
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by BIGINT")
+    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS language VARCHAR(10)")
+    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS language TEXT")
 
     # ====== BAHOLAR ======
     c.execute("""
@@ -367,22 +369,23 @@ async def choose_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data.clear()
         context.user_data["language"] = language
         
-        # Фикр-мулохазалар ва шикоятлар
-        feedback_text = ""
-        if language == "uz_kr":
-            feedback_text = "💡 Фикр-мулохазалар ва шикоятлар:\n\n" "@botir_support"
-        elif language == "uz_lt":
-            feedback_text = "💡 Fikr-mulohazalar va shikoyatlar:\n\n" "@botir_support"
-        else:  # ru
-            feedback_text = "💡 Замечания и предложения:\n\n" "@botir_support"
+       conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        c = conn.cursor()
+
+        c.execute("""
+            UPDATE users
+            SET language=%s
+            WHERE telegram_id=%s
+        """, (language, update.effective_user.id))
+
+        conn.commit()
+        conn.close()
         
         await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
+
     else:
 
-        await update.message.reply_text(
-            "Илтимос, тилни танланг:",
-            reply_markup=build_language_menu()
-        )
+        await update.message.reply_text("Илтимос, тилни танланг:", reply_markup=build_language_menu())
 
 # ================= FOYDALANUVCHI QO'SHISH =================
 def log_user(user):
@@ -418,22 +421,45 @@ def log_user(user):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     log_user(update.effective_user)
 
+    user_id = update.effective_user.id
+
+    # 🔎 БАЗАДАН ТИЛНИ ОЛАМИЗ
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    c = conn.cursor()
+
+    c.execute("SELECT language FROM users WHERE telegram_id=%s", (user_id,))
+    row = c.fetchone()
+
+    # 🌐 Агар тил йўқ бўлса — танлаш менюси чиқади
+    if not row or not row[0]:
+        conn.close()
+
+        await update.message.reply_text(
+            "🌐 Тилни танланг:",
+            reply_markup=ReplyKeyboardMarkup(
+                [[name] for name in LANGUAGE_NAMES.values()],
+                resize_keyboard=True
+            )
+        )
+        return
+
+    # 🌐 ТИЛНИ ОЛДИК
+    language = row[0]
+    context.user_data["language"] = language
+    texts = get_texts(language)
+
     # 🔥 РЕФЕРАЛ ЛОГИКА
     if context.args:
         ref_code = context.args[0]
 
         if ref_code.isdigit():
             ref_id = int(ref_code)
-            user_id = update.effective_user.id
 
             if ref_id != user_id:
-                conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-                c = conn.cursor()
-
                 c.execute("SELECT referred_by FROM users WHERE telegram_id=%s", (user_id,))
-                row = c.fetchone()
+                ref_row = c.fetchone()
 
-                if row is not None and row[0] is None:
+                if ref_row and ref_row[0] is None:
                     c.execute("""
                         UPDATE users
                         SET referred_by=%s
@@ -446,22 +472,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         WHERE telegram_id=%s
                     """, (ref_id,))
 
-                conn.commit()
-                conn.close()
+                    conn.commit()
 
-    # 🌐 ТИЛ
-    language = context.user_data.get("language", "uz_kr")
-    context.user_data["language"] = language
-    texts = get_texts(language)
-
-    # 👇 ЭНДИ МЕНЮ ТАНЛАЙМИЗ
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-    c = conn.cursor()
-
+    # 👇 МЕНЮ ТАНЛАШ
     c.execute("""
         SELECT 1 FROM masters
         WHERE telegram_id=%s AND is_active=TRUE
-    """, (update.effective_user.id,))
+    """, (user_id,))
 
     is_master = c.fetchone()
     conn.close()
@@ -2305,6 +2322,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
