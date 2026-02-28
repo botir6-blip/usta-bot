@@ -860,8 +860,53 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 3️⃣ MAIN MENU (flow yo'q paytda)
     # =====================================================
 
-    # 🔙 BACK
+    # 🔙 BACK (FLOW BASED)
     if text in ["Орқага", "Orqaga", "Назад"]:
+
+        flow = context.user_data.get("flow")
+        step = context.user_data.get("step")
+
+        # ===== FIND FLOW =====
+        if flow == "find":
+
+            if step == "district":
+                context.user_data["step"] = "region"
+                await update.message.reply_text(texts["choose_region"], reply_markup=build_region_menu(language))
+                return
+
+            if step == "region":
+                context.user_data["step"] = "service"
+                await update.message.reply_text(texts["choose_service"], reply_markup=build_service_menu(language))
+                return
+
+            if step == "service":
+                context.user_data.clear()
+                context.user_data["language"] = language
+                break_flow = True
+            else:
+                break_flow = False
+
+            if break_flow:
+                pass
+
+        # ===== REGISTER FLOW =====
+        if flow == "register":
+
+            if step == "district":
+                context.user_data["step"] = "region"
+                await update.message.reply_text(texts["choose_region"], reply_markup=build_region_menu(language))
+                return
+
+            if step == "region":
+                context.user_data["step"] = "service"
+                await update.message.reply_text(texts["choose_service"], reply_markup=build_service_menu(language))
+                return
+
+            if step == "service":
+                context.user_data.clear()
+                context.user_data["language"] = language
+
+        # ===== DEFAULT → MAIN MENU =====
         context.user_data.clear()
         context.user_data["language"] = language
 
@@ -877,12 +922,9 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             menu = texts["customer_menu"]
 
-        await update.message.reply_text(
-            texts["welcome"],
-            reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
-        )
+        await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
         return
-
+    
     # 👤 Уста топиш
     if text in ["Уста топиш", "Usta topish", "Найти мастера"]:
         await start_find(update, context)
@@ -2284,6 +2326,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
