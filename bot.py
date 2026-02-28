@@ -2253,7 +2253,7 @@ def main():
     # =========================
     # 🔹 LANGUAGE SELECTION
     # =========================
-    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^(Узбек \\(кирилл\\)|O'zbek \\(lotin\\)|Русский)$"), choose_language))
+    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^(Узбек \\(кирилл\\)|O'zbek \\(lotin\\)|Русский)$"), choose_language), group=0)
 
     # =========================
     # 🔹 REGISTER FLOW
@@ -2297,33 +2297,13 @@ def main():
     # =========================
     # 🔹 TEXT ROUTER (ЭНГ ОХИРИДА!)
     # =========================
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message), group=0)
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_router), group=1)
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message), group=1)
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_router), group=2)
 
     print("BOT IS RUNNING...")
     app.run_polling()
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
