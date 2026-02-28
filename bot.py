@@ -216,18 +216,6 @@ def delete_master(telegram_id):
     conn.close()
     return master is not None
 
-# ================= MENUS =================
-CUSTOMER_MENU = ReplyKeyboardMarkup([
-    ["Уста топиш", "🔎 Код орқали қидириш"],
-    ["🎁 Таклиф қилиш", "Уста бўлиш"],
-    ["🌐 Тилни ўзгартириш"]
-], resize_keyboard=True)
-
-MASTER_MENU = ReplyKeyboardMarkup([
-    ["Менинг профилим", "🎁 Таклиф қилиш"],
-    ["🌐 Тилни ўзгартириш"]
-], resize_keyboard=True)
-
 def build_service_menu(language="uz_kr"):
     services = SERVICES.get(language, SERVICES["uz_kr"])
 
@@ -344,30 +332,24 @@ def build_language_menu():
 
 async def choose_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Til tanlash"""
+
     text = update.message.text
-    
-    print(f"choose_language called with text: {text}")
-    print(f"LANGUAGES dict: {LANGUAGES}")
-    
-    # Tilni topish
+
     language = None
     for lang_code, lang_name in LANGUAGES.items():
-        print(f"Checking: {lang_code} -> {lang_name}")
         if text == lang_name:
             language = lang_code
-            print(f"Found language: {language}")
             break
-    
-    print(f"Final language: {language}")
-    
+
     if language:
-        context.user_data["language"] = language
-        texts = get_texts(language)
-        
-        # Asosiy menuni yangilash
+
+        # 🔹 Контекстни тозалаймиз
         context.user_data.clear()
         context.user_data["language"] = language
-        
+
+        texts = get_texts(language)
+
+        # 🔹 Базага сақлаймиз
         conn = psycopg2.connect(os.getenv("DATABASE_URL"))
         c = conn.cursor()
 
@@ -377,15 +359,28 @@ async def choose_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
             WHERE telegram_id=%s
         """, (language, update.effective_user.id))
 
+        # 🔹 Устами ёки мижоз
+        c.execute("""
+            SELECT 1 FROM masters
+            WHERE telegram_id=%s AND is_active=TRUE
+        """, (update.effective_user.id,))
+
+        is_master = c.fetchone()
+
         conn.commit()
         conn.close()
-        
-        await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
+
+        # 🔹 Тўғри менюни танлаймиз
+        if is_master:
+            menu = texts["master_menu"]
+        else:
+            menu = texts["customer_menu"]
+
+        await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
 
     else:
-
         await update.message.reply_text("Илтимос, тилни танланг:", reply_markup=build_language_menu())
-
+        
 # ================= FOYDALANUVCHI QO'SHISH =================
 def log_user(user):
     from datetime import datetime
@@ -795,7 +790,10 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     is_master = c.fetchone()
     conn.close()
 
-    current_menu = MASTER_MENU if is_master else CUSTOMER_MENU
+    if is_master:
+        current_menu = ReplyKeyboardMarkup(texts["master_menu"], resize_keyboard=True)
+    else:
+        current_menu = ReplyKeyboardMarkup(texts["customer_menu"], resize_keyboard=True)
 
     # =====================================================
     # 📍 ФАҚАТ ВИЛОЯТ БЎЙИЧА ҚИДИРИШ
@@ -1120,11 +1118,10 @@ async def handle_description(update: Update, context: ContextTypes.DEFAULT_TYPE)
         service_description=context.user_data.get("service_description")
     )
 
-    await update.message.reply_text(
-        "✅ Сиз муваффақиятли рўйхатдан ўтдингиз!",
-        reply_markup=MAIN_MENU
-    )
+    language = context.user_data.get("language", "uz_kr")
+    texts = get_texts(language)
 
+    await update.message.reply_text("✅ Сиз муваффақиятли рўйхатдан ўтдингиз!", reply_markup=ReplyKeyboardMarkup(texts["master_menu"], resize_keyboard=True))
     context.user_data.clear()
  
 async def save_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1657,7 +1654,12 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"⭐ Всего оценок: {total_ratings}\n"
         )
 
-    await message.reply_text(text, reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
+    c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE", (update.effective_user.id,))
+    is_master = c.fetchone()
+
+    menu = texts["master_menu"] if is_master else texts["customer_menu"]
+
+    await message.reply_text(text, reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
 
 # ================= PROFILE =================
 async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1698,10 +1700,7 @@ async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.close()
 
     if not row:
-        await message.reply_text(
-            texts["not_master"],
-            reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True)
-        )
+        await message.reply_text(texts["not_master"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
         return
 
     name, phone, service, region, district, age, experience, education, skills, code, total_orders, avg_rating, total_votes = row
@@ -1754,7 +1753,7 @@ async def unregister(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if success:
         await update.message.reply_text(texts["unregistered_success"], reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
     else:
-        await update.message.reply_text(texts["not_registered"], reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
+        await update.message.reply_text(texts["not_registered"], reply_markup=ReplyKeyboardMarkup(texts["customer_menu"], resize_keyboard=True))
 
 async def change_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Tilni o'zgartirish"""
@@ -1838,7 +1837,7 @@ async def backup_database(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:  # ru
             message = f"✅ Backup успешно создан!\n📁 Файл: {filename}\n👤 Мастеров: {len(masters)}\n⭐ Оценок: {sum(len(r) for r in ratings_data.values())}"
         
-        await update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
+        await update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(texts["customer_menu"], resize_keyboard=True))
         
     except Exception as e:
         await update.message.reply_text(
@@ -2360,6 +2359,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
