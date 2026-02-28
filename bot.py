@@ -665,6 +665,12 @@ async def ask_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     context.user_data["region"] = region
+
+    if context.user_data.get("flow") == "find":
+        context.user_data["district"] = None
+        await show_masters(update, context)
+        return
+        
     context.user_data["step"] = "district"
 
     await update.message.reply_text(texts["choose_district"], reply_markup=build_city_menu(region, language))
@@ -2335,6 +2341,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
