@@ -2386,8 +2386,7 @@ def main():
     # =========================
     # 🔹 PROFILE
     # =========================
-    app.add_handler(MessageHandler(filters.Regex("^(Менинг профилим|Mening profilim|Мой профиль)$"), my_profile))
-
+    
     app.add_handler(MessageHandler(filters.Regex("^(Рўйхатдан чиқиш|Ro'yxatdan chiqish|Выйти)$"), unregister))
 
     # =========================
@@ -2412,6 +2411,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
