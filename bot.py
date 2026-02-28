@@ -423,28 +423,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_id = update.effective_user.id
 
-    # 🔎 БАЗАДАН ТИЛНИ ОЛАМИЗ
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-    c = conn.cursor()
-
-    c.execute("SELECT language FROM users WHERE telegram_id=%s", (user_id,))
-    row = c.fetchone()
-
-    # 🌐 Агар тил йўқ бўлса — танлаш менюси чиқади
-    if not row or not row[0]:
-        conn.close()
-
-        await update.message.reply_text(
-            "🌐 Тилни танланг:",
-            reply_markup=ReplyKeyboardMarkup(
-                [[name] for name in LANGUAGE_NAMES.values()],
-                resize_keyboard=True
-            )
-        )
-        return
-
-    # 🌐 ТИЛНИ ОЛДИК
-    language = row[0]
+    # 🌐 Агар тил бўлмаса default қиламиз
+    language = context.user_data.get("language", "uz_kr")
     context.user_data["language"] = language
     texts = get_texts(language)
 
@@ -456,10 +436,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ref_id = int(ref_code)
 
             if ref_id != user_id:
-                c.execute("SELECT referred_by FROM users WHERE telegram_id=%s", (user_id,))
-                ref_row = c.fetchone()
+                conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+                c = conn.cursor()
 
-                if ref_row and ref_row[0] is None:
+                c.execute("SELECT referred_by FROM users WHERE telegram_id=%s", (user_id,))
+                row = c.fetchone()
+
+                if row and row[0] is None:
                     c.execute("""
                         UPDATE users
                         SET referred_by=%s
@@ -473,8 +456,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     """, (ref_id,))
 
                     conn.commit()
+                conn.close()
 
     # 👇 МЕНЮ ТАНЛАШ
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    c = conn.cursor()
+
     c.execute("""
         SELECT 1 FROM masters
         WHERE telegram_id=%s AND is_active=TRUE
@@ -2322,6 +2309,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
