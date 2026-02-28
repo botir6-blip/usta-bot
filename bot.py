@@ -786,6 +786,20 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_id = update.effective_user.id
 
+    # ======================
+    # SERVICE STEP
+    # ======================
+    if context.user_data.get("step") == "service":
+
+        services_list = SERVICES.get(language, SERVICES["uz_kr"])
+
+        if text in services_list:
+            context.user_data["service"] = text
+            context.user_data["step"] = "region"
+
+            await update.message.reply_text(texts["choose_region"], reply_markup=build_region_menu(language))
+            return
+        
     # 🔎 УСТАМИ ЁКИ МИЖОЗ
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
@@ -2362,6 +2376,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
