@@ -665,16 +665,13 @@ async def ask_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     context.user_data["region"] = region
-
-    if context.user_data.get("flow") == "find":
-        context.user_data["district"] = None
-        await show_masters(update, context)
-        return
-        
     context.user_data["step"] = "district"
 
-    await update.message.reply_text(texts["choose_district"], reply_markup=build_city_menu(region, language))
-
+    # ➕ Вилоят бўйича қидириш тугмаси қўшамиз
+    keyboard = build_city_menu(region, language).keyboard
+    keyboard.insert(0, ["📍 Фақат вилоят бўйича қидириш"])
+    
+    await update.message.reply_text(texts["choose_district"], reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
 
 async def choose_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
@@ -723,6 +720,12 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
           
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
+
+    # 📍 Фақат вилоят бўйича қидириш
+    if text == "📍 Фақат вилоят бўйича қидириш":
+        context.user_data["district"] = None
+        await show_masters(update, context)
+        return
 
     # 🔴 GLOBAL BACK (ЭНГ ЮҚОРИДА!)
     if text in ["Орқага", "Orqaga", "Назад"]:
@@ -2341,6 +2344,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
