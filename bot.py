@@ -772,6 +772,9 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
         return
 
+    if update.message.contact:
+        return
+
     text = update.message.text.strip()
     log_user(update.effective_user)
 
@@ -2361,6 +2364,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
