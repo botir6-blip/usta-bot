@@ -2346,15 +2346,6 @@ def main():
     app.add_handler(MessageHandler(filters.Regex("^💾 Backup$"), backup_database))
 
     # =========================
-    # 🔹 LANGUAGE CHANGE
-    # =========================
-    app.add_handler(MessageHandler(filters.Regex("^🌐 Тилни ўзгартиш$"), change_language))
-
-    app.add_handler(MessageHandler(filters.Regex("^🌐 Tilni o'zgartirish$"), change_language))
-
-    app.add_handler(MessageHandler(filters.Regex("^🌐 Изменить язык$"), change_language))
-
-    # =========================
     # 🔹 STATISTICS
     # =========================
     app.add_handler(MessageHandler(filters.Regex("^(Статистика|Statistika|Статистика)$"), show_stats))
@@ -2370,6 +2361,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
