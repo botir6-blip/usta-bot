@@ -847,6 +847,28 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get("step") == "district" and context.user_data.get("flow") == "find":
         await get_district(update, context)
         return
+
+    # ======================
+    # REGION STEP
+    # ======================
+    if context.user_data.get("step") == "region":
+
+        regions_data = REGIONS.get(language, REGIONS["uz_kr"])
+
+        if text in regions_data:
+
+            context.user_data["region"] = text
+            context.user_data["step"] = "district"
+
+            await update.message.reply_text(texts["choose_district"], reply_markup=build_city_menu(text, language))
+            return
+
+    # ======================
+    # DISTRICT STEP
+    # ======================
+    if context.user_data.get("step") == "district":
+        await get_district(update, context)
+        return
         
     # =====================================================
     # 👤 МИЖОЗ МЕНЮ (5 ТУГМА)
@@ -2376,6 +2398,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
