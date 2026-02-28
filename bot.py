@@ -913,13 +913,34 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await get_district(update, context)
             return
 
+
     # =====================================================
     # 🔎 CODE SEARCH
     # =====================================================
     if context.user_data.get("waiting_for_code"):
 
+        # ❌ нотўғри формат
         if not text.isdigit() or len(text) != 4:
+            context.user_data["waiting_for_code"] = False
+
             await update.message.reply_text("❌ Код 4 хоналик рақам бўлиши керак.")
+
+            # менюга қайтиш
+            conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+            c = conn.cursor()
+            c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE", (user_id,))
+            is_master = c.fetchone()
+            conn.close()
+
+            if is_master:
+                menu = texts["master_menu"]
+            else:
+                menu = texts["customer_menu"]
+
+            await update.message.reply_text(
+                texts["welcome"],
+                reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
+            )
             return
 
         code = text
@@ -934,10 +955,31 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         master = c.fetchone()
         conn.close()
 
+        # ❌ код топилмаса
         if not master:
+            context.user_data["waiting_for_code"] = False
+
             await update.message.reply_text("❌ Код топилмади.")
+
+            # менюга қайтиш
+            conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+            c = conn.cursor()
+            c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE", (user_id,))
+            is_master = c.fetchone()
+            conn.close()
+
+            if is_master:
+                menu = texts["master_menu"]
+            else:
+                menu = texts["customer_menu"]
+
+            await update.message.reply_text(
+                texts["welcome"],
+                reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
+            )
             return
 
+        # ✅ уста топилди
         mid, name, phone, district, age, experience, vip = master
 
         badge = f"👑 VIP УСТА • 🆔 {code}" if vip else f"👷 УСТА • 🆔 {code}"
@@ -960,15 +1002,11 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton("⭐ Баҳо", callback_data=f"rate_{mid}")
         ]]
 
-        await update.message.reply_text(
-            msg,
-            parse_mode="HTML",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
+        await update.message.reply_text(msg, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
 
         context.user_data["waiting_for_code"] = False
         return
-
+    
     # =====================================================
     # 🧭 MAIN MENU ACTIONS
     # =====================================================
@@ -2374,6 +2412,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
