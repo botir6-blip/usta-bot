@@ -817,31 +817,36 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=current_menu
         )
         return
+    # =====================================================
+    # 👤 МИЖОЗ МЕНЮ (5 ТУГМА)
+    # =====================================================
 
-    # =====================================================
-    # 👤 МИЖОЗ МЕНЮ (3 ТИЛ)
-    # =====================================================
+    # 1️⃣ Уста топиш
     if text in [
-        "1️⃣ Уста топиш",
-        "1️⃣ Usta topish",
-        "1️⃣ Найти мастера"
+        "Уста топиш",
+        "Usta topish",
+        "Найти мастера"
     ]:
         await start_find(update, context)
         return
 
+
+    # 2️⃣ Код орқали қидириш
     if text in [
-        "2️⃣ Уста коди орқали қидириш",
-        "2️⃣ Usta kodi orqali qidirish",
-        "2️⃣ Поиск по коду"
+        "🔎 Код орқали қидириш",
+        "🔎 Kod orqali qidirish",
+        "🔎 Поиск по коду"
     ]:
         context.user_data["waiting_for_code"] = True
         await update.message.reply_text("🆔 Уста кодини киритинг (4 рақам):")
         return
 
+
+    # 3️⃣ Таклиф қилиш
     if text in [
-        "3️⃣ 🎁 Таклиф қилиш / Реферал натижалар",
-        "3️⃣ 🎁 Taklif qilish / Referal natijalar",
-        "3️⃣ 🎁 Пригласить / Результаты"
+        "🎁 Таклиф қилиш",
+        "🎁 Taklif qilish",
+        "🎁 Пригласить"
     ]:
 
         bot_username = (await context.bot.get_me()).username
@@ -867,21 +872,45 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # =====================================================
-    # 👷 УСТА МЕНЮ (3 ТИЛ)
-    # =====================================================
+
+    # 4️⃣ Уста бўлиш
     if text in [
-        "1️⃣ Уста бўлиш",
-        "1️⃣ Usta bo'lish",
-        "1️⃣ Стать мастером"
+        "Уста бўлиш",
+        "Usta bo'lish",
+        "Стать мастером"
     ]:
         await start_register(update, context)
         return
 
+
+    # 5️⃣ Тилни ўзгартириш
     if text in [
-        "2️⃣ 🎁 Таклиф қилиш",
-        "2️⃣ 🎁 Taklif qilish",
-        "2️⃣ 🎁 Пригласить"
+        "🌐 Тилни ўзгартириш",
+        "🌐 Tilni o'zgartirish",
+        "🌐 Изменить язык"
+    ]:
+        await change_language(update, context)
+        return
+
+    # =====================================================
+    # 👷 УСТА МЕНЮ (3 ТУГМА)
+    # =====================================================
+
+    # 1️⃣ Менинг профилим
+    if text in [
+        "Менинг профилим",
+        "Mening profilim",
+        "Мой профиль"
+    ]:
+        await my_profile(update, context)
+        return
+
+
+    # 2️⃣ 🎁 Таклиф қилиш
+    if text in [
+        "🎁 Таклиф қилиш",
+        "🎁 Taklif qilish",
+        "🎁 Пригласить"
     ]:
 
         bot_username = (await context.bot.get_me()).username
@@ -907,14 +936,17 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
+
+    # 3️⃣ 🌐 Тилни ўзгартириш
     if text in [
-        "3️⃣ Менинг профилим",
-        "3️⃣ Mening profilim",
-        "3️⃣ Мой профиль"
+        "🌐 Тилни ўзгартириш",
+        "🌐 Tilni o'zgartirish",
+        "🌐 Изменить язык"
     ]:
-        await my_profile(update, context)
+        await change_language(update, context)
         return
 
+   
     # =====================================================
     # 🔢 КОД КИРИТИШ
     # =====================================================
@@ -2328,6 +2360,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
