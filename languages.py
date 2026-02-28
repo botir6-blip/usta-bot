@@ -1,5 +1,5 @@
 # ================= TILLAR =================
-LANGUAGE_NAMES = {
+LANGUAGE = {
     "uz_kr": "🌐 Тилни ўзгартириш",
     "uz_lt": "🌐 Tilni o'zgartirish",
     "ru": "🌐 Изменить язык"
