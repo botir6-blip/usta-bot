@@ -778,7 +778,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     log_user(update.effective_user)
 
     if "language" not in context.user_data:
-    return
+        return
     
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
@@ -2305,6 +2305,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
