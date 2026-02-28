@@ -772,12 +772,12 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message:
         return
 
-    # 📞 contact'ни text_router ушламайди
     if update.message.contact:
         return
 
     text = update.message.text.strip()
     user_id = update.effective_user.id
+
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
 
@@ -785,13 +785,72 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     step = context.user_data.get("step")
 
     # =====================================================
+    # 🔙 BACK LOGIC
+    # =====================================================
+    if text in ["Орқага", "Orqaga", "Назад"]:
+
+        if flow == "find":
+
+            if step == "district":
+                context.user_data["step"] = "region"
+                await update.message.reply_text(
+                    texts["choose_region"],
+                    reply_markup=build_region_menu(language)
+                )
+                return
+
+            if step == "region":
+                context.user_data["step"] = "service"
+                await update.message.reply_text(
+                    texts["choose_service"],
+                    reply_markup=build_service_menu(language)
+                )
+                return
+
+        if flow == "register":
+
+            if step == "district":
+                context.user_data["step"] = "region"
+                await update.message.reply_text(
+                    texts["choose_region"],
+                    reply_markup=build_region_menu(language)
+                )
+                return
+
+            if step == "region":
+                context.user_data["step"] = "service"
+                await update.message.reply_text(
+                    texts["choose_service"],
+                    reply_markup=build_service_menu(language)
+                )
+                return
+
+        # 👉 MAIN MENU
+        context.user_data.clear()
+        context.user_data["language"] = language
+
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        c = conn.cursor()
+        c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE", (user_id,))
+        is_master = c.fetchone()
+        conn.close()
+
+        menu = texts["master_menu"] if is_master else texts["customer_menu"]
+
+        await update.message.reply_text(
+            texts["welcome"],
+            reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
+        )
+        return
+
+    # =====================================================
     # 1️⃣ REGISTER FLOW
     # =====================================================
     if flow == "register":
 
         if step == "service":
-            services_list = SERVICES.get(language, SERVICES["uz_kr"])
-            if text in services_list:
+            services = SERVICES.get(language, SERVICES["uz_kr"])
+            if text in services:
                 context.user_data["service"] = text
                 context.user_data["step"] = "region"
                 await update.message.reply_text(
@@ -800,30 +859,29 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
                 return
 
-        elif step == "region":
-            regions_data = REGIONS.get(language, REGIONS["uz_kr"])
-            if text in regions_data:
+        if step == "region":
+            regions = REGIONS.get(language, REGIONS["uz_kr"])
+            if text in regions:
                 context.user_data["region"] = text
                 context.user_data["step"] = "district"
                 await ask_region(update, context)
                 return
 
-        elif step == "district":
+        if step == "district":
             await get_district(update, context)
             return
 
-        elif step == "age":
+        if step == "age":
             await get_age(update, context)
             return
 
-        elif step == "experience":
+        if step == "experience":
             await get_experience(update, context)
             return
 
-        elif step == "description":
+        if step == "description":
             await handle_description(update, context)
             return
-
 
     # =====================================================
     # 2️⃣ FIND FLOW
@@ -831,8 +889,8 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if flow == "find":
 
         if step == "service":
-            services_list = SERVICES.get(language, SERVICES["uz_kr"])
-            if text in services_list:
+            services = SERVICES.get(language, SERVICES["uz_kr"])
+            if text in services:
                 context.user_data["service"] = text
                 context.user_data["step"] = "region"
                 await update.message.reply_text(
@@ -841,11 +899,11 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
                 return
 
-        elif step == "region":
+        if step == "region":
             await ask_region(update, context)
             return
 
-        elif step == "district":
+        if step == "district":
 
             if text == "📍 Фақат вилоят бўйича қидириш":
                 context.user_data["district"] = None
@@ -855,97 +913,87 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await get_district(update, context)
             return
 
-
     # =====================================================
-    # 3️⃣ MAIN MENU (flow yo'q paytda)
+    # 🔎 CODE SEARCH
     # =====================================================
+    if context.user_data.get("waiting_for_code"):
 
-    # 🔙 BACK (FLOW BASED)
-    if text in ["Орқага", "Orqaga", "Назад"]:
+        if not text.isdigit() or len(text) != 4:
+            await update.message.reply_text("❌ Код 4 хоналик рақам бўлиши керак.")
+            return
 
-        flow = context.user_data.get("flow")
-        step = context.user_data.get("step")
+        code = text
 
-        # ===== FIND FLOW =====
-        if flow == "find":
-
-            if step == "district":
-                context.user_data["step"] = "region"
-                await update.message.reply_text(texts["choose_region"], reply_markup=build_region_menu(language))
-                return
-
-            if step == "region":
-                context.user_data["step"] = "service"
-                await update.message.reply_text(texts["choose_service"], reply_markup=build_service_menu(language))
-                return
-
-            if step == "service":
-                context.user_data.clear()
-                context.user_data["language"] = language
-                break_flow = True
-            else:
-                break_flow = False
-
-            if break_flow:
-                pass
-
-        # ===== REGISTER FLOW =====
-        if flow == "register":
-
-            if step == "district":
-                context.user_data["step"] = "region"
-                await update.message.reply_text(texts["choose_region"], reply_markup=build_region_menu(language))
-                return
-
-            if step == "region":
-                context.user_data["step"] = "service"
-                await update.message.reply_text(texts["choose_service"], reply_markup=build_service_menu(language))
-                return
-
-            if step == "service":
-                context.user_data.clear()
-                context.user_data["language"] = language
-
-        # ===== DEFAULT → MAIN MENU =====
-        context.user_data.clear()
-        context.user_data["language"] = language
-
-        # master yoki mijoz aniqlaymiz
         conn = psycopg2.connect(os.getenv("DATABASE_URL"))
         c = conn.cursor()
-        c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE", (user_id,))
-        is_master = c.fetchone()
+        c.execute("""
+            SELECT id, name, phone, district, age, experience, vip
+            FROM masters
+            WHERE code=%s AND is_active=TRUE
+        """, (code,))
+        master = c.fetchone()
         conn.close()
 
-        if is_master:
-            menu = texts["master_menu"]
-        else:
-            menu = texts["customer_menu"]
+        if not master:
+            await update.message.reply_text("❌ Код топилмади.")
+            return
 
-        await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
+        mid, name, phone, district, age, experience, vip = master
+
+        badge = f"👑 VIP УСТА • 🆔 {code}" if vip else f"👷 УСТА • 🆔 {code}"
+
+        msg = f"""
+══════════════════════════
+<b>{badge}</b>
+
+👤 <b>{name}</b>
+📍 {district}
+🎂 {age} ёш
+🧰 {experience} йил тажриба
+📞 <b>+{phone}</b>
+══════════════════════════
+"""
+
+        keyboard = [[
+            InlineKeyboardButton("📞 Қўнғироқ", callback_data=f"call_{phone}"),
+            InlineKeyboardButton("✅ Чақирдим", callback_data=f"order_{mid}"),
+            InlineKeyboardButton("⭐ Баҳо", callback_data=f"rate_{mid}")
+        ]]
+
+        await update.message.reply_text(
+            msg,
+            parse_mode="HTML",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+        context.user_data["waiting_for_code"] = False
         return
-    
-    # 👤 Уста топиш
+
+    # =====================================================
+    # 🧭 MAIN MENU ACTIONS
+    # =====================================================
+
     if text in ["Уста топиш", "Usta topish", "Найти мастера"]:
         await start_find(update, context)
         return
 
-    # 👷 Уста бўлиш
     if text in ["Уста бўлиш", "Usta bo'lish", "Стать мастером"]:
         await start_register(update, context)
         return
 
-    # 🎁 Таклиф қилиш
+    if text in ["🔎 Код орқали қидириш", "🔎 Kod orqali qidirish", "🔎 Поиск по коду"]:
+        context.user_data["waiting_for_code"] = True
+        await update.message.reply_text("🆔 Уста кодини киритинг (4 рақам):")
+        return
+
     if text in ["🎁 Таклиф қилиш", "🎁 Taklif qilish", "🎁 Пригласить"]:
         await show_referral(update, context)
         return
 
-    # 🌐 Тил
     if text in ["🌐 Тилни ўзгартириш", "🌐 Tilni o'zgartirish", "🌐 Изменить язык"]:
         await change_language(update, context)
         return
 
-    # 👤 Профиль
     if text in ["Менинг профилим", "Mening profilim", "Мой профиль"]:
         await my_profile(update, context)
         return
@@ -2326,6 +2374,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
