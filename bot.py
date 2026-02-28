@@ -667,8 +667,11 @@ async def ask_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["region"] = region
     context.user_data["step"] = "district"
 
-    # ➕ Вилоят бўйича қидириш тугмаси қўшамиз
-    keyboard = build_city_menu(region, language).keyboard
+    # 🔥 build_city_menu ни list қилиб оламиз
+    base_markup = build_city_menu(region, language)
+    keyboard = list(base_markup.keyboard)
+
+    # ➕ Вилоят бўйича қидириш қўшамиз
     keyboard.insert(0, ["📍 Фақат вилоят бўйича қидириш"])
     
     await update.message.reply_text(texts["choose_district"], reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
@@ -2344,6 +2347,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
