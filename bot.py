@@ -1427,6 +1427,17 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text("❌ Сиз рўйхатдан чиқдингиз.")
         return
 
+    # ================= REF LINK =================
+    elif data == "my_ref_link":
+
+        user_id = query.from_user.id
+        bot_username = (await context.bot.get_me()).username
+
+        ref_link = f"https://t.me/{bot_username}?start={user_id}"
+
+        await query.message.reply_text(f"🔗 Сизнинг таклиф линкингиз:\n\n{ref_link}\n\n" "👥 Ҳар бир қўшилган одам учун 100 балл оласиз!")
+        return
+        
     # ================= ORDER =================
     elif data.startswith("order_"):
         mid = int(data.replace("order_", ""))
@@ -1759,6 +1770,7 @@ async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     keyboard = [
+        [InlineKeyboardButton("🔗 Менинг таклиф линким", callback_data="my_ref_link")],
         [InlineKeyboardButton("⚙ Профилни таҳрир қилиш", callback_data="edit_profile")],
         [InlineKeyboardButton("❌ Рўйхатдан чиқиш", callback_data="delete_profile")]
     ]
@@ -2386,6 +2398,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
