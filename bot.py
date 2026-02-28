@@ -818,6 +818,12 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # =====================================================
     if flow == "find":
 
+        # 🔥 Фақат вилоят бўйича
+        if step == "district" and text == "📍 Фақат вилоят бўйича қидириш":
+            context.user_data["district"] = None
+            await show_masters(update, context)
+            return
+            
         if step == "service":
             await find_service(update, context)
             return
@@ -874,15 +880,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if step == "description":
             await handle_description(update, context)
             return
-
-    # =====================================================
-    # 📍 Фақат вилоят бўйича қидириш
-    # =====================================================
-    if text == "📍 Фақат вилоят бўйича қидириш":
-        context.user_data["district"] = None
-        await show_masters(update, context)
-        return
-
+   
     # =====================================================
     # 👤 МИЖОЗ МЕНЮ
     # =====================================================
@@ -2334,6 +2332,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
