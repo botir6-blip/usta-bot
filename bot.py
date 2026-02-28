@@ -950,7 +950,15 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         context.user_data["waiting_for_code"] = False
         return
-        
+
+async def is_user_master(user_id):
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    c = conn.cursor()
+    c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE", (user_id,))
+    result = c.fetchone()
+    conn.close()
+    return result
+    
 async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     selected_region = context.user_data.get("region")
@@ -2295,6 +2303,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
