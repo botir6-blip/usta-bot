@@ -1220,7 +1220,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     line = "══════════════════════════"
 
     # ⭐ VIP + NORMAL битта JOIN билан
-    c.execute("""
+    query = """
     SELECT 
         m.id,
         m.name,
@@ -1237,10 +1237,18 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         COUNT(r.rating) as votes
     FROM masters m
     LEFT JOIN ratings r ON m.id = r.master_id
-    WHERE m.service=%s 
-      AND m.region=%s 
-      AND m.district=%s
+    WHERE m.service=%s
+      AND m.region=%s
       AND m.is_active = TRUE
+    """
+
+    params = [service, region]
+
+    if district:
+        query += " AND m.district=%s"
+        params.append(district)
+
+    query += """
     GROUP BY 
         m.id,
         m.name,
@@ -1257,7 +1265,11 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         m.vip DESC,
         avg_rating DESC
     LIMIT %s OFFSET %s
-    """, (service, region, district, limit, offset))
+    """
+ 
+    params.extend([limit, offset])
+
+    c.execute(query, params)
     
     rows = c.fetchall()
 
@@ -2323,6 +2335,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
