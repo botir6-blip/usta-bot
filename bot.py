@@ -215,12 +215,17 @@ def delete_master(telegram_id):
     return master is not None
 
 # ================= MENUS =================
-MAIN_MENU = ReplyKeyboardMarkup([
-    ["Уста топиш", "Уста бўлиш"],
-    ["Менинг профилим", "Статистика"],
-    ["Рўйхатдан чиқиш", "💾 Backup"]
+CUSTOMER_MENU = ReplyKeyboardMarkup([
+    ["1️⃣ Уста топиш"],
+    ["2️⃣ Уста коди орқали қидириш"],
+    ["3️⃣ 🎁 Таклиф қилиш / Реферал натижалар"]
 ], resize_keyboard=True)
 
+MASTER_MENU = ReplyKeyboardMarkup([
+    ["1️⃣ Уста бўлиш"],
+    ["2️⃣ 🎁 Таклиф қилиш"],
+    ["3️⃣ Менинг профилим"]
+], resize_keyboard=True)
 
 def build_service_menu(language="uz_kr"):
     services = SERVICES.get(language, SERVICES["uz_kr"])
@@ -413,6 +418,7 @@ def log_user(user):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     log_user(update.effective_user)
 
+    # 🔥 РЕФЕРАЛ ЛОГИКА
     if context.args:
         ref_code = context.args[0]
 
@@ -424,21 +430,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 conn = psycopg2.connect(os.getenv("DATABASE_URL"))
                 c = conn.cursor()
 
-                # Аввал user мавжудлигини текширамиз
                 c.execute("SELECT referred_by FROM users WHERE telegram_id=%s", (user_id,))
                 row = c.fetchone()
 
-                # Агар user мавжуд ва ҳали реферал бўлмаган бўлса
                 if row is not None and row[0] is None:
-
-                    # Реферални сақлаймиз
                     c.execute("""
                         UPDATE users
                         SET referred_by=%s
                         WHERE telegram_id=%s
                     """, (ref_id, user_id))
 
-                    # Балл берамиз
                     c.execute("""
                         UPDATE users
                         SET points = COALESCE(points,0) + 100
@@ -448,13 +449,29 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 conn.commit()
                 conn.close()
 
-    # АСЛ КОДИНГИЗ
+    # 🌐 ТИЛ
     language = context.user_data.get("language", "uz_kr")
     context.user_data["language"] = language
-
     texts = get_texts(language)
 
-    await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
+    # 👇 ЭНДИ МЕНЮ ТАНЛАЙМИЗ
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    c = conn.cursor()
+
+    c.execute("""
+        SELECT 1 FROM masters
+        WHERE telegram_id=%s AND is_active=TRUE
+    """, (update.effective_user.id,))
+
+    is_master = c.fetchone()
+    conn.close()
+
+    if is_master:
+        menu = MASTER_MENU
+    else:
+        menu = CUSTOMER_MENU
+
+    await update.message.reply_text(texts["welcome"], reply_markup=menu)
 
 async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
@@ -759,52 +776,119 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = update.message.text.strip()
     log_user(update.effective_user)
-          
+
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
 
-    # 📍 Фақат вилоят бўйича қидириш
+    user_id = update.effective_user.id
+
+    # 🔎 УСТАМИ ЁКИ МИЖОЗ АНИҚЛАЙМИЗ
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    c = conn.cursor()
+    c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE", (user_id,))
+    is_master = c.fetchone()
+    conn.close()
+
+    current_menu = MASTER_MENU if is_master else CUSTOMER_MENU
+
+    # =====================================================
+    # 📍 ФАҚАТ ВИЛОЯТ БЎЙИЧА ҚИДИРИШ
+    # =====================================================
     if text == "📍 Фақат вилоят бўйича қидириш":
         context.user_data["district"] = None
         await show_masters(update, context)
         return
 
-    # 🔴 GLOBAL BACK (ЭНГ ЮҚОРИДА!)
+    # =====================================================
+    # 🔙 GLOBAL BACK
+    # =====================================================
     if text in ["Орқага", "Orqaga", "Назад"]:
-
         context.user_data.clear()
         context.user_data["language"] = language
 
-        await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
-        return
-
-    step = context.user_data.get("step")
-    flow = context.user_data.get("flow")
-
-    # =====================================================
-    # 🔎 КОД ОРҚАЛИ ҚИДИРИШ
-    # =====================================================
-    if text in ["🔎 Код орқали қидириш", "🔎 Kod orqali qidirish", "🔎 Поиск по коду"]:
-        context.user_data["waiting_for_code"] = True
-
         await update.message.reply_text(
-            "🆔 Уста кодини киритинг (4 рақам):\n\n"
-            "❌ Бекор қилиш учун 'Орқага' деб ёзинг."
+            texts["welcome"],
+            reply_markup=current_menu
         )
         return
 
     # =====================================================
-    # 🔢 КОД КИРИТИШ
+    # 👤 МИЖОЗ МЕНЮ
+    # =====================================================
+    if text == "1️⃣ Уста топиш":
+        await start_find(update, context)
+        return
+
+    if text == "2️⃣ Уста коди орқали қидириш":
+        context.user_data["waiting_for_code"] = True
+        await update.message.reply_text("🆔 Уста кодини киритинг (4 рақам):")
+        return
+
+    if text == "3️⃣ 🎁 Таклиф қилиш / Реферал натижалар":
+
+        bot_username = (await context.bot.get_me()).username
+
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        c = conn.cursor()
+
+        c.execute("SELECT points FROM users WHERE telegram_id=%s", (user_id,))
+        row = c.fetchone()
+        points = row[0] if row else 0
+
+        c.execute("SELECT COUNT(*) FROM users WHERE referred_by=%s", (user_id,))
+        referrals = c.fetchone()[0]
+
+        conn.close()
+
+        ref_link = f"https://t.me/{bot_username}?start={user_id}"
+
+        await update.message.reply_text(
+            f"🎁 Сизнинг таклиф линкингиз:\n\n{ref_link}\n\n"
+            f"👥 Таклиф қилганлар: {referrals}\n"
+            f"💎 Баллингиз: {points}"
+        )
+        return
+
+    # =====================================================
+    # 👷 УСТА МЕНЮ
+    # =====================================================
+    if text == "1️⃣ Уста бўлиш":
+        await start_register(update, context)
+        return
+
+    if text == "2️⃣ 🎁 Таклиф қилиш":
+
+        bot_username = (await context.bot.get_me()).username
+
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        c = conn.cursor()
+
+        c.execute("SELECT points FROM users WHERE telegram_id=%s", (user_id,))
+        row = c.fetchone()
+        points = row[0] if row else 0
+
+        c.execute("SELECT COUNT(*) FROM users WHERE referred_by=%s", (user_id,))
+        referrals = c.fetchone()[0]
+
+        conn.close()
+
+        ref_link = f"https://t.me/{bot_username}?start={user_id}"
+
+        await update.message.reply_text(
+            f"🎁 Сизнинг таклиф линкингиз:\n\n{ref_link}\n\n"
+            f"👥 Таклиф қилганлар: {referrals}\n"
+            f"💎 Баллингиз: {points}"
+        )
+        return
+
+    if text == "3️⃣ Менинг профилим":
+        await my_profile(update, context)
+        return
+
+    # =====================================================
+    # 🔢 КОД КИРИТИШ (ЭСКИ ЛОГИКА САҚЛАНДИ)
     # =====================================================
     if context.user_data.get("waiting_for_code") and text.isdigit():
-
-        if text in ["Орқага", "Orqaga", "Назад"]:
-            context.user_data["waiting_for_code"] = False
-            await update.message.reply_text(
-                texts["welcome"],
-                reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True)
-            )
-            return
 
         if not text.isdigit() or len(text) != 4:
             await update.message.reply_text("❌ Код 4 хоналик рақам бўлиши керак.")
@@ -857,186 +941,6 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         context.user_data["waiting_for_code"] = False
-        return
-
-    # =====================================================
-    # 🔴 БАНД САНА КИРИТИШ
-    # =====================================================
-    if step == "set_busy_date":
-
-        from datetime import datetime
-
-        try:
-            busy_date = datetime.strptime(text, "%Y-%m-%d").date()
-        except:
-            await update.message.reply_text("❌ Формат: YYYY-MM-DD")
-            return
-
-        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-        c = conn.cursor()
-
-        c.execute("""
-            UPDATE masters
-            SET is_busy = TRUE,
-                busy_until = %s
-            WHERE telegram_id = %s
-        """, (busy_date, update.effective_user.id))
-
-        conn.commit()
-        conn.close()
-
-        await update.message.reply_text("🔴 Сиз банд қилиндингиз.")
-        context.user_data["step"] = None
-        return
-
-    # =====================================================
-    # ✏ EDIT PHONE
-    # =====================================================
-    if step == "edit_phone":
-
-        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-        c = conn.cursor()
-
-        c.execute("""
-            UPDATE masters
-            SET phone=%s
-            WHERE telegram_id=%s
-        """, (text, update.effective_user.id))
-
-        conn.commit()
-        conn.close()
-
-        await update.message.reply_text("✅ Телефон янгиланди.")
-        context.user_data["step"] = None
-        return
-
-    # =====================================================
-    # ✏ EDIT EXPERIENCE
-    # =====================================================
-    if step == "edit_experience":
-
-        if not text.isdigit():
-            await update.message.reply_text("❌ Фақат рақам киритинг.")
-            return
-
-        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-        c = conn.cursor()
-
-        c.execute("""
-            UPDATE masters
-            SET experience=%s
-            WHERE telegram_id=%s
-        """, (text, update.effective_user.id))
-
-        conn.commit()
-        conn.close()
-
-        await update.message.reply_text("✅ Тажриба янгиланди.")
-        context.user_data["step"] = None
-        return
-
-    # =====================================================
-    # ✏ EDIT AGE
-    # =====================================================
-    if step == "edit_age":
-
-        if not text.isdigit():
-            await update.message.reply_text("❌ Фақат рақам киритинг.")
-            return
-
-        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-        c = conn.cursor()
-
-        c.execute("""
-            UPDATE masters
-            SET age=%s
-            WHERE telegram_id=%s
-        """, (text, update.effective_user.id))
-
-        conn.commit()
-        conn.close()
-
-        await update.message.reply_text("✅ Ёш янгиланди.")
-        context.user_data["step"] = None
-        return
-
-    # =====================================================
-    # ✏ EDIT DESCRIPTION
-    # =====================================================
-    if step == "edit_description":
-
-        if len(text) > 300:
-            await update.message.reply_text("❗ 300 белгидан оширманг.")
-            return
-
-        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-        c = conn.cursor()
-
-        c.execute("""
-            UPDATE masters
-            SET service_description=%s
-            WHERE telegram_id=%s
-        """, (clean_text(text), update.effective_user.id))
-
-        conn.commit()
-        conn.close()
-
-        await update.message.reply_text("✅ Иш турлари янгиланди.")
-        context.user_data["step"] = None
-        return
-
-    # =====================================================
-    # 🔄 REGISTER FLOW
-    # =====================================================
-    if step == "age":
-        await get_age(update, context)
-        return
-
-    if step == "experience":
-        await get_experience(update, context)
-        return
-
-    if step == "description":
-        await handle_description(update, context)
-        return
-
-    # =====================================================
-    # 🔎 FIND FLOW
-    # =====================================================
-    if step == "service" and flow == "find":
-        await find_service(update, context)
-        return
-
-    if step == "region":
-        await ask_region(update, context)
-        return
-
-    if step == "district":
-        await get_district(update, context)
-        return
-
-    if step == "service" and flow == "register":
-
-        language = context.user_data.get("language", "uz_kr")
-        texts = get_texts(language)
-
-        context.user_data["service"] = text
-        context.user_data["step"] = "region"
-
-        await update.message.reply_text(texts["choose_region"], reply_markup=build_region_menu(language))
-        return
-
-    # =====================================================
-    # 🔙 ОРҚАГА
-    # =====================================================
-    if text in ["Орқага", "Orqaga", "Назад"]:
-        context.user_data.pop("step", None)
-        context.user_data.pop("flow", None)
-
-        await update.message.reply_text(
-            texts["welcome"],
-            reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True)
-        )
         return
 
 async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -2398,6 +2302,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
