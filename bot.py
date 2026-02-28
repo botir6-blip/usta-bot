@@ -2315,12 +2315,7 @@ def main():
     app.add_handler(MessageHandler(filters.Regex("^(Уста бўлиш|Usta bo'lish|Стать мастером)$"), start_register))
 
     app.add_handler(MessageHandler(filters.CONTACT, get_phone))
-
-    # =========================
-    # 🔹 FIND FLOW
-    # =========================
-    app.add_handler(MessageHandler(filters.Regex("^(Уста топиш|Usta topish|Найти мастера)$"), start_find))
-
+    
     # =========================
     # 🔹 PROFILE
     # =========================
@@ -2359,6 +2354,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
