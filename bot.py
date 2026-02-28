@@ -815,6 +815,22 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=current_menu
         )
         return
+
+    # =====================================================
+    # 🔎 FIND FLOW
+    # =====================================================
+    if context.user_data.get("step") == "service" and context.user_data.get("flow") == "find":
+        await find_service(update, context)
+        return
+
+    if context.user_data.get("step") == "region" and context.user_data.get("flow") == "find":
+        await ask_region(update, context)
+        return
+
+    if context.user_data.get("step") == "district" and context.user_data.get("flow") == "find":
+        await get_district(update, context)
+        return
+        
     # =====================================================
     # 👤 МИЖОЗ МЕНЮ (5 ТУГМА)
     # =====================================================
@@ -2354,6 +2370,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
