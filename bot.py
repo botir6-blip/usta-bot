@@ -76,6 +76,9 @@ def init_db():
     c.execute("ALTER TABLE ratings ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0")
+    c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0")
+    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by BIGINT")
 
     # ====== BAHOLAR ======
     c.execute("""
@@ -410,6 +413,42 @@ def log_user(user):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     log_user(update.effective_user)
 
+    if context.args:
+        ref_code = context.args[0]
+
+        if ref_code.isdigit():
+            ref_id = int(ref_code)
+            user_id = update.effective_user.id
+
+            if ref_id != user_id:
+                conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+                c = conn.cursor()
+
+                # Аввал user мавжудлигини текширамиз
+                c.execute("SELECT referred_by FROM users WHERE telegram_id=%s", (user_id,))
+                row = c.fetchone()
+
+                # Агар user мавжуд ва ҳали реферал бўлмаган бўлса
+                if row is not None and row[0] is None:
+
+                    # Реферални сақлаймиз
+                    c.execute("""
+                        UPDATE users
+                        SET referred_by=%s
+                        WHERE telegram_id=%s
+                    """, (ref_id, user_id))
+
+                    # Балл берамиз
+                    c.execute("""
+                        UPDATE users
+                        SET points = COALESCE(points,0) + 100
+                        WHERE telegram_id=%s
+                    """, (ref_id,))
+
+                conn.commit()
+                conn.close()
+
+    # АСЛ КОДИНГИЗ
     language = context.user_data.get("language", "uz_kr")
     context.user_data["language"] = language
 
@@ -2347,6 +2386,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
