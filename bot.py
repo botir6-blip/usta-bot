@@ -470,11 +470,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.close()
 
     if is_master:
-        menu = MASTER_MENU
+        menu = texts["master_menu"]
     else:
-        menu = CUSTOMER_MENU
+        menu = texts["customer_menu"]
 
-    await update.message.reply_text(texts["welcome"], reply_markup=menu)
+    await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
 
 async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
@@ -2360,6 +2360,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
