@@ -1181,9 +1181,7 @@ async def find_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(texts["choose_region"], reply_markup=build_region_menu(language))
 
 async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print("SERVICE:", service)
-    print("REGION:", region)
-    print("DISTRICT:", district)
+
     if update.callback_query:
         message = update.callback_query.message
         await update.callback_query.answer()
@@ -1193,6 +1191,10 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     service = context.user_data.get("service")
     region = context.user_data.get("region")
     district = context.user_data.get("district")
+
+    print("SERVICE:", service)
+    print("REGION:", region)
+    print("DISTRICT:", district)
 
     page = context.user_data.get("page", 0)
     limit = 5
@@ -2321,6 +2323,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
