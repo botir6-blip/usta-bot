@@ -218,14 +218,13 @@ def delete_master(telegram_id):
 
 # ================= MENUS =================
 CUSTOMER_MENU = ReplyKeyboardMarkup([
-    ["Уста топиш", "Уста коди орқали қидириш"],
-    ["🎁 Таклиф қилиш / Реферал натижалар"],
+    ["Уста топиш", "🔎 Код орқали қидириш"],
+    ["🎁 Таклиф қилиш", "Уста бўлиш"],
     ["🌐 Тилни ўзгартириш"]
 ], resize_keyboard=True)
 
 MASTER_MENU = ReplyKeyboardMarkup([
-    ["Уста бўлиш", "Менинг профилим"],
-    ["🎁 Таклиф қилиш"],
+    ["Менинг профилим", "🎁 Таклиф қилиш"],
     ["🌐 Тилни ўзгартириш"]
 ], resize_keyboard=True)
 
@@ -783,13 +782,13 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if "language" not in context.user_data:
         return
-    
+
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
 
     user_id = update.effective_user.id
 
-    # 🔎 УСТАМИ ЁКИ МИЖОЗ АНИҚЛАЙМИЗ
+    # 🔎 УСТАМИ ЁКИ МИЖОЗ
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
     c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE", (user_id,))
@@ -820,18 +819,30 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # =====================================================
-    # 👤 МИЖОЗ МЕНЮ
+    # 👤 МИЖОЗ МЕНЮ (3 ТИЛ)
     # =====================================================
-    if text == "1️⃣ Уста топиш":
+    if text in [
+        "1️⃣ Уста топиш",
+        "1️⃣ Usta topish",
+        "1️⃣ Найти мастера"
+    ]:
         await start_find(update, context)
         return
 
-    if text == "2️⃣ Уста коди орқали қидириш":
+    if text in [
+        "2️⃣ Уста коди орқали қидириш",
+        "2️⃣ Usta kodi orqali qidirish",
+        "2️⃣ Поиск по коду"
+    ]:
         context.user_data["waiting_for_code"] = True
         await update.message.reply_text("🆔 Уста кодини киритинг (4 рақам):")
         return
 
-    if text == "3️⃣ 🎁 Таклиф қилиш / Реферал натижалар":
+    if text in [
+        "3️⃣ 🎁 Таклиф қилиш / Реферал натижалар",
+        "3️⃣ 🎁 Taklif qilish / Referal natijalar",
+        "3️⃣ 🎁 Пригласить / Результаты"
+    ]:
 
         bot_username = (await context.bot.get_me()).username
 
@@ -857,13 +868,21 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # =====================================================
-    # 👷 УСТА МЕНЮ
+    # 👷 УСТА МЕНЮ (3 ТИЛ)
     # =====================================================
-    if text == "1️⃣ Уста бўлиш":
+    if text in [
+        "1️⃣ Уста бўлиш",
+        "1️⃣ Usta bo'lish",
+        "1️⃣ Стать мастером"
+    ]:
         await start_register(update, context)
         return
 
-    if text == "2️⃣ 🎁 Таклиф қилиш":
+    if text in [
+        "2️⃣ 🎁 Таклиф қилиш",
+        "2️⃣ 🎁 Taklif qilish",
+        "2️⃣ 🎁 Пригласить"
+    ]:
 
         bot_username = (await context.bot.get_me()).username
 
@@ -888,16 +907,20 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    if text == "3️⃣ Менинг профилим":
+    if text in [
+        "3️⃣ Менинг профилим",
+        "3️⃣ Mening profilim",
+        "3️⃣ Мой профиль"
+    ]:
         await my_profile(update, context)
         return
 
     # =====================================================
-    # 🔢 КОД КИРИТИШ (ЭСКИ ЛОГИКА САҚЛАНДИ)
+    # 🔢 КОД КИРИТИШ
     # =====================================================
     if context.user_data.get("waiting_for_code") and text.isdigit():
 
-        if not text.isdigit() or len(text) != 4:
+        if len(text) != 4:
             await update.message.reply_text("❌ Код 4 хоналик рақам бўлиши керак.")
             return
 
@@ -941,15 +964,11 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton("⭐ Баҳо", callback_data=f"rate_{mid}")
         ]]
 
-        await update.message.reply_text(
-            text_msg,
-            parse_mode="HTML",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
+        await update.message.reply_text(text_msg, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
 
         context.user_data["waiting_for_code"] = False
         return
-
+        
 async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     selected_region = context.user_data.get("region")
@@ -2309,6 +2328,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
