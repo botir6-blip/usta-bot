@@ -1107,11 +1107,17 @@ async def show_referral(update, context):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
-        f"🎁 Дўст таклиф қилинг ва балл тўпланг!\n\n"
+        f"🎁 Дўст таклиф қилинг ва 100 балл олинг!\n\n"
+        f"━━━━━━━━━━━━━━━\n"
         f"👥 Таклиф қилганлар: {referrals}\n"
-        f"💎 Баллингиз: {points}\n"
-        f"🎖 Даражангиз: {level}\n\n"
-        + (f"🚀 {next_level} гача яна {remaining} балл қолди!" if remaining > 0 else "🏆 Сиз энг юқори даражадасиз!"),
+        f"💎 Жами балл: {points}\n"
+        f"🎖 Даража: {level}\n"
+        f"━━━━━━━━━━━━━━━\n\n"
+        + (
+            f"🚀 {next_level} даражага чиқиш учун яна {remaining} балл керак!"
+            if remaining > 0
+            else "🏆 Табриклаймиз! Сиз энг юқори даражадасиз!"
+        ),
         reply_markup=reply_markup
     )
     
@@ -2477,6 +2483,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
