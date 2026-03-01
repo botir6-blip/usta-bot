@@ -370,11 +370,8 @@ async def choose_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn.commit()
         conn.close()
 
-        # 🔹 Тўғри менюни танлаймиз
-        if is_master:
-            menu = texts["master_menu"]
-        else:
-            menu = texts["customer_menu"]
+        menu, mode = build_main_menu(texts, is_master, context.user_data.get("mode"))
+        context.user_data["mode"] = mode
 
         await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
 
@@ -472,28 +469,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     is_master = c.fetchone()
     conn.close()
 
-    mode = context.user_data.get("mode")
+    menu, mode = build_main_menu(texts, is_master, context.user_data.get("mode"))
 
-    if is_master:
-        # Уста бўлса режим текширилади
-        if not mode:
-            mode = "master"
-            context.user_data["mode"] = mode
-    else:
-        # Оддий мижоз
-        mode = "customer"
-        context.user_data["mode"] = mode
-
-    if mode == "master":
-        # Уста менюси + Мижоз режими тугмаси
-        menu = texts["master_menu"] + [[texts["switch_to_customer"]]]
-
-    else:
-        menu = texts["customer_menu"]
-
-        # Агар уста бўлса, мижоз режимида ҳам устага қайтиш тугмаси чиқади
-        if is_master:
-            menu.append([texts["switch_to_master"]])
+    context.user_data["mode"] = mode
         
     await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
 
@@ -861,7 +839,8 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         is_master = c.fetchone()
         conn.close()
 
-        menu = texts["master_menu"] if is_master else texts["customer_menu"]
+        menu, mode = build_main_menu(texts, is_master, context.user_data.get("mode"))
+        context.user_data["mode"] = mode
 
         await update.message.reply_text(
             texts["welcome"],
@@ -2030,6 +2009,25 @@ def get_user_level(points):
         return "🥉 BRONZE"
     else:
         return "👤 START"
+
+# ================= MAIN MENU BUILDER =================
+def build_main_menu(texts, is_master, mode):
+
+    if is_master:
+        if not mode:
+            mode = "master"
+    else:
+        mode = "customer"
+
+    if mode == "master":
+        menu = list(texts["master_menu"])
+        menu.append([texts["switch_to_customer"]])
+    else:
+        menu = list(texts["customer_menu"])
+        if is_master:
+            menu.append([texts["switch_to_master"]])
+
+    return menu, mode
     
 async def start_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -2512,6 +2510,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
