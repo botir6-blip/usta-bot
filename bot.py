@@ -1052,15 +1052,23 @@ async def show_referral(update, context):
 
     conn.close()
 
-    # 🎖 LEVEL
+    # 🎖 LEVEL + PROGRESS
     if points >= 1000:
         level = "👑 GOLD"
+        next_level = "MAX"
+        remaining = 0
     elif points >= 500:
         level = "🥈 SILVER"
+        next_level = "👑 GOLD"
+        remaining = 1000 - points
     elif points >= 100:
         level = "🥉 BRONZE"
+        next_level = "🥈 SILVER"
+        remaining = 500 - points
     else:
         level = "👤 START"
+        next_level = "🥉 BRONZE"
+        remaining = 100 - points
         
     ref_link = f"https://t.me/{bot_username}?start={user_id}"
 
@@ -1077,12 +1085,13 @@ async def show_referral(update, context):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
-    f"🎁 Дўст таклиф қилинг ва балл тўпланг!\n\n"
-    f"👥 Таклиф қилганлар: {referrals}\n"
-    f"💎 Баллингиз: {points}\n"
-    f"🎖 Даражангиз: {level}",
-    reply_markup=reply_markup
-)
+        f"🎁 Дўст таклиф қилинг ва балл тўпланг!\n\n"
+        f"👥 Таклиф қилганлар: {referrals}\n"
+        f"💎 Баллингиз: {points}\n"
+        f"🎖 Даражангиз: {level}\n\n"
+        + (f"🚀 {next_level} гача яна {remaining} балл қолди!" if remaining > 0 else "🏆 Сиз энг юқори даражадасиз!"),
+        reply_markup=reply_markup
+    )
     
 async def is_user_master(user_id):
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
@@ -2446,6 +2455,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
