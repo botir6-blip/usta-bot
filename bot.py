@@ -1545,8 +1545,13 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn = psycopg2.connect(os.getenv("DATABASE_URL"))
         c = conn.cursor()
 
-        # buyurtma yozamiz
-        c.execute("INSERT INTO orders (user_id, master_id) VALUES (%s, %s)", (user_id, mid))
+        # buyurtma yozamiz va ID ni olamiz
+        c.execute(
+            "INSERT INTO orders (user_id, master_id) VALUES (%s, %s) RETURNING id",
+            (user_id, mid)
+        )
+
+        order_id = c.fetchone()[0]
 
         # ustaning telegram id sini olamiz
         c.execute("SELECT telegram_id, name FROM masters WHERE id=%s", (mid,))
@@ -1571,14 +1576,23 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 user_phone = "Телефон йўқ"
 
+            keyboard = [[
+                InlineKeyboardButton(
+                    "✅ Иш тугади",
+                    callback_data=f"complete_{order_id}_{user_id}"
+                )
+            ]]
+
             await context.bot.send_message(
                 chat_id=master_tg_id,
                 text=(
                     f"📢 Янги буюртма!\n\n"
                     f"👤 Исм: {user_name}\n"
                     f"📞 Телефон: {user_phone}\n"
-                    f"🆔 ID: {user_id}"
-                )
+                    f"🆔 ID: {user_id}\n\n"
+                    f"Иш тугаганда тугмани босинг:"
+                ),
+                reply_markup=InlineKeyboardMarkup(keyboard)
             )
 
     # ================= RATE =================
@@ -2510,6 +2524,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
