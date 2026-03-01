@@ -39,6 +39,7 @@ UZ_KR = {
     "enter_experience": "Неча йиллик тажрибангиз бор?",
     "not_master": "Сиз уста эмассиз",
     "switch_to_customer": "👤 Мижоз режимига ўтиш",
+    "news_button": "📢 Бот янгиликлари",
     "switch_to_master": "🛠 Уста режимига ўтиш"
 }
 
@@ -68,6 +69,7 @@ UZ_LT = {
     "enter_experience": "Necha yillik tajribangiz bor?",
     "not_master": "Siz usta emassiz",
     "switch_to_customer": "👤 Mijoz rejimiga o'tish",
+    "news_button": "📢 Bot yangiliklari",
     "switch_to_master": "🛠 Usta rejimiga o'tish"
 }
 
@@ -97,6 +99,7 @@ RU = {
     "enter_experience": "Сколько лет опыта?",
     "not_master": "Вы не мастер",
     "switch_to_customer": "👤 Перейти в режим клиента",
+    "news_button": "📢 Новости бота",
     "switch_to_master": "🛠 Перейти в режим мастера"
 }
 
