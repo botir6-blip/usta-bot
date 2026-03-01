@@ -1052,6 +1052,16 @@ async def show_referral(update, context):
 
     conn.close()
 
+    # 🎖 LEVEL
+    if points >= 1000:
+        level = "👑 GOLD"
+    elif points >= 500:
+        level = "🥈 SILVER"
+    elif points >= 100:
+        level = "🥉 BRONZE"
+    else:
+        level = "👤 START"
+        
     ref_link = f"https://t.me/{bot_username}?start={user_id}"
 
     share_text = (
@@ -1066,8 +1076,13 @@ async def show_referral(update, context):
 
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await update.message.reply_text(f"🎁 Дўст таклиф қилинг ва балл тўпланг!\n\n" f"👥 Таклиф қилганлар: {referrals}\n"
-        f"💎 Баллингиз: {points}", reply_markup=reply_markup)
+    await update.message.reply_text(
+    f"🎁 Дўст таклиф қилинг ва балл тўпланг!\n\n"
+    f"👥 Таклиф қилганлар: {referrals}\n"
+    f"💎 Баллингиз: {points}\n"
+    f"🎖 Даражангиз: {level}",
+    reply_markup=reply_markup
+)
     
 async def is_user_master(user_id):
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
@@ -1938,6 +1953,17 @@ def can_rate(user_id, master_id):
     conn.close()
 
     return result is not None
+
+# ================= LEVEL SYSTEM =================
+def get_user_level(points):
+    if points >= 1000:
+        return "👑 GOLD"
+    elif points >= 500:
+        return "🥈 SILVER"
+    elif points >= 100:
+        return "🥉 BRONZE"
+    else:
+        return "👤 START"
     
 async def start_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -2420,6 +2446,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
