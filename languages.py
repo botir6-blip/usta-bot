@@ -27,7 +27,7 @@ UZ_KR = {
         ["🎁 Таклиф қилиш"],
         ["🌐 Тилни ўзгартириш"]
     ],
-
+    
     "welcome": "Ассалому алайкум! Танланг:",
     "back": "Орқага",
     "choose_language": "Тилни танланг:",
@@ -37,7 +37,9 @@ UZ_KR = {
     "choose_district": "Туманни танланг:",
     "enter_age": "Ёшингизни киритинг:",
     "enter_experience": "Неча йиллик тажрибангиз бор?",
-    "not_master": "Сиз уста эмассиз"
+    "not_master": "Сиз уста эмассиз",
+    "switch_to_customer": "👤 Мижоз режимига ўтиш",
+    "switch_to_master": "🛠 Уста режимига ўтиш"
 }
 
 # ================= УЗБЕК (ЛОТИН) =================
@@ -64,7 +66,9 @@ UZ_LT = {
     "choose_district": "Tumanni tanlang:",
     "enter_age": "Yoshingizni kiriting:",
     "enter_experience": "Necha yillik tajribangiz bor?",
-    "not_master": "Siz usta emassiz"
+    "not_master": "Siz usta emassiz",
+    "switch_to_customer": "👤 Mijoz rejimiga o'tish",
+    "switch_to_master": "🛠 Usta rejimiga o'tish"
 }
 
 # ================= РУССКИЙ =================
@@ -91,7 +95,9 @@ RU = {
     "choose_district": "Выберите район:",
     "enter_age": "Введите ваш возраст:",
     "enter_experience": "Сколько лет опыта?",
-    "not_master": "Вы не мастер"
+    "not_master": "Вы не мастер",
+    "switch_to_customer": "👤 Перейти в режим клиента",
+    "switch_to_master": "🛠 Перейти в режим мастера"
 }
 
 # ================= GET TEXTS =================
