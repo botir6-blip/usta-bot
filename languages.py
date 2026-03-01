@@ -23,9 +23,8 @@ UZ_KR = {
 
     # 🔹 USTA MENU
     "master_menu": [
-        ["Менинг профилим"],
-        ["🎁 Таклиф қилиш"],
-        ["🌐 Тилни ўзгартириш"]
+        ["Менинг профилим", "📢 Бот янгиликлари"],
+        ["🎁 Таклиф қилиш", "🌐 Тилни ўзгартириш"]
     ],
     
     "welcome": "Ассалому алайкум! Танланг:",
@@ -53,9 +52,8 @@ UZ_LT = {
     ],
 
     "master_menu": [
-        ["Mening profilim"],
-        ["🎁 Taklif qilish"],
-        ["🌐 Tilni o'zgartirish"]
+        ["Mening profilim", "📢 Bot yangiliklari"],
+        ["🎁 Taklif qilish", "🌐 Tilni o'zgartirish"]
     ],
 
     "welcome": "Assalomu alaykum! Tanlang:",
@@ -83,9 +81,8 @@ RU = {
     ],
 
     "master_menu": [
-        ["Мой профиль"],
-        ["🎁 Пригласить"],
-        ["🌐 Изменить язык"]
+        ["Мой профиль", "📢 Новости бота"],
+        ["🎁 Пригласить", "🌐 Изменить язык"]
     ],
 
     "welcome": "Здравствуйте! Выберите:",
