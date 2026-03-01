@@ -472,11 +472,29 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     is_master = c.fetchone()
     conn.close()
 
+    mode = context.user_data.get("mode")
+
     if is_master:
-        menu = texts["master_menu"]
+        # Уста бўлса режим текширилади
+        if not mode:
+            mode = "master"
+            context.user_data["mode"] = mode
+    else:
+        # Оддий мижоз
+        mode = "customer"
+        context.user_data["mode"] = mode
+
+    if mode == "master":
+        # Уста менюси + Мижоз режими тугмаси
+        menu = texts["master_menu"] + [[texts["switch_to_customer"]]]
+
     else:
         menu = texts["customer_menu"]
 
+        # Агар уста бўлса, мижоз режимида ҳам устага қайтиш тугмаси чиқади
+        if is_master:
+            menu.append([texts["switch_to_master"]])
+        
     await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
 
 async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1018,7 +1036,18 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # =====================================================
     # 🧭 MAIN MENU ACTIONS
     # =====================================================
+    texts = get_texts(context.user_data.get("language", "uz_kr"))
 
+    if text == texts["switch_to_customer"]:
+        context.user_data["mode"] = "customer"
+        await start(update, context)
+        return
+
+    if text == texts["switch_to_master"]:
+        context.user_data["mode"] = "master"
+        await start(update, context)
+        return
+        
     if text in ["Уста топиш", "Usta topish", "Найти мастера"]:
         await start_find(update, context)
         return
@@ -1043,7 +1072,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if text in ["Менинг профилим", "Mening profilim", "Мой профиль"]:
         await my_profile(update, context)
         return
-
+        
 async def show_referral(update, context):
     user_id = update.effective_user.id
     bot_username = (await context.bot.get_me()).username
@@ -2483,6 +2512,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
