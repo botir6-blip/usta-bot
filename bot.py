@@ -2035,15 +2035,12 @@ def build_main_menu(texts, is_master, mode):
 
     if mode == "master":
         menu = list(texts["master_menu"])
-        menu.append([texts["news_button"]])
         menu.append([texts["switch_to_customer"]])
     else:
         menu = list(texts["customer_menu"])
-        menu.append([texts["news_button"]])
         if is_master:
             menu.append([texts["switch_to_master"]])
-
-    return menu, mode
+        return menu, mode
     
 async def start_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -2565,6 +2562,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
