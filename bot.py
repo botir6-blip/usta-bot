@@ -1054,11 +1054,20 @@ async def show_referral(update, context):
 
     ref_link = f"https://t.me/{bot_username}?start={user_id}"
 
-    await update.message.reply_text(
-        f"🎁 Сизнинг таклиф линкингиз:\n\n{ref_link}\n\n"
-        f"👥 Таклиф қилганлар: {referrals}\n"
-        f"💎 Баллингиз: {points}"
+    share_text = (
+        f"🔥 Ишончли уста топиш боти!\n\n"
+        f"Мен ҳам фойдаланяпман 👇\n"
+        f"{ref_link}"
     )
+
+    keyboard = [
+        [InlineKeyboardButton("📤 Дўстларга юбориш", switch_inline_query=share_text)]
+    ]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await update.message.reply_text(f"🎁 Дўст таклиф қилинг ва балл тўпланг!\n\n" f"👥 Таклиф қилганлар: {referrals}\n"
+        f"💎 Баллингиз: {points}", reply_markup=reply_markup)
     
 async def is_user_master(user_id):
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
@@ -2411,6 +2420,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
