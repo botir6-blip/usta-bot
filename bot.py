@@ -2288,6 +2288,19 @@ async def show_news(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = (
             "📢 <b>БОТ ЯНГИЛИКЛАРИ</b>\n\n"
 
+            "🆕 <b>01.03.2026</b>\n"
+            "🔥 Катта янгиланиш!\n\n"
+            "🔄 Уста ва мижоз режими алмаштириш қўшилди.\n"
+            "📊 Тўлиқ 'Иш тугади' тизими жорий қилинди.\n"
+            "✅ Уста ишни якунласа — мижозга 300 балл берилади.\n"
+            "🎁 Реферал тизими такомиллаштирилди.\n"
+            "💎 1 та таклиф учун 100 балл жорий қилинди.\n"
+            "🏆 Балл даражалари кенгайтирилди (START / BRONZE / SILVER / GOLD / DIAMOND).\n"
+            "📈 Кейинги даражагача прогресс кўрсатилиши қўшилди.\n"
+            "🔗 Таклиф линкни осон юбориш имконияти қўшилди.\n\n"
+            "⚡ Бот янада қулай, адолатли ва профессионал бўлди!"
+            "\n\n"
+
             "🆕 <b>23.02.2026</b>\n"
             "🚀 Усталар учун катта янгилик!\n"
             "➕ Қўшимча хизмат турларини белгилаш имконияти қўшилди.\n"
@@ -2310,6 +2323,19 @@ async def show_news(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = (
             "📢 <b>BOT YANGILIKLARI</b>\n\n"
 
+            "🆕 <b>01.03.2026</b>\n"
+            "🔥 Katta yangilanish!\n\n"
+            "🔄 Usta va mijoz rejimini almashtirish qo'shildi.\n"
+            "📊 To'liq 'Ish tugadi' tizimi joriy qilindi.\n"
+            "✅ Usta ishni yakunlasa — mijozga 300 ball beriladi.\n"
+            "🎁 Referal tizimi takomillashtirildi.\n"
+            "💎 1 ta taklif uchun 100 ball joriy qilindi.\n"
+            "🏆 Ball darajalari kengaytirildi (START / BRONZE / SILVER / GOLD / DIAMOND).\n"
+            "📈 Keyingi darajagacha progress ko'rsatish qo'shildi.\n"
+            "🔗 Taklif linkini oson yuborish imkoniyati qo'shildi.\n\n"
+            "⚡ Bot yanada qulay, adolatli va professional bo'ldi!"
+            "\n\n"
+
             "🆕 <b>23.02.2026</b>\n"
             "🚀 Ustalar uchun katta yangilik!\n"
             "➕ Qo'shimcha xizmat turlarini belgilash imkoniyati qo'shildi.\n"
@@ -2330,6 +2356,19 @@ async def show_news(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         text = (
             "📢 <b>НОВОСТИ БОТА</b>\n\n"
+
+            "🆕 <b>28.02–01.03.2026</b>\n"
+            "🔥 Крупное обновление!\n\n"
+            "🔄 Добавлено переключение режима мастер/клиент.\n"
+            "📊 Введена полноценная система 'Работа завершена'.\n"
+            "✅ После завершения работы клиент получает 300 баллов.\n"
+            "🎁 Улучшена реферальная система.\n"
+            "💎 За 1 приглашённого — 100 баллов.\n"
+            "🏆 Расширена система уровней (START / BRONZE / SILVER / GOLD / DIAMOND).\n"
+            "📈 Добавлен прогресс до следующего уровня.\n"
+            "🔗 Добавлена возможность быстрой отправки реферальной ссылки.\n\n"
+            "⚡ Бот стал ещё удобнее, справедливее и профессиональнее!"
+            "\n\n"
 
             "🆕 <b>23.02.2026</b>\n"
             "🚀 Важное обновление для мастеров!\n"
@@ -2526,6 +2565,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
