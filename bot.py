@@ -423,34 +423,42 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texts = get_texts(language)
 
     # 🔥 РЕФЕРАЛ ЛОГИКА
-    if context.args:
-        ref_code = context.args[0]
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    c = conn.cursor()
 
-        if ref_code.isdigit():
-            ref_id = int(ref_code)
+    # Фойдаланувчи бор-йўқлигини текшириш
+    c.execute("SELECT referred_by FROM users WHERE telegram_id=%s", (user_id,))
+    row = c.fetchone()
 
-            if ref_id != user_id:
-                conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-                c = conn.cursor()
+    if not row:
+        # Янги фойдаланувчи
+        referred_by = None
 
-                c.execute("SELECT referred_by FROM users WHERE telegram_id=%s", (user_id,))
-                row = c.fetchone()
+        if context.args:
+            ref_code = context.args[0]
 
-                if row and row[0] is None:
-                    c.execute("""
-                        UPDATE users
-                        SET referred_by=%s
-                        WHERE telegram_id=%s
-                    """, (ref_id, user_id))
+            if ref_code.isdigit():
+                ref_id = int(ref_code)
 
+                if ref_id != user_id:
+                    referred_by = ref_id
+
+                    # 100 балл қўшиш
                     c.execute("""
                         UPDATE users
                         SET points = COALESCE(points,0) + 100
                         WHERE telegram_id=%s
                     """, (ref_id,))
 
-                    conn.commit()
-                conn.close()
+        # Янги фойдаланувчини қўшиш
+        c.execute("""
+            INSERT INTO users (telegram_id, referred_by, points)
+            VALUES (%s, %s, 0)
+        """, (user_id, referred_by))
+
+        conn.commit()
+
+    conn.close()
 
     # 👇 МЕНЮ ТАНЛАШ
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
@@ -1053,22 +1061,26 @@ async def show_referral(update, context):
     conn.close()
 
     # 🎖 LEVEL + PROGRESS
-    if points >= 1000:
-        level = "👑 GOLD"
+    if points >= 10000:
+        level = "💎 DIAMOND"
         next_level = "MAX"
         remaining = 0
-    elif points >= 500:
+    elif points >= 5000:
+        level = "👑 GOLD"
+        next_level = "💎 DIAMOND"
+        remaining = 10000 - points
+    elif points >= 2000:
         level = "🥈 SILVER"
         next_level = "👑 GOLD"
-        remaining = 1000 - points
-    elif points >= 100:
+        remaining = 5000 - points
+    elif points >= 500:
         level = "🥉 BRONZE"
         next_level = "🥈 SILVER"
-        remaining = 500 - points
+        remaining = 2000 - points
     else:
         level = "👤 START"
         next_level = "🥉 BRONZE"
-        remaining = 100 - points
+        remaining = 500 - points
         
     ref_link = f"https://t.me/{bot_username}?start={user_id}"
 
@@ -2465,6 +2477,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
