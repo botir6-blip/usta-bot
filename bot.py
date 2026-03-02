@@ -1510,15 +1510,15 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     FROM masters m
     LEFT JOIN ratings r ON m.id = r.master_id
     WHERE m.service ILIKE %s
-      AND m.region=%s
+      AND m.region ILIKE %s
       AND m.is_active = TRUE
     """
 
-    params = [f"%{service}%", region]
+    params = [f"%{service}%", f"%{region}%"]
 
     if district:
-        query += " AND m.district=%s"
-        params.append(district)
+        query += " AND m.district ILIKE %s"
+        params.append(f"%{district}%")
 
     query += """
     GROUP BY 
@@ -2681,6 +2681,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
