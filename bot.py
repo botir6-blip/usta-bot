@@ -81,6 +81,8 @@ def init_db():
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by BIGINT")
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS language VARCHAR(10)")
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS language TEXT")
+    c.execute("ALTER TABLE ratings ADD COLUMN IF NOT EXISTS comment TEXT")
+    c.execute("ALTER TABLE ratings ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
 
     # ====== BAHOLAR ======
     c.execute("""
@@ -1090,7 +1092,48 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         context.user_data["waiting_for_code"] = False
         return
-    
+
+    # ================= COMMENT SAVE =================
+    if context.user_data.get("step") == "write_comment":
+
+        comment = update.message.text.strip()
+
+        if comment == "-":
+            comment = None
+
+        mid = context.user_data.get("pending_rating_master")
+        rating = context.user_data.get("pending_rating_value")
+        user_id = update.effective_user.id
+
+        # 🔒 Фақат иш тугатганлар ёза олади
+        if not can_rate(user_id, mid):
+            await update.message.reply_text("❌ Сиз бу уста билан ишламагансиз.")
+            return
+
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        c = conn.cursor()
+
+        c.execute("""
+            INSERT INTO ratings (master_id, user_id, rating, comment)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (master_id, user_id)
+            DO UPDATE SET
+                rating = EXCLUDED.rating,
+                comment = EXCLUDED.comment,
+                created_at = CURRENT_TIMESTAMP
+        """, (mid, user_id, rating, comment))
+
+        conn.commit()
+        conn.close()
+
+        await update.message.reply_text("✅ Баҳо ва фикр сақланди!")
+
+        context.user_data.pop("step", None)
+        context.user_data.pop("pending_rating_master", None)
+        context.user_data.pop("pending_rating_value", None)
+
+        return      
+        
     # =====================================================
     # 🧭 MAIN MENU ACTIONS
     # =====================================================
@@ -1130,6 +1173,8 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if text in ["Менинг профилим", "Mening profilim", "Мой профиль"]:
         await my_profile(update, context)
         return
+
+
         
 async def show_referral(update, context):
     user_id = update.effective_user.id
@@ -1547,6 +1592,22 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await message.reply_text(card, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
 
+    # 🔥 СЎНГГИ 3 ТА ИЗОҲ
+    c.execute("""
+        SELECT rating, comment
+        FROM ratings
+        WHERE master_id=%s AND comment IS NOT NULL
+        ORDER BY created_at DESC
+        LIMIT 3
+    """, (mid,))
+
+    comments = c.fetchall()
+
+    if comments:
+        card += "\n🗣 Фикрлар:\n"
+        for r, com in comments:
+            card += f"⭐ {r} — {com}\n"
+
     # 🔁 Pagination
     nav = []
 
@@ -1689,22 +1750,15 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parts = data.split("_")
         mid = int(parts[1])
         rating = int(parts[2])
-        user_id = query.from_user.id
 
-        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-        c = conn.cursor()
+        context.user_data["pending_rating_master"] = mid
+        context.user_data["pending_rating_value"] = rating
+        context.user_data["step"] = "write_comment"
 
-        c.execute("""
-            INSERT INTO ratings (master_id, user_id, rating)
-            VALUES (%s, %s, %s)
-            ON CONFLICT (master_id, user_id)
-            DO UPDATE SET rating = EXCLUDED.rating
-        """, (mid, user_id, rating))
-
-        conn.commit()
-        conn.close()
-
-        await query.message.reply_text(f"✅ Баҳо сақланди: {rating} ⭐")
+        await query.message.reply_text(
+            "📝 Изоҳ ёзинг (ихтиёрий).\n\n"
+            "Ўтказиб юбориш учун '-' юборинг."
+        )
 
     # ================= NEXT PAGE =================
     elif data.startswith("next_"):
@@ -2625,6 +2679,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
