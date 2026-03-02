@@ -1509,12 +1509,12 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         COUNT(r.rating) as votes
     FROM masters m
     LEFT JOIN ratings r ON m.id = r.master_id
-    WHERE m.service=%s
+    WHERE m.service ILIKE %s
       AND m.region=%s
       AND m.is_active = TRUE
     """
 
-    params = [service, region]
+    params = [f"%{service}%", region]
 
     if district:
         query += " AND m.district=%s"
@@ -1583,6 +1583,22 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 short_desc += "..."
             card += f"\n📝 {short_desc}\n"
 
+        # 🔥 СЎНГГИ 3 ТА ИЗОҲ
+        c.execute("""
+            SELECT rating, comment
+            FROM ratings
+            WHERE master_id=%s AND comment IS NOT NULL
+            ORDER BY created_at DESC
+            LIMIT 3
+        """, (mid,))
+
+        comments = c.fetchall()
+
+        if comments:
+            card += "\n🗣 Фикрлар:\n"
+            for r, com in comments:
+                card += f"⭐ {r} — {com}\n"
+
         card += f"\n{line}"
         keyboard = [[
             InlineKeyboardButton("📞 Қўнғироқ", callback_data=f"call_{phone}"),
@@ -1592,21 +1608,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await message.reply_text(card, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
 
-    # 🔥 СЎНГГИ 3 ТА ИЗОҲ
-    c.execute("""
-        SELECT rating, comment
-        FROM ratings
-        WHERE master_id=%s AND comment IS NOT NULL
-        ORDER BY created_at DESC
-        LIMIT 3
-    """, (mid,))
-
-    comments = c.fetchall()
-
-    if comments:
-        card += "\n🗣 Фикрлар:\n"
-        for r, com in comments:
-            card += f"⭐ {r} — {com}\n"
+    
 
     # 🔁 Pagination
     nav = []
@@ -2679,6 +2681,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
