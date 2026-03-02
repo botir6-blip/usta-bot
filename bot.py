@@ -476,16 +476,95 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
 
 async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
     if update.effective_user.id != ADMIN_ID:
         return
 
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    c = conn.cursor()
+
+    # ====== УМУМИЙ ======
+    c.execute("SELECT COUNT(*) FROM users")
+    total_users = c.fetchone()[0]
+
+    c.execute("SELECT COUNT(*) FROM masters WHERE is_active=TRUE")
+    total_masters = c.fetchone()[0]
+
+    c.execute("SELECT COUNT(*) FROM masters WHERE vip=TRUE AND is_active=TRUE")
+    vip_masters = c.fetchone()[0]
+
+    c.execute("SELECT COUNT(*) FROM orders")
+    total_orders = c.fetchone()[0]
+
+    c.execute("SELECT COUNT(*) FROM ratings")
+    total_ratings = c.fetchone()[0]
+
+    # ====== 24 СОАТ ======
+    c.execute("SELECT COUNT(*) FROM users WHERE created_at >= NOW() - INTERVAL '24 HOURS'")
+    new_users_24h = c.fetchone()[0]
+
+    c.execute("SELECT COUNT(*) FROM orders WHERE created_at >= NOW() - INTERVAL '24 HOURS'")
+    orders_24h = c.fetchone()[0]
+
+    # ====== ЭНГ ФАОЛ УСТА ======
+    c.execute("""
+        SELECT m.name, m.code, COUNT(o.id) as total
+        FROM masters m
+        LEFT JOIN orders o ON m.id = o.master_id
+        WHERE m.is_active=TRUE
+        GROUP BY m.name, m.code
+        ORDER BY total DESC
+        LIMIT 1
+    """)
+    top_master = c.fetchone()
+
+    conn.close()
+
+    text = f"""
+🔥 <b>PRO ADMIN PANEL</b>
+
+👥 Жами фойдаланувчи: {total_users}
+👷 Актив усталар: {total_masters}
+⭐ VIP усталар: {vip_masters}
+
+📦 Жами буюртма: {total_orders}
+⭐ Жами рейтинг: {total_ratings}
+
+📈 24 соат:
+👥 Янги фойдаланувчи: {new_users_24h}
+📦 Янги буюртма: {orders_24h}
+
+🥇 Энг фаол уста:
+{top_master[0]} (🆔 {top_master[1]}) — {top_master[2]} та
+""" if top_master else f"""
+🔥 <b>PRO ADMIN PANEL</b>
+
+👥 Жами фойдаланувчи: {total_users}
+👷 Актив усталар: {total_masters}
+⭐ VIP усталар: {vip_masters}
+
+📦 Жами буюртма: {total_orders}
+⭐ Жами рейтинг: {total_ratings}
+
+📈 24 соат:
+👥 Янги фойдаланувчи: {new_users_24h}
+📦 Янги буюртма: {orders_24h}
+
+🥇 Энг фаол уста: Йўқ
+"""
+
     keyboard = [
-        [InlineKeyboardButton("📊 Analytics", callback_data="admin_analytics")],
+        [InlineKeyboardButton("🔄 Янгилаш", callback_data="admin_refresh")],
+        [InlineKeyboardButton("📊 Топ усталар", callback_data="admin_top")],
         [InlineKeyboardButton("⭐ VIP бериш", callback_data="admin_vip")],
         [InlineKeyboardButton("📋 VIP рўйхати", callback_data="admin_vip_list")]
     ]
 
-    await update.message.reply_text("🛠 ADMIN PANEL", reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.message.reply_text(
+        text,
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
 async def admin_analytics(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -1599,6 +1678,12 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data.startswith("rate_"):
         await start_rating(update, context)
 
+    elif data == "admin_refresh":
+        await admin_panel(update, context)
+
+    elif data == "admin_top":
+        await admin_top_masters(update, context)
+        
     # ================= SET RATE =================
     elif data.startswith("setrate_"):
         parts = data.split("_")
@@ -2562,6 +2647,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
