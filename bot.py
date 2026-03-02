@@ -2230,17 +2230,26 @@ async def admin_master_stats(update: Update, context: ContextTypes.DEFAULT_TYPE)
 {active_status}
 """
 
-    await update.message.reply_text(text)
+    message = update.effective_message
+    await message.reply_text(text)
 
 async def admin_top_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    if update.effective_user.id != ADMIN_ID:
+    user_id = update.effective_user.id
+    if user_id != ADMIN_ID:
         return
+
+    # 👇 универсал message оламиз
+    if update.callback_query:
+        query = update.callback_query
+        await query.answer()
+        message = query.message
+    else:
+        message = update.message
 
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
 
-    # 🥇 Энг кўп буюртма
     c.execute("""
         SELECT m.name, m.code, COUNT(o.id) as total_orders
         FROM masters m
@@ -2250,51 +2259,19 @@ async def admin_top_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ORDER BY total_orders DESC
         LIMIT 10
     """)
-    top_orders = c.fetchall()
 
-    # ⭐ Энг юқори рейтинг
-    c.execute("""
-        SELECT m.name, m.code, COALESCE(AVG(r.rating),0) as avg_rating
-        FROM masters m
-        LEFT JOIN ratings r ON m.id = r.master_id
-        WHERE m.is_active=TRUE
-        GROUP BY m.name, m.code
-        HAVING COUNT(r.rating) > 0
-        ORDER BY avg_rating DESC
-        LIMIT 10
-    """)
-    top_rating = c.fetchall()
-
-    # 📉 Буюртмасиз усталар
-    c.execute("""
-        SELECT m.name, m.code
-        FROM masters m
-        LEFT JOIN orders o ON m.id = o.master_id
-        WHERE m.is_active=TRUE
-        GROUP BY m.name, m.code
-        HAVING COUNT(o.id)=0
-        LIMIT 10
-    """)
-    no_orders = c.fetchall()
-
+    rows = c.fetchall()
     conn.close()
 
-    text = "📊 АДМИН АНАЛИТИКА\n\n"
+    if not rows:
+        text = "🏆 Топ усталар йўқ."
+    else:
+        text = "🏆 <b>ТОП 10 УСТА</b>\n\n"
+        for i, row in enumerate(rows, 1):
+            text += f"{i}. {row[0]} (🆔 {row[1]}) — {row[2]} та\n"
 
-    text += "🥇 ЭНГ КЎП БУЮРТМА:\n"
-    for i, row in enumerate(top_orders, 1):
-        text += f"{i}. {row[0]} (🆔 {row[1]}) — {row[2]} та\n"
-
-    text += "\n⭐ ЭНГ ЮҚОРИ РЕЙТИНГ:\n"
-    for i, row in enumerate(top_rating, 1):
-        text += f"{i}. {row[0]} (🆔 {row[1]}) — {round(row[2],1)} ⭐\n"
-
-    text += "\n📉 БУЮРТМАСИЗ УСТАЛАР:\n"
-    for i, row in enumerate(no_orders, 1):
-        text += f"{i}. {row[0]} (🆔 {row[1]})\n"
-
-    await update.message.reply_text(text)
-
+    await message.reply_text(text, parse_mode="HTML")
+    
 async def admin_week_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if update.effective_user.id != ADMIN_ID:
@@ -2360,7 +2337,8 @@ async def admin_week_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         text += "🥇 Энг фаол уста йўқ\n"
 
-    await update.message.reply_text(text)
+    message = update.effective_message
+    await message.reply_text(text)
 
 async def show_news(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -2647,6 +2625,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
