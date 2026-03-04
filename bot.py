@@ -593,7 +593,10 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
 
     if update.callback_query:
-        await message.edit_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
+        try:
+            await message.edit_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
+        except:
+            pass
     else:
         await message.reply_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
 
@@ -2764,6 +2767,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
