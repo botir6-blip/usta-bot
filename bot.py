@@ -1,6 +1,5 @@
 import psycopg2
 import os
-import sqlite3
 from services import SERVICES
 from regions import REGIONS
 from languages import LANGUAGES, get_texts, LANGUAGE_NAMES
@@ -63,7 +62,8 @@ def init_db():
         age TEXT,
         experience TEXT,
         education TEXT,
-        skills TEXT
+        skills TEXT,
+        code VARCHAR(4) UNIQUE
     )
     """)
 
@@ -73,17 +73,9 @@ def init_db():
     c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS is_busy BOOLEAN DEFAULT FALSE")
     c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS busy_until DATE")
     c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE")
-    c.execute("ALTER TABLE ratings ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0")
     c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0")
-    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by BIGINT")
-    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS language VARCHAR(10)")
-    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS language TEXT")
-    c.execute("ALTER TABLE ratings ADD COLUMN IF NOT EXISTS comment TEXT")
-    c.execute("ALTER TABLE ratings ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-
+       
     # ====== BAHOLAR ======
     c.execute("""
     CREATE TABLE IF NOT EXISTS ratings (
@@ -93,7 +85,8 @@ def init_db():
         rating INTEGER
     )
     """)
-
+    c.execute("ALTER TABLE ratings ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    c.execute("ALTER TABLE ratings ADD COLUMN IF NOT EXISTS comment TEXT")
     c.execute("""CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_rating ON ratings(master_id, user_id)""")
 
     # ====== FOYDALANUVCHILAR ======
@@ -108,6 +101,11 @@ def init_db():
         message_count INTEGER DEFAULT 0
     )
     """)
+
+    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0")
+    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by BIGINT")
+    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS language TEXT")
 
     # ====== BUYURTMALAR ======
     c.execute("""
@@ -178,7 +176,7 @@ def find_masters(service, region, district):
     WHERE service ILIKE %s
       AND region ILIKE %s
       AND district ILIKE %s
-      AND m.is_active = TRUE
+      AND is_active = TRUE
     ORDER BY 
         vip DESC,
         vip_until DESC NULLS LAST
@@ -492,6 +490,41 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
 
+    # 🔧 Усталар тури
+    c.execute("""
+    SELECT service, COUNT(*)
+    FROM masters
+    WHERE is_active = TRUE
+    GROUP BY service
+    ORDER BY COUNT(*) DESC
+    """)
+
+    services = c.fetchall()
+
+    service_stats = "\n🔧 Усталар тури:\n\n"
+
+    if not services:
+        service_stats += "Маълумот йўқ\n"
+    else:
+        for s in services:
+            service_stats += f"{s[0]} — {s[1]}\n"
+
+    # 📍 Вилоятлар бўйича фойдаланувчилар
+    c.execute("""
+    SELECT region, COUNT(*)
+    FROM masters
+    WHERE is_active = TRUE
+    GROUP BY region
+    ORDER BY COUNT(*) DESC
+    """)
+
+    regions = c.fetchall()
+
+    region_stats = "\n📍 Усталар (вилоят):\n\n"
+
+    for r in regions:
+        region_stats += f"{r[0]} — {r[1]}\n"
+
     # ====== УМУМИЙ ======
     c.execute("SELECT COUNT(*) FROM users")
     total_users = c.fetchone()[0]
@@ -530,38 +563,28 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.close()
 
     text = f"""
-🔥 <b>PRO ADMIN PANEL</b>
+    🔥 <b>PRO ADMIN PANEL</b>
 
-👥 Жами фойдаланувчи: {total_users}
-👷 Актив усталар: {total_masters}
-⭐ VIP усталар: {vip_masters}
+    👥 Жами фойдаланувчи: {total_users}
+    👷 Актив усталар: {total_masters}
+    ⭐ VIP усталар: {vip_masters}
 
-📦 Жами буюртма: {total_orders}
-⭐ Жами рейтинг: {total_ratings}
+    📦 Жами буюртма: {total_orders}
+    ⭐ Жами рейтинг: {total_ratings}
 
-📈 24 соат:
-👥 Янги фойдаланувчи: {new_users_24h}
-📦 Янги буюртма: {orders_24h}
+    📈 24 соат:
+    👥 Янги фойдаланувчи: {new_users_24h}
+    📦 Янги буюртма: {orders_24h}
+    """
 
-🥇 Энг фаол уста:
-{top_master[0]} (🆔 {top_master[1]}) — {top_master[2]} та
-""" if top_master else f"""
-🔥 <b>PRO ADMIN PANEL</b>
+    text += service_stats
+    text += region_stats
 
-👥 Жами фойдаланувчи: {total_users}
-👷 Актив усталар: {total_masters}
-⭐ VIP усталар: {vip_masters}
-
-📦 Жами буюртма: {total_orders}
-⭐ Жами рейтинг: {total_ratings}
-
-📈 24 соат:
-👥 Янги фойдаланувчи: {new_users_24h}
-📦 Янги буюртма: {orders_24h}
-
-🥇 Энг фаол уста: Йўқ
-"""
-
+    if top_master:
+        text += f"\n🥇 Энг фаол уста:\n{top_master[0]} (🆔 {top_master[1]}) — {top_master[2]} та\n"
+    else:
+        text += "\n🥇 Энг фаол уста: Йўқ\n"
+        
     keyboard = [
         [InlineKeyboardButton("🔄 Янгилаш", callback_data="admin_refresh")],
         [InlineKeyboardButton("📊 Топ усталар", callback_data="admin_top")],
@@ -569,7 +592,10 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("📋 VIP рўйхати", callback_data="admin_vip_list")]
     ]
 
-    await message.reply_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
+    if update.callback_query:
+        await message.edit_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
+    else:
+        await message.reply_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def admin_analytics(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -859,6 +885,43 @@ async def write_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    # ================= ADMIN VIP INPUT =================
+    if context.user_data.get("step") == "vip_input":
+
+        code = update.message.text.strip()
+
+        if not code.isdigit() or len(code) != 4:
+            await update.message.reply_text("❌ Код 4 хоналик бўлиши керак.")
+            return
+
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        c = conn.cursor()
+
+        c.execute("""
+            UPDATE masters
+            SET vip = TRUE,
+                vip_until = NOW() + INTERVAL '30 days'
+            WHERE code = %s
+            RETURNING telegram_id
+        """, (code,))
+
+        result = c.fetchone()
+        conn.commit()
+        conn.close()
+
+        if not result:
+            await update.message.reply_text("❌ Бундай кодли уста топилмади.")
+            return
+
+        master_id = result[0]
+
+        await update.message.reply_text(f"✅ Уста (🆔 {code}) 30 кунга VIP қилинди.")
+
+        await context.bot.send_message(chat_id=master_id, text="🌟 Сиз 30 кунга VIP уста бўлдингиз!")
+
+        context.user_data["step"] = None
+        return
 
     if not update.message:
         return
@@ -1259,7 +1322,7 @@ async def show_referral(update, context):
         reply_markup=reply_markup
     )
     
-async def is_user_master(user_id):
+def is_user_master(user_id):
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
     c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE", (user_id,))
@@ -1750,6 +1813,42 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
 
+    # ================= COMPLETE ORDER =================
+    elif data.startswith("complete_"):
+
+        parts = data.split("_")
+        order_id = parts[1]
+        user_id = parts[2]
+
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        c = conn.cursor()
+
+        c.execute("""
+            UPDATE orders
+            SET status='completed'
+            WHERE id=%s
+        """, (order_id,))
+
+        # qaysi usta ekanini olamiz
+        c.execute("SELECT master_id FROM orders WHERE id=%s", (order_id,))
+        mid = c.fetchone()[0]
+
+        conn.commit()
+        conn.close()
+
+        await query.message.reply_text("✅ Иш тугади деб белгиланди.")
+
+        # ⭐ мижозга рейтинг юбориш
+        keyboard = [[
+            InlineKeyboardButton("⭐ Баҳо бериш", callback_data=f"rate_{mid}")
+        ]]
+
+        await context.bot.send_message(
+            chat_id=user_id,
+            text="🧰 Уста ишни тугатди.\n\nИлтимос, устага баҳо беринг:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
     # ================= RATE =================
     elif data.startswith("rate_"):
         await start_rating(update, context)
@@ -1876,35 +1975,6 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await query.message.reply_text("📅 Қайси кунгача бандсиз?\n" "Формат: YYYY-MM-DD\n" "Масалан: 2026-02-25")
         return
-        
-    # ================= ADMIN VIP =================
-    elif data == "admin_vip":
-        context.user_data["state"] = "waiting_vip_id"
-        await query.message.reply_text("⭐ VIP бериш учун устанинг telegram_id ни киритинг:")
-        return
-
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    state = context.user_data.get("state")
-
-    if state == "waiting_vip_id":
-
-        telegram_id = update.message.text.strip()
-
-        if not telegram_id.isdigit():
-            await update.message.reply_text("❌ Фақат рақам киритинг!")
-            return
-
-        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-        c = conn.cursor()
-
-        c.execute("UPDATE masters SET vip = TRUE WHERE telegram_id = %s", (telegram_id,))
-        conn.commit()
-        conn.close()
-
-        await update.message.reply_text("✅ Уста VIP қилинди!")
-
-        context.user_data["state"] = None
 
 # ================= STATISTIKA =================
 async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -2694,6 +2764,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
