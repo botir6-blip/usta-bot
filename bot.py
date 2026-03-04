@@ -803,7 +803,10 @@ async def ask_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if region not in regions_data:
         return
 
-    context.user_data["region"] = region
+    # 🔥 region ni uz_kr formatga o'tkazamiz
+    uz_region = map_region_to_uzkr(region)
+
+    context.user_data["region"] = uz_region
     context.user_data["step"] = "district"
 
     # 🔥 build_city_menu ни list қилиб оламиз
@@ -1464,6 +1467,13 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     region = context.user_data.get("region")
     district = context.user_data.get("district")
 
+    # 🔥 mapping
+    service = map_service_to_uzkr(service)
+    region = map_region_to_uzkr(region)
+
+    if district:
+        district = map_district_to_uzkr(context.user_data.get("region"), district)
+        
     print("SERVICE:", service)
     print("REGION:", region)
     print("DISTRICT:", district)
@@ -1509,18 +1519,18 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         COUNT(r.rating) as votes
     FROM masters m
     LEFT JOIN ratings r ON m.id = r.master_id
-    WHERE m.service ILIKE %s
-      AND m.region ILIKE %s
+    WHERE m.service = %s
+      AND m.region = %s
       AND m.is_active = TRUE
     """
 
-    params = [f"%{service}%", f"%{region}%"]
+    params = [service, region]
 
     if district:
-        query += " AND m.district ILIKE %s"
-        params.append(f"%{district}%")
-
-    query += """
+        query += " AND m.district = %s"
+        params.append(district)
+    
+    query += """    
     GROUP BY 
         m.id,
         m.name,
@@ -2681,6 +2691,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
