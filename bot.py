@@ -429,7 +429,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     c.execute("SELECT referred_by FROM users WHERE telegram_id=%s", (user_id,))
     row = c.fetchone()
 
-    if not row:
+    if row and row[0] is None:
         # Янги фойдаланувчи
         referred_by = None
 
@@ -451,9 +451,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # Янги фойдаланувчини қўшиш
         c.execute("""
-            INSERT INTO users (telegram_id, referred_by, points)
-            VALUES (%s, %s, 0)
-        """, (user_id, referred_by))
+            UPDATE users
+            SET referred_by=%s
+            WHERE telegram_id=%s
+        """, (referred_by, user_id))
 
         conn.commit()
 
@@ -2693,6 +2694,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
