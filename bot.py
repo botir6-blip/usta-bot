@@ -482,6 +482,12 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         return
 
+    # 🔥 message ni aniqlaymiz
+    if update.callback_query:
+        message = update.callback_query.message
+    else:
+        message = update.message
+
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     c = conn.cursor()
 
@@ -562,11 +568,7 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("📋 VIP рўйхати", callback_data="admin_vip_list")]
     ]
 
-    await update.message.reply_text(
-        text,
-        parse_mode="HTML",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    await message.reply_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def admin_analytics(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -2691,6 +2693,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
