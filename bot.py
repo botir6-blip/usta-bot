@@ -2079,7 +2079,19 @@ async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.close()
 
     if not row:
-        await message.reply_text(texts["not_master"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
+
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        c = conn.cursor()
+        c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE", (user,))
+        is_master = c.fetchone()
+        conn.close()
+
+        menu, mode = build_main_menu(texts, is_master, context.user_data.get("mode"))
+
+        await message.reply_text(
+            texts["not_master"],
+            reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
+        )
         return
 
     name, phone, service, region, district, age, experience, education, skills, code, total_orders, avg_rating, total_votes = row
@@ -2767,6 +2779,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
