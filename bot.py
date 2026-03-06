@@ -815,7 +815,7 @@ async def ask_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["step"] = "district"
 
     # 🔥 build_city_menu ни list қилиб оламиз
-    base_markup = build_city_menu(region, language)
+    base_markup = build_city_menu(uz_region, language)
     keyboard = list(base_markup.keyboard)
 
     # ➕ Вилоят бўйича қидириш қўшамиз
@@ -823,24 +823,6 @@ async def ask_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard.insert(0, ["📍 Фақат вилоят бўйича қидириш"])
     
     await update.message.reply_text(texts["choose_district"], reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
-
-async def choose_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    language = context.user_data.get("language", "uz_kr")
-    texts = get_texts(language)
-    
-    region = update.message.text
-    context.user_data["region"] = region
-    context.user_data["step"] = "district"
-    
-    # Tilga mos "Қайси шаҳар%s" matni
-    if language == "uz_kr":
-        question = "Қайси шаҳар%s"
-    elif language == "uz_lt":
-        question = "Qaysi shahar%s"
-    else:  # ru
-        question = "Какой город%s"
-    
-    await update.message.reply_text(question, reply_markup=build_city_menu(region, language))
 
 async def write_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
@@ -983,7 +965,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if step == "service":
             services = SERVICES.get(language, SERVICES["uz_kr"])
             if text in services:
-                context.user_data["service"] = text
+                context.user_data["service"] = map_service_to_uzkr(text)
                 context.user_data["step"] = "region"
                 await update.message.reply_text(
                     texts["choose_region"],
@@ -1002,19 +984,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if step == "district":
             await get_district(update, context)
             return
-
-        if step == "age":
-            await get_age(update, context)
-            return
-
-        if step == "experience":
-            await get_experience(update, context)
-            return
-
-        if step == "description":
-            await handle_description(update, context)
-            return
-
+       
     # =====================================================
     # 2️⃣ FIND FLOW
     # =====================================================
@@ -1080,7 +1050,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn = psycopg2.connect(os.getenv("DATABASE_URL"))
         c = conn.cursor()
         c.execute("""
-            SELECT id, name, phone, district, age, experience, vip
+            SELECT id, name, phone, service, district, age, experience, vip
             FROM masters
             WHERE code=%s AND is_active=TRUE
         """, (code,))
@@ -1112,21 +1082,22 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         # ✅ уста топилди
-        mid, name, phone, district, age, experience, vip = master
+        mid, name, phone, service, district, age, experience, vip = master
 
         badge = f"👑 VIP УСТА • 🆔 {code}" if vip else f"👷 УСТА • 🆔 {code}"
 
         msg = f"""
-══════════════════════════
-<b>{badge}</b>
+        ══════════════════════════
+        <b>{badge}</b>
 
-👤 <b>{name}</b>
-📍 {district}
-🎂 {age} ёш
-🧰 {experience} йил тажриба
-📞 <b>+{phone}</b>
-══════════════════════════
-"""
+        👤 <b>{name}</b>
+        🛠 {service}
+        📍 {district}
+        🎂 {age} ёш
+        🧰 {experience} йил тажриба
+        📞 <b>+{phone}</b>
+        ══════════════════════════
+        """
 
         keyboard = [[
             InlineKeyboardButton("📞 Қўнғироқ", callback_data=f"call_{phone}"),
@@ -1332,11 +1303,26 @@ async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # ===== REGISTER =====
     if context.user_data.get("flow") == "register":
-        await update.message.reply_text(
-            "Ёшингизни киритинг:",
-            reply_markup=ReplyKeyboardRemove()
+
+        add_master(
+            telegram_id=update.effective_user.id,
+            name=context.user_data.get("name"),
+            phone=context.user_data.get("phone"),
+            service=context.user_data.get("service"),
+            region=context.user_data.get("region"),
+            district=context.user_data.get("district")
         )
-        context.user_data["step"] = "age"
+        
+        language = context.user_data.get("language", "uz_kr")
+        texts = get_texts(language)
+
+        await update.message.reply_text(
+            "✅ Сиз муваффақиятли рўйхатдан ўтдингиз!\n\n"
+            "👤 Профилингизни 'Менинг профилим' орқали тўлдиришингиз мумкин.",
+            reply_markup=ReplyKeyboardMarkup(texts["master_menu"], resize_keyboard=True)
+        )
+
+        context.user_data.clear()   
 
 async def get_age(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
@@ -1404,42 +1390,6 @@ async def get_experience(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Ўтказиб юбориш учун '-' юборинг.",
         reply_markup=ReplyKeyboardRemove()
     )
-    
-async def handle_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    if context.user_data.get("flow") != "register":
-        return
-
-    description = update.message.text.strip()
-
-    # "-" юборса ўтказиб юбориш
-    if description == "-":
-        description = ""
-
-    if len(description) > 300:
-        await update.message.reply_text("❗ 300 белгидан оширманг.")
-        return
-
-    context.user_data["service_description"] = clean_text(description)
-
-    # 🔥 ЭНДИ САҚЛАЙМИЗ
-    add_master(
-        telegram_id=update.effective_user.id,
-        name=context.user_data.get("name"),
-        phone=context.user_data.get("phone"),
-        service=context.user_data.get("service"),
-        region=context.user_data.get("region"),
-        district=context.user_data.get("district"),
-        age=context.user_data.get("age"),
-        experience=context.user_data.get("experience"),
-        service_description=context.user_data.get("service_description")
-    )
-
-    language = context.user_data.get("language", "uz_kr")
-    texts = get_texts(language)
-
-    await update.message.reply_text("✅ Сиз муваффақиятли рўйхатдан ўтдингиз!", reply_markup=ReplyKeyboardMarkup(texts["master_menu"], resize_keyboard=True))
-    context.user_data.clear()
  
 async def save_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get("step") != "rating":
@@ -1526,7 +1476,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     region = map_region_to_uzkr(region)
 
     if district:
-        district = map_district_to_uzkr(region, district)
+        district = map_district_to_uzkr(orig_region, district)
         
     print("SERVICE:", service)
     print("REGION:", region)
@@ -1632,17 +1582,24 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             status_text = "🟢 Бўш"
         card = f"""
-{line}
-<b>{badge}</b>
-<b>{status_text}</b>
-👤 <b>{name}</b>
-🛠 {service}
-📍 {dist}
-🎂 {age} ёш
-🧰 {experience} йил тажриба
-📞 <b>+{phone}</b>
-⭐ {rating_text}
-"""
+        {line}
+        <b>{badge}</b>
+        <b>{status_text}</b>
+        👤 <b>{name}</b>
+        🛠 {service}
+        📍 {dist}
+        """
+
+        if age:
+            card += f"\n🎂 {age} ёш"
+
+        if experience:
+            card += f"\n🧰 {experience} тажриба"
+
+        card += f"""
+        📞 <b>+{phone}</b>
+        ⭐ {rating_text}
+        """
         # 🔥 Description алоҳида қўшилади
         if desc:
             short_desc = desc[:150]
@@ -2767,6 +2724,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
