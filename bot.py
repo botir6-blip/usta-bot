@@ -1589,6 +1589,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         m.id,
         m.name,
         m.phone,
+        m.service,
         m.district,
         m.age,
         m.experience,
@@ -1614,7 +1615,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await message.reply_text("Усталар топилмади.")
         return
 
-    for mid, name, phone, dist, age, experience, vip, code, desc, is_busy, busy_until, avg_rating, votes in rows:
+    for mid, name, phone, service, dist, age, experience, vip, code, desc, is_busy, busy_until, avg_rating, votes in rows:
         
         rating_text = (
             f"{round(avg_rating,1)} ({votes})"
@@ -1634,6 +1635,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 <b>{badge}</b>
 <b>{status_text}</b>
 👤 <b>{name}</b>
+🛠 {service}
 📍 {dist}
 🎂 {age} ёш
 🧰 {experience} йил тажриба
@@ -2764,6 +2766,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
