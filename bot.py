@@ -1561,6 +1561,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         m.id,
         m.name,
         m.phone,
+        m.service,
         m.district,
         m.age,
         m.experience,
@@ -2766,6 +2767,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
