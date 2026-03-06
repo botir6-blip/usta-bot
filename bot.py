@@ -819,7 +819,8 @@ async def ask_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = list(base_markup.keyboard)
 
     # ➕ Вилоят бўйича қидириш қўшамиз
-    keyboard.insert(0, ["📍 Фақат вилоят бўйича қидириш"])
+    if context.user_data.get("flow") == "find":
+        keyboard.insert(0, ["📍 Фақат вилоят бўйича қидириш"])
     
     await update.message.reply_text(texts["choose_district"], reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
 
@@ -2761,6 +2762,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
