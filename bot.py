@@ -163,34 +163,6 @@ def add_master(telegram_id, name, phone, service, region, district, age=None, ex
     conn.commit()
     conn.close()
 
-# ================= USTANI TOPISH =================
-def find_masters(service, region, district):
-    import psycopg2, os
-
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-    c = conn.cursor()
-
-    c.execute("""
-    SELECT id, name, phone, region, district, service, age, experience, vip, vip_until
-    FROM masters
-    WHERE service ILIKE %s
-      AND region ILIKE %s
-      AND district ILIKE %s
-      AND is_active = TRUE
-    ORDER BY 
-        vip DESC,
-        vip_until DESC NULLS LAST
-    """, (
-        "%" + service + "%",
-        "%" + region + "%",
-        "%" + district + "%"
-    ))
-
-    data = c.fetchall()
-    conn.close()
-    return data
-
-
 # ================= RO‘YXATDAN CHIQАРИШ (SOFT DELETE) =================
 def delete_master(telegram_id):
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
@@ -494,7 +466,8 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     c.execute("""
     SELECT service, COUNT(*)
     FROM masters
-    WHERE is_active = TRUE
+    WHERE is_active = TRUE 
+    AND service IS NOT NULL
     GROUP BY service
     ORDER BY COUNT(*) DESC
     """)
@@ -1376,20 +1349,29 @@ async def get_age(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     age = clean_text(update.message.text)
     
-    # 🔥 МАНА ШУ ЕРГА return қўшамиз
     if not age or not age.isdigit() or len(age) > 2:
         await update.message.reply_text(texts["enter_age"])
-        return   # 👈 МАНА ШУ ЕР МУҲИМ
+        return
 
     context.user_data["age"] = age
-    
-    await update.message.reply_text(texts["enter_experience"])
-    
-    context.user_data["step"] = "experience"
 
+    # ⭐ ТАЖРИБА КНОПКАСИ
+    keyboard = [
+        ["1-3 йил"],
+        ["3-5 йил"],
+        ["5-10 йил"],
+        ["10+ йил"]
+    ]
+
+    await update.message.reply_text(
+        "🧰 Неча йиллик тажрибага эгасиз?",
+        reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    )
+
+    context.user_data["step"] = "experience"
+    
 async def get_experience(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
-    texts = get_texts(language)
 
     if context.user_data.get("flow") != "register":
         return
@@ -1398,19 +1380,21 @@ async def get_experience(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     experience = update.message.text.strip()
-    
-    if not experience or not experience.isdigit() or len(experience) > 2:
-        if language == "uz_kr":
-            await update.message.reply_text("Илтимос, тажриба киритинг):", reply_markup=ReplyKeyboardRemove())
-        elif language == "uz_lt":
-            await update.message.reply_text("Iltimos, tajribangizni kiriting):", reply_markup=ReplyKeyboardRemove())
-        else:  # ru
-            await update.message.reply_text("Пожалуйста, введите ваш опыт):", reply_markup=ReplyKeyboardRemove())
+
+    # 10+ ни 10 га айлантирамиз
+    if experience == "10+ йил":
+        experience = "10+"
+
+    # фақат рақам қабул қиламиз
+    valid = ["1-3 йил", "3-5 йил", "5-10 йил", "10+ йил"]
+
+    if experience not in valid:
+        await update.message.reply_text("❌ Илтимос тугмани босинг.")
         return
-   
+
     context.user_data["experience"] = experience
 
-    # 🔥 Янги қадам
+    # кейинги қадам
     context.user_data["step"] = "description"
 
     await update.message.reply_text(
@@ -1419,9 +1403,7 @@ async def get_experience(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Ўтказиб юбориш учун '-' юборинг.",
         reply_markup=ReplyKeyboardRemove()
     )
-
-    return   
-
+    
 async def handle_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if context.user_data.get("flow") != "register":
@@ -1541,7 +1523,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     region = map_region_to_uzkr(region)
 
     if district:
-        district = map_district_to_uzkr(context.user_data.get("region"), district)
+        district = map_district_to_uzkr(region, district)
         
     print("SERVICE:", service)
     print("REGION:", region)
@@ -2779,6 +2761,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
