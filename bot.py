@@ -277,8 +277,8 @@ def build_service_menu(language="uz_kr"):
 def build_region_menu(service, language="uz_kr"):
 
     regions = REGIONS.get(language, REGIONS["uz_kr"])
-    counts = get_region_counts()
-
+    counts = get_region_counts(uz_service)
+    
     keyboard = []
     row = []
 
@@ -2843,6 +2843,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
