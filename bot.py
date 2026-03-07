@@ -227,7 +227,7 @@ def get_region_counts(service):
 
     return dict(rows)
 
-def get_district_counts(region):
+def get_district_counts(region, service):
 
     conn = get_connection()
     c = conn.cursor()
@@ -236,9 +236,10 @@ def get_district_counts(region):
         SELECT district, COUNT(*)
         FROM masters
         WHERE region = %s
+        AND service = %s
         AND is_active = TRUE
         GROUP BY district
-    """, (region,))
+    """, (region, service))
 
     rows = c.fetchall()
     conn.close()
@@ -360,7 +361,8 @@ def build_city_menu(region, language="uz_kr"):
 
     uz_region = map_region_to_uzkr(region)
     
-    counts = get_district_counts(uz_region)
+    uz_service = map_service_to_uzkr(context_service)
+    counts = get_district_counts(uz_region, uz_service)
 
     keyboard = []
     row = []
@@ -910,7 +912,7 @@ async def ask_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # user тилидаги region
     display_region = list(regions_data.keys())[index]
 
-    base_markup = build_city_menu(display_region, language)
+    base_markup = build_city_menu(display_region, context.user_data["service"], language)
     keyboard = [row[:] for row in base_markup.keyboard]
 
     if context.user_data.get("flow") == "find":
@@ -2847,6 +2849,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
