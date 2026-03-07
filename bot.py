@@ -6,6 +6,10 @@ from languages import LANGUAGES, get_texts, LANGUAGE_NAMES
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, CallbackQueryHandler, filters)
+
+def get_connection():
+    return psycopg2.connect(os.getenv("DATABASE_URL"))
+    
 ADMIN_ID = 1970756498
 
 TOKEN = os.getenv("TOKEN")
@@ -13,7 +17,7 @@ TOKEN = os.getenv("TOKEN")
 def ensure_code_column():
     print("🔍 ensure_code_column ишлаяпти...")
 
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    conn = get_connection()
     c = conn.cursor()
 
     # code устуни борми текшириш
@@ -47,7 +51,7 @@ def generate_unique_code(cursor):
     
 # ================= DATABASE =================
 def init_db():
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    conn = get_connection()
     c = conn.cursor()
 
     # ====== USTALAR ======
@@ -129,7 +133,7 @@ def init_db():
 def add_master(telegram_id, name, phone, service, region, district, age=None, experience=None, service_description=None):
     import psycopg2, os
 
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    conn = get_connection()
     c = conn.cursor()
 
     # 🔎 Аввал код борми текшириш
@@ -165,7 +169,7 @@ def add_master(telegram_id, name, phone, service, region, district, age=None, ex
 
 # ================= RO‘YXATDAN CHIQАРИШ (SOFT DELETE) =================
 def delete_master(telegram_id):
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    conn = get_connection()
     c = conn.cursor()
 
     # Уста мавжудми текширамиз
@@ -188,14 +192,73 @@ def delete_master(telegram_id):
     conn.close()
     return master is not None
 
+def get_service_counts():
+    conn = get_connection()
+    c = conn.cursor()
+
+    c.execute("""
+        SELECT service, COUNT(*)
+        FROM masters
+        WHERE is_active = TRUE
+        GROUP BY service
+    """)
+
+    rows = c.fetchall()
+    conn.close()
+
+    return dict(rows)
+
+
+def get_region_counts():
+    conn = get_connection()
+    c = conn.cursor()
+
+    c.execute("""
+        SELECT region, COUNT(*)
+        FROM masters
+        WHERE is_active = TRUE
+        GROUP BY region
+    """)
+
+    rows = c.fetchall()
+    conn.close()
+
+    return dict(rows)
+
+def get_district_counts(region):
+
+    conn = get_connection()
+    c = conn.cursor()
+
+    c.execute("""
+        SELECT district, COUNT(*)
+        FROM masters
+        WHERE region = %s
+        AND is_active = TRUE
+        GROUP BY district
+    """, (region,))
+
+    rows = c.fetchall()
+    conn.close()
+
+    return dict(rows)
+
 def build_service_menu(language="uz_kr"):
+
     services = SERVICES.get(language, SERVICES["uz_kr"])
+    counts = get_service_counts()
 
     keyboard = []
     row = []
 
     for i, service in enumerate(services, 1):
-        row.append(service)
+
+        uz_service = map_service_to_uzkr(service)
+
+        count = counts.get(uz_service, 0)
+
+        row.append(f"{service} ({count})")
+
         if i % 2 == 0:
             keyboard.append(row)
             row = []
@@ -204,18 +267,26 @@ def build_service_menu(language="uz_kr"):
         keyboard.append(row)
 
     back_text = "Орқага" if language == "uz_kr" else "Orqaga" if language == "uz_lt" else "Назад"
+
     keyboard.append([back_text])
 
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     
 def build_region_menu(language="uz_kr"):
+
     regions = REGIONS.get(language, REGIONS["uz_kr"])
+    counts = get_region_counts()
 
     keyboard = []
     row = []
 
     for i, region in enumerate(regions.keys(), 1):
-        row.append(region)
+
+        uz_region = map_region_to_uzkr(region)
+        count = counts.get(uz_region, 0)
+
+        row.append(f"{region} ({count})")
+
         if i % 3 == 0:
             keyboard.append(row)
             row = []
@@ -227,8 +298,8 @@ def build_region_menu(language="uz_kr"):
     keyboard.append([back_text])
 
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    
 # ================= MAPPING =================
-
 def map_region_to_uzkr(selected_region):
     # agar allaqachon uz kr bo‘lsa
     if selected_region in REGIONS["uz_kr"]:
@@ -277,14 +348,25 @@ def map_service_to_uzkr(selected_service):
     
 # ===========================================
 def build_city_menu(region, language="uz_kr"):
+
     regions_data = REGIONS.get(language, REGIONS["uz_kr"])
     cities = regions_data.get(region, [])
+
+    uz_region = map_region_to_uzkr(region)
+    
+    counts = get_district_counts(uz_region)
 
     keyboard = []
     row = []
 
     for i, city in enumerate(cities, 1):
-        row.append(city)
+
+        uz_city = map_district_to_uzkr(region, city)
+
+        count = counts.get(uz_city, 0)
+
+        row.append(f"{city} ({count})")
+
         if i % 3 == 0:
             keyboard.append(row)
             row = []
@@ -328,7 +410,7 @@ async def choose_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
         texts = get_texts(language)
 
         # 🔹 Базага сақлаймиз
-        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        conn = get_connection()
         c = conn.cursor()
 
         c.execute("""
@@ -363,7 +445,7 @@ def log_user(user):
 
     print("LOGGING USER:", user.id)
 
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    conn = get_connection()
     c = conn.cursor()
 
     c.execute("""
@@ -398,7 +480,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texts = get_texts(language)
 
     # 🔥 РЕФЕРАЛ ЛОГИКА
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    conn = get_connection()
     c = conn.cursor()
 
     # Фойдаланувчи бор-йўқлигини текшириш
@@ -437,7 +519,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.close()
 
     # 👇 МЕНЮ ТАНЛАШ
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    conn = get_connection()
     c = conn.cursor()
 
     c.execute("""
@@ -465,7 +547,7 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         message = update.message
 
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    conn = get_connection()
     c = conn.cursor()
 
     # 🔧 Усталар тури
@@ -586,7 +668,7 @@ async def admin_analytics(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if query.from_user.id != ADMIN_ID:
         return
 
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    conn = get_connection()
     c = conn.cursor()
 
     # Жами фойдаланувчи
@@ -653,7 +735,7 @@ async def admin_vip_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if query.from_user.id != ADMIN_ID:
         return
 
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    conn = get_connection()
     c = conn.cursor()
 
     c.execute("""
@@ -697,7 +779,7 @@ async def give_vip(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Код 4 хоналик рақам бўлиши керак.")
         return
 
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    conn = get_connection()
     c = conn.cursor()
 
     c.execute("""
@@ -783,7 +865,7 @@ async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
 
     # ⭐ БАЗАГА САҚЛАЙМИЗ
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    conn = get_connection()
     c = conn.cursor()
 
     c.execute(
@@ -862,7 +944,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("❌ Код 4 хоналик бўлиши керак.")
             return
 
-        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        conn = get_connection()
         c = conn.cursor()
 
         c.execute("""
@@ -896,7 +978,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.contact:
         return
 
-    text = update.message.text.strip()
+    text = update.message.text.split(" (")[0].strip()
     user_id = update.effective_user.id
 
     language = context.user_data.get("language", "uz_kr")
@@ -952,7 +1034,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data.pop("page", None)
         context.user_data["language"] = language
 
-        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        conn = get_connection()
         c = conn.cursor()
         c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE", (user_id,))
         is_master = c.fetchone()
@@ -999,9 +1081,13 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if step == "service":
             services = SERVICES.get(language, SERVICES["uz_kr"])
+
             if text in services:
-                context.user_data["service"] = text
+
+                context.user_data["service"] = map_service_to_uzkr(text)
+
                 context.user_data["step"] = "region"
+
                 await update.message.reply_text(
                     texts["choose_region"],
                     reply_markup=build_region_menu(language)
@@ -1009,8 +1095,16 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
 
         if step == "region":
-            await ask_region(update, context)
-            return
+            regions = REGIONS.get(language, REGIONS["uz_kr"])
+
+            if text in regions:
+
+                context.user_data["region"] = map_region_to_uzkr(text)
+
+                context.user_data["step"] = "district"
+
+                await ask_region(update, context)
+                return
 
         if step == "district":
 
@@ -1035,7 +1129,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("❌ Код 4 хоналик рақам бўлиши керак.")
 
             # менюга қайтиш
-            conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+            conn = get_connection()
             c = conn.cursor()
             c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE", (user_id,))
             is_master = c.fetchone()
@@ -1048,7 +1142,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         code = text
 
-        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        conn = get_connection()
         c = conn.cursor()
         c.execute("""
             SELECT id, name, phone, service, district, age, experience, vip
@@ -1065,7 +1159,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("❌ Код топилмади.")
 
             # менюга қайтиш
-            conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+            conn = get_connection()
             c = conn.cursor()
             c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE", (user_id,))
             is_master = c.fetchone()
@@ -1125,7 +1219,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("❌ Сиз бу уста билан ишламагансиз.")
             return
 
-        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        conn = get_connection()
         c = conn.cursor()
 
         c.execute("""
@@ -1193,7 +1287,7 @@ async def show_referral(update, context):
     user_id = update.effective_user.id
     bot_username = (await context.bot.get_me()).username
 
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    conn = get_connection()
     c = conn.cursor()
 
     c.execute("SELECT points FROM users WHERE telegram_id=%s", (user_id,))
@@ -1269,7 +1363,7 @@ async def show_referral(update, context):
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
 
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    conn = get_connection()
     c = conn.cursor()
 
     c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE", (user_id,))
@@ -1287,7 +1381,7 @@ async def show_referral(update, context):
     )
     
 def is_user_master(user_id):
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    conn = get_connection()
     c = conn.cursor()
     c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE", (user_id,))
     result = c.fetchone()
@@ -1430,7 +1524,7 @@ async def save_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         return
 
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    conn = get_connection()
     c = conn.cursor()
 
     c.execute("""
@@ -1506,7 +1600,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     limit = 5
     offset = page * limit
 
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    conn = get_connection()
     c = conn.cursor()
 
     from datetime import date
@@ -1695,7 +1789,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ================= DELETE PROFILE =================
     elif data == "delete_profile":
 
-        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        conn = get_connection()
         c = conn.cursor()
 
         c.execute("""
@@ -1728,7 +1822,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = user.id
         user_name = user.first_name
 
-        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        conn = get_connection()
         c = conn.cursor()
 
         # buyurtma yozamiz va ID ni olamiz
@@ -1788,7 +1882,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         order_id = parts[1]
         user_id = parts[2]
 
-        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        conn = get_connection()
         c = conn.cursor()
 
         c.execute("""
@@ -1921,7 +2015,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
     elif data == "set_free":
 
-        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        conn = get_connection()
         c = conn.cursor()
 
         c.execute("""
@@ -1956,7 +2050,7 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
 
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    conn = get_connection()
     c = conn.cursor()
 
     c.execute("SELECT COUNT(*) FROM users")
@@ -2018,7 +2112,7 @@ async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user = update.effective_user.id
 
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    conn = get_connection()
     c = conn.cursor()
     c.execute("""
         SELECT 
@@ -2049,7 +2143,7 @@ async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not row:
 
-        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        conn = get_connection()
         c = conn.cursor()
         c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE", (user,))
         is_master = c.fetchone()
@@ -2130,7 +2224,7 @@ async def backup_database(update: Update, context: ContextTypes.DEFAULT_TYPE):
         import json
         from datetime import datetime
         
-        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        conn = get_connection()
         c = conn.cursor()
         
         # Barcha ustalarni olish
@@ -2205,7 +2299,7 @@ async def backup_database(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ================= DB HELPERS =================
 
 def can_rate(user_id, master_id):
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    conn = get_connection()
     c = conn.cursor()
 
     c.execute("""
@@ -2287,7 +2381,7 @@ async def admin_master_stats(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await update.message.reply_text("Код рақам бўлиши керак.")
         return
 
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    conn = get_connection()
     c = conn.cursor()
 
     c.execute("""
@@ -2367,7 +2461,7 @@ async def admin_top_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         message = update.message
 
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    conn = get_connection()
     c = conn.cursor()
 
     c.execute("""
@@ -2397,7 +2491,7 @@ async def admin_week_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         return
 
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    conn = get_connection()
     c = conn.cursor()
 
     # 📦 7 кундаги буюртмалар
@@ -2575,7 +2669,7 @@ async def broadcast_news(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         return
 
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    conn = get_connection()
     c = conn.cursor()
 
     # 👥 Барча фойдаланувчилар
@@ -2608,7 +2702,7 @@ async def broadcast_news(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         try:
             # 🔹 Ҳар бир фойдаланувчининг тилини аниқлаймиз
-            conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+            conn = get_connection()
             c = conn.cursor()
 
             c.execute("SELECT telegram_id FROM users WHERE telegram_id = %s", (user_id,))
@@ -2650,7 +2744,7 @@ async def activestats(update, context):
         await update.message.reply_text("❌ Рухсат йўқ")
         return
 
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    conn = get_connection()
     c = conn.cursor()
 
     c.execute("""
@@ -2744,6 +2838,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
