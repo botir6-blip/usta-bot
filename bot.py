@@ -1396,8 +1396,8 @@ def is_user_master(user_id):
 async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     selected_region = context.user_data.get("region")
-    selected_district = update.message.text
-
+    selected_district = update.message.text.split(" (")[0].strip()
+    
     # 🔥 Mapping аввал
     uz_region = map_region_to_uzkr(selected_region)
     uz_district = map_district_to_uzkr(selected_region, selected_district)
@@ -2843,6 +2843,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
