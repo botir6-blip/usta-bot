@@ -540,12 +540,21 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 if ref_id != user_id:
                     referred_by = ref_id
 
-                    # 100 балл қўшиш
+                    # 🔎 таклиф қилган одам уста ёки йўқлигини текширамиз
+                    c.execute("""
+                        SELECT 1 FROM masters
+                        WHERE telegram_id=%s AND is_active=TRUE
+                    """, (ref_id,))
+
+                    is_master = c.fetchone()
+
+                    bonus = 300 if is_master else 100
+
                     c.execute("""
                         UPDATE users
-                        SET points = COALESCE(points,0) + 100
+                        SET points = COALESCE(points,0) + %s
                         WHERE telegram_id=%s
-                    """, (ref_id,))
+                    """, (bonus, ref_id))
 
         # Янги фойдаланувчини қўшиш
         c.execute("""
@@ -1937,12 +1946,49 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         c.execute("""
             UPDATE orders
             SET status='completed'
-            WHERE id=%s
+            WHERE id=%s AND status!='completed'
+            RETURNING id
         """, (order_id,))
+
+        updated = c.fetchone()
+
+        if not updated:
+            conn.close()
+            return
+
+        # ⭐ МИЖОЗГА БАЛЛ
+        c.execute("""
+            UPDATE users
+            SET points = COALESCE(points,0) + 100
+            WHERE telegram_id = %s
+        """, (user_id,))
 
         # qaysi usta ekanini olamiz
         c.execute("SELECT master_id FROM orders WHERE id=%s", (order_id,))
         mid = c.fetchone()[0]
+
+        # ⭐ УСТАГА БАЛЛ
+        c.execute("""
+            UPDATE masters
+            SET points = COALESCE(points,0) + 50
+            WHERE id = %s
+        """, (mid,))
+
+        # ⭐ УСТАНИНГ ЖАМИ ИШЛАРИ
+        c.execute("""
+            SELECT COUNT(*)
+            FROM orders
+            WHERE master_id=%s AND status='completed'
+        """, (mid,))
+
+        total_completed = c.fetchone()[0]
+
+        if total_completed % 10 == 0:
+            c.execute("""
+                UPDATE masters
+                SET points = COALESCE(points,0) + 500
+                WHERE id = %s
+            """, (mid,))
 
         conn.commit()
         conn.close()
@@ -2887,6 +2933,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
