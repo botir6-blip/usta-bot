@@ -527,7 +527,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     c.execute("SELECT referred_by FROM users WHERE telegram_id=%s", (user_id,))
     row = c.fetchone()
 
-    if row and row[0] is None:
+    if row and row[0] is None and context.args:
         # Янги фойдаланувчи
         referred_by = None
 
@@ -834,7 +834,7 @@ async def give_vip(update: Update, context: ContextTypes.DEFAULT_TYPE):
     c.execute("""
         UPDATE masters
         SET vip = TRUE,
-            vip_until = NOW() + INTERVAL '30 days'
+            vip_until = COALESCE(vip_until, NOW()) + INTERVAL '30 days'
         WHERE code = %s
         RETURNING telegram_id
     """, (code,))
@@ -1013,7 +1013,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         c.execute("""
             UPDATE masters
             SET vip = TRUE,
-                vip_until = NOW() + INTERVAL '30 days'
+                vip_until = COALESCE(vip_until, NOW()) + INTERVAL '30 days'
             WHERE code = %s
             RETURNING telegram_id
         """, (code,))
@@ -1101,6 +1101,14 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
         return
 
+    if text in ["💰 Балларим", "💰 Ballarim", "💰 Мои баллы"]:
+        await show_points(update, context)
+        return
+
+    if text in ["🛒 Баллар дўкони", "🛒 Ballar do'koni", "🛒 Магазин баллов"]:
+        await points_shop(update, context)
+        return
+    
     # =====================================================
     # 1️⃣ REGISTER FLOW
     # =====================================================
@@ -1433,6 +1441,38 @@ async def show_referral(update, context):
     await update.message.reply_text(
         texts["welcome"],
         reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
+    )
+
+# ================= POINTS =================
+async def show_points(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    user_id = update.effective_user.id
+
+    conn = get_connection()
+    c = conn.cursor()
+
+    c.execute("SELECT points FROM users WHERE telegram_id=%s", (user_id,))
+    row = c.fetchone()
+
+    conn.close()
+
+    points = row[0] if row else 0
+
+    await update.message.reply_text(
+        f"💰 Сизнинг балларингиз: {points}\n\n"
+        "Баллар дўконига кириб уларни ишлатишингиз мумкин."
+    )
+
+async def points_shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    keyboard = [
+        [InlineKeyboardButton("👑 VIP 7 кун — 1000 балл", callback_data="buy_vip_7")],
+        [InlineKeyboardButton("👑 VIP 30 кун — 4000 балл", callback_data="buy_vip_30")]
+    ]
+
+    await update.message.reply_text(
+        "🛒 Баллар дўкони\n\nVIP сотиб олиш учун танланг:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
     
 def is_user_master(user_id):
@@ -1933,6 +1973,88 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
 
+    elif data == "buy_vip_7":
+
+        user_id = query.from_user.id
+
+        # ⭐ Фақат уста VIP олиши мумкин
+        if not is_user_master(user_id):
+            await query.message.reply_text("❌ Фақат усталар VIP сотиб олиши мумкин.")
+            return
+
+        conn = get_connection()
+        c = conn.cursor()
+
+        c.execute("SELECT points FROM users WHERE telegram_id=%s", (user_id,))
+        row = c.fetchone()
+        points = row[0] if row else 0
+
+        if points < 1000:
+            await query.message.reply_text("❌ Баллар етарли эмас.")
+            conn.close()
+            return
+
+        # ⭐ баллни users таблицадан айирамиз
+        c.execute("""
+            UPDATE users
+            SET points = points - 1000
+            WHERE telegram_id = %s
+        """, (user_id,))
+
+        # ⭐ VIP ни masters да ёқамиз
+        c.execute("""
+            UPDATE masters
+            SET vip = TRUE,
+                vip_until = COALESCE(vip_until, NOW()) + INTERVAL '7 days'
+            WHERE telegram_id = %s
+        """, (user_id,))
+
+        conn.commit()
+        conn.close()
+
+        await query.message.reply_text("👑 Табриклаймиз! Сиз 7 кунга VIP бўлдингиз.")
+
+    elif data == "buy_vip_30":
+
+        user_id = query.from_user.id
+
+        # ⭐ Фақат уста VIP олиши мумкин
+        if not is_user_master(user_id):
+            await query.message.reply_text("❌ Фақат усталар VIP сотиб олиши мумкин.")
+            return
+
+        conn = get_connection()
+        c = conn.cursor()
+
+        c.execute("SELECT points FROM users WHERE telegram_id=%s", (user_id,))
+        row = c.fetchone()
+        points = row[0] if row else 0
+
+        if points < 4000:
+            await query.message.reply_text("❌ Баллар етарли эмас.")
+            conn.close()
+            return
+
+        # ⭐ баллни айирамиз
+        c.execute("""
+            UPDATE users
+            SET points = points - 4000
+            WHERE telegram_id = %s
+        """, (user_id,))
+
+        # ⭐ VIP 30 кун
+        c.execute("""
+            UPDATE masters
+            SET vip = TRUE,
+                vip_until = COALESCE(vip_until, NOW()) + INTERVAL '30 days'
+            WHERE telegram_id = %s
+        """, (user_id,))
+
+        conn.commit()
+        conn.close()
+
+        await query.message.reply_text("👑 Табриклаймиз! Сиз 30 кунга VIP бўлдингиз.")
+    
     # ================= COMPLETE ORDER =================
     elif data.startswith("complete_"):
 
@@ -1969,9 +2091,11 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # ⭐ УСТАГА БАЛЛ
         c.execute("""
-            UPDATE masters
+            UPDATE users
             SET points = COALESCE(points,0) + 50
-            WHERE id = %s
+            WHERE telegram_id = (
+                SELECT telegram_id FROM masters WHERE id = %s
+            )
         """, (mid,))
 
         # ⭐ УСТАНИНГ ЖАМИ ИШЛАРИ
@@ -1985,9 +2109,11 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if total_completed % 10 == 0:
             c.execute("""
-                UPDATE masters
+                UPDATE users
                 SET points = COALESCE(points,0) + 500
-                WHERE id = %s
+                WHERE telegram_id = (
+                    SELECT telegram_id FROM masters WHERE id = %s
+                )
             """, (mid,))
 
         conn.commit()
@@ -2933,6 +3059,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
