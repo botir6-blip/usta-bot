@@ -39,7 +39,15 @@ UZ_KR = {
     "not_master": "Сиз уста эмассиз",
     "switch_to_customer": "👤 Мижоз режимига ўтиш",
     "news_button": "📢 Бот янгиликлари",
-    "switch_to_master": "🛠 Уста режимига ўтиш"
+    "switch_to_master": "🛠 Уста режимига ўтиш",
+    "unregistered_success": "❌ Сиз рўйхатдан чиқдингиз.",
+    "not_registered": "Сиз ҳали уста сифатида рўйхатдан ўтмагансиз.",
+    "backup_error": "❌ Backup вақтида хатолик юз берди:",
+    "main_menu": [
+        ["Уста топиш", "🔎 Код орқали қидириш"],
+        ["🎁 Таклиф қилиш", "Уста бўлиш"],
+        ["🌐 Тилни ўзгартириш"]
+    ]
 }
 
 # ================= УЗБЕК (ЛОТИН) =================
@@ -68,7 +76,16 @@ UZ_LT = {
     "not_master": "Siz usta emassiz",
     "switch_to_customer": "👤 Mijoz rejimiga o'tish",
     "news_button": "📢 Bot yangiliklari",
-    "switch_to_master": "🛠 Usta rejimiga o'tish"
+    "switch_to_master": "🛠 Usta rejimiga o'tish",
+
+    "unregistered_success": "❌ Siz ro'yxatdan chiqdingiz.",
+    "not_registered": "Siz hali usta sifatida ro'yxatdan o'tmagansiz.",
+    "backup_error": "❌ Backup vaqtida xatolik yuz berdi:",
+    "main_menu": [
+        ["Usta topish", "🔎 Kod orqali qidirish"],
+        ["🎁 Taklif qilish", "Usta bo'lish"],
+        ["🌐 Tilni o'zgartirish"]
+    ]
 }
 
 # ================= РУССКИЙ =================
@@ -97,7 +114,16 @@ RU = {
     "not_master": "Вы не мастер",
     "switch_to_customer": "👤 Перейти в режим клиента",
     "news_button": "📢 Новости бота",
-    "switch_to_master": "🛠 Перейти в режим мастера"
+    "switch_to_master": "🛠 Перейти в режим мастера",
+
+    "unregistered_success": "❌ Вы вышли из списка мастеров.",
+    "not_registered": "Вы ещё не зарегистрированы как мастер.",
+    "backup_error": "❌ Ошибка при создании backup:",
+    "main_menu": [
+        ["Найти мастера", "🔎 Поиск по коду"],
+        ["🎁 Пригласить", "Стать мастером"],
+        ["🌐 Изменить язык"]
+    ]
 }
 
 # ================= GET TEXTS =================
