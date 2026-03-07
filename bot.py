@@ -246,19 +246,27 @@ def get_district_counts(region, service):
 
     return dict(rows)
 
-def build_service_menu(language="uz_kr"):
+def build_service_menu(language="uz_kr", sort_by_count=True):
 
     services = SERVICES.get(language, SERVICES["uz_kr"])
     counts = get_service_counts()
 
+    services_with_counts = []
+
+    for service in services:
+        uz_service = map_service_to_uzkr(service)
+        count = counts.get(uz_service, 0)
+
+        services_with_counts.append((service, count))
+
+    # 🔥 Фақат FIND режимда сортировка
+    if sort_by_count:
+        services_with_counts.sort(key=lambda x: x[1], reverse=True)
+
     keyboard = []
     row = []
 
-    for i, service in enumerate(services, 1):
-
-        uz_service = map_service_to_uzkr(service)
-
-        count = counts.get(uz_service, 0)
+    for i, (service, count) in enumerate(services_with_counts, 1):
 
         row.append(f"{service} ({count})")
 
@@ -270,12 +278,11 @@ def build_service_menu(language="uz_kr"):
         keyboard.append(row)
 
     back_text = "Орқага" if language == "uz_kr" else "Orqaga" if language == "uz_lt" else "Назад"
-
     keyboard.append([back_text])
 
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     
-def build_region_menu(service, language="uz_kr"):
+def build_region_menu(service, language="uz_kr", hide_empty=False):
 
     regions = REGIONS.get(language, REGIONS["uz_kr"])
 
@@ -283,7 +290,6 @@ def build_region_menu(service, language="uz_kr"):
 
     counts = get_region_counts(uz_service)
 
-    # 🔥 REGION + COUNT LIST
     region_list = []
 
     for region in regions.keys():
@@ -292,11 +298,12 @@ def build_region_menu(service, language="uz_kr"):
 
         count = counts.get(uz_region, 0)
 
-        # 0 та устали вилоятни чиқармаслик
-        if count > 0:
-            region_list.append((region, count))
+        # 🔥 фақат hide_empty бўлса яширади
+        if hide_empty and count == 0:
+            continue
 
-    # 🔥 ENG KO‘P USTADAN BOSHLAB SORT
+        region_list.append((region, count))
+
     region_list.sort(key=lambda x: x[1], reverse=True)
 
     keyboard = []
@@ -367,7 +374,7 @@ def map_service_to_uzkr(selected_service):
     return selected_service
     
 # ===========================================
-def build_city_menu(region, service, language="uz_kr"):
+def build_city_menu(region, service, language="uz_kr", hide_empty=False):
 
     regions_data = REGIONS.get(language, REGIONS["uz_kr"])
     cities = regions_data.get(region, [])
@@ -385,8 +392,10 @@ def build_city_menu(region, service, language="uz_kr"):
         count = counts.get(uz_city, 0)
 
         # 🔥 0 та устали туманни чиқармаймиз
-        if count > 0:
-            city_list.append((city, count))
+        if hide_empty and count == 0:
+            continue
+
+        city_list.append((city, count))
 
     # 🔥 ENG KO‘P USTADAN BOSHLAB SORT
     city_list.sort(key=lambda x: x[1], reverse=True)
@@ -844,7 +853,7 @@ def clean_text(text):
     import re
     
     # Lotin harflari, kirill harflari, raqamlar va belgilardan tashqari hamma narsani olib tashlash
-    text = re.sub(r'[^\w\s\u0400-\u04FF\-.,()]', '', text)
+    text = re.sub(r"[^\w\s\u0400-\u04FF'ʼ\-.,()]", "", text)
     
     # Ko'p bo'shliqlarni bitta bo'shliqqa almashtirish
     text = re.sub(r'\s+', ' ', text)
@@ -930,12 +939,25 @@ async def ask_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
     regions_data = REGIONS.get(language, REGIONS["uz_kr"])
 
     # uz_kr region индексини топамиз
-    index = list(REGIONS["uz_kr"].keys()).index(region)
+    if not region:
+        return
+
+    try:
+        index = list(REGIONS["uz_kr"].keys()).index(region)
+    except ValueError:
+        return
 
     # user тилидаги region
     display_region = list(regions_data.keys())[index]
 
-    base_markup = build_city_menu(display_region, context.user_data["service"], language)
+    hide_empty = context.user_data.get("flow") == "find"
+
+    base_markup = build_city_menu(
+        display_region,
+        context.user_data["service"],
+        language,
+        hide_empty
+    )
     keyboard = [row[:] for row in base_markup.keyboard]
 
     if context.user_data.get("flow") == "find":
@@ -1033,19 +1055,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     reply_markup=build_region_menu(context.user_data["service"], language)
                 )
                 return
-
-            if step == "region":
-
-                regions = REGIONS.get(language, REGIONS["uz_kr"])
-
-                if text in regions:
-
-                    context.user_data["region"] = map_region_to_uzkr(text)
-                    context.user_data["step"] = "district"
-
-                    await ask_region(update, context)
-                    return
-
+            
         if flow == "register":
 
             if step == "district":
@@ -1126,7 +1136,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
                 await update.message.reply_text(
                     texts["choose_region"],
-                    reply_markup=build_region_menu(context.user_data["service"], language)
+                    reply_markup=build_region_menu(context.user_data["service"], language, hide_empty=True)
                 )
                 return
 
@@ -1591,7 +1601,7 @@ async def start_find(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
 
-    await update.message.reply_text(texts["choose_service"], reply_markup=build_service_menu(language))
+    await update.message.reply_text(texts["choose_service"], reply_markup=build_service_menu(language, sort_by_count=True)
 
 
 async def find_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1607,7 +1617,7 @@ async def find_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         texts["choose_region"],
-        reply_markup=build_region_menu(context.user_data["service"], language)
+        reply_markup=build_region_menu(context.user_data["service"], language, hide_empty=True)
     )
 
 async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1714,7 +1724,9 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not rows:
         conn.close()
-        await message.reply_text("Усталар топилмади.")
+        texts = get_texts(context.user_data.get("language", "uz_kr"))
+
+        await message.reply_text(texts["no_masters"])
         return
 
     for mid, name, phone, service, dist, age, experience, vip, code, desc, is_busy, busy_until, avg_rating, votes in rows:
@@ -2875,6 +2887,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
