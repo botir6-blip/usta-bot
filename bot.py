@@ -896,13 +896,13 @@ async def ask_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     region = context.user_data.get("region")
 
-    # uz_kr ни user тилига мап қилиш
-    display_region = region
+    regions_data = REGIONS.get(language, REGIONS["uz_kr"])
 
-    for lang in ["uz_lt", "ru"]:
-        if language == lang:
-            index = list(REGIONS["uz_kr"].keys()).index(region)
-            display_region = list(REGIONS[lang].keys())[index]
+    # uz_kr region индексини топамиз
+    index = list(REGIONS["uz_kr"].keys()).index(region)
+
+    # user тилидаги region
+    display_region = list(regions_data.keys())[index]
 
     base_markup = build_city_menu(display_region, language)
     keyboard = [row[:] for row in base_markup.keyboard]
@@ -2843,6 +2843,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
