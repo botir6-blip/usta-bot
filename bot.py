@@ -299,7 +299,11 @@ def build_city_menu(region, language="uz_kr"):
 
 # ================= TIL TANLASH =================
 def build_language_menu():
-    keyboard = [[LANGUAGES[lang]] for lang in LANGUAGES.keys()]
+    keyboard = []
+
+    for lang in LANGUAGES:
+        keyboard.append([LANGUAGES[lang]])
+
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 async def choose_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -816,7 +820,7 @@ async def ask_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 🔥 build_city_menu ни list қилиб оламиз
     base_markup = build_city_menu(uz_region, language)
-    keyboard = list(base_markup.keyboard)
+    keyboard = [row[:] for row in base_markup.keyboard]
 
     # ➕ Вилоят бўйича қидириш қўшамиз
     if context.user_data.get("flow") == "find":
@@ -951,10 +955,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         menu, mode = build_main_menu(texts, is_master, context.user_data.get("mode"))
         context.user_data["mode"] = mode
 
-        await update.message.reply_text(
-            texts["welcome"],
-            reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
-        )
+        await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
         return
 
     # =====================================================
@@ -1034,15 +1035,9 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             is_master = c.fetchone()
             conn.close()
 
-            if is_master:
-                menu = texts["master_menu"]
-            else:
-                menu = texts["customer_menu"]
+            menu = [row[:] for row in texts["master_menu"]] if is_master else [row[:] for row in texts["customer_menu"]]
 
-            await update.message.reply_text(
-                texts["welcome"],
-                reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
-            )
+            await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
             return
 
         code = text
@@ -1075,10 +1070,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 menu = texts["customer_menu"]
 
-            await update.message.reply_text(
-                texts["welcome"],
-                reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
-            )
+            await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
             return
 
         # ✅ уста топилди
@@ -1319,7 +1311,7 @@ async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             "✅ Сиз муваффақиятли рўйхатдан ўтдингиз!\n\n"
             "👤 Профилингизни 'Менинг профилим' орқали тўлдиришингиз мумкин.",
-            reply_markup=ReplyKeyboardMarkup(texts["master_menu"], resize_keyboard=True)
+            reply_markup=ReplyKeyboardMarkup([row[:] for row in texts["master_menu"]], resize_keyboard=True)
         )
 
         context.user_data.clear()   
@@ -1951,6 +1943,10 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     c.execute("SELECT COUNT(*) FROM ratings")
     total_ratings = c.fetchone()[0]
 
+    # 🔥 BU YERGA KO'CHIRILADI
+    c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE", (update.effective_user.id,))
+    is_master = c.fetchone()
+
     conn.close()
 
     if language == "uz_kr":
@@ -1981,9 +1977,9 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE", (update.effective_user.id,))
     is_master = c.fetchone()
 
-    menu = texts["master_menu"] if is_master else texts["customer_menu"]
+    menu = [row[:] for row in texts["master_menu"]] if is_master else [row[:] for row in texts["customer_menu"]]
 
-    await message.reply_text(text, reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
+    await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
 
 # ================= PROFILE =================
 async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -2033,10 +2029,7 @@ async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         menu, mode = build_main_menu(texts, is_master, context.user_data.get("mode"))
 
-        await message.reply_text(
-            texts["not_master"],
-            reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
-        )
+        await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
         return
 
     name, phone, service, region, district, age, experience, education, skills, code, total_orders, avg_rating, total_votes = row
@@ -2218,10 +2211,10 @@ def build_main_menu(texts, is_master, mode):
         mode = "customer"
 
     if mode == "master":
-        menu = list(texts["master_menu"])
+        menu = [row[:] for row in texts["master_menu"]]
         menu.append([texts["switch_to_customer"]])
     else:
-        menu = list(texts["customer_menu"])
+        menu = [row[:] for row in texts["customer_menu"]]
         if is_master:
             menu.append([texts["switch_to_master"]])
     return menu, mode
@@ -2677,7 +2670,6 @@ def main():
     # =========================
     # 🔹 ADMIN CALLBACKS (Алоҳида!)
     # =========================
-    app.add_handler(CallbackQueryHandler(admin_analytics, pattern="^admin_analytics$"))
     app.add_handler(CallbackQueryHandler(admin_vip_menu, pattern="^admin_vip$"))
     app.add_handler(CallbackQueryHandler(admin_vip_list, pattern="^admin_vip_list$"))
 
@@ -2724,6 +2716,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
