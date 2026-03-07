@@ -125,9 +125,20 @@ def init_db():
     c.execute("ALTER TABLE masters ALTER COLUMN telegram_id TYPE BIGINT")
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT")
     
+    # ====== POINT TRADES ======
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS point_trades(
+        id SERIAL PRIMARY KEY,
+        seller_id BIGINT,
+        buyer_id BIGINT,
+        points INTEGER,
+        status TEXT DEFAULT 'open',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
     conn.commit()
     conn.close()
-
 
 # ================= USTA QO‘SHISH =================
 def add_master(telegram_id, name, phone, service, region, district, age=None, experience=None, service_description=None):
@@ -1345,6 +1356,51 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if text in ["Менинг профилим", "Mening profilim", "Мой профиль"]:
         await my_profile(update, context)
         return
+
+    if context.user_data.get("step") == "enter_sell_points":
+
+        points = update.message.text.strip()
+
+        if not points.isdigit():
+            await update.message.reply_text("❌ Рақам киритинг.")
+            return
+
+        points = int(points)
+        user_id = update.effective_user.id
+
+        conn = get_connection()
+        c = conn.cursor()
+
+        c.execute("SELECT points FROM users WHERE telegram_id=%s",(user_id,))
+        row = c.fetchone()
+        user_points = row[0] if row else 0
+
+        if points < 1000:
+            await update.message.reply_text("❌ Минимум 1000 балл сотиш мумкин.")
+            conn.close()
+            return
+
+        if points > user_points:
+            await update.message.reply_text("❌ Сизда бунча балл йўқ.")
+            conn.close()
+            return
+
+        c.execute("""
+        INSERT INTO point_trades (seller_id, points, status)
+        VALUES (%s,%s,'open')
+        RETURNING id
+        """,(user_id,points))
+
+        trade_id = c.fetchone()[0]
+
+        conn.commit()
+        conn.close()
+
+        await update.message.reply_text(
+            f"✅ {points} балл сотувга қўйилди."
+        )
+
+        context.user_data["step"] = None
        
 async def show_referral(update, context):
     user_id = update.effective_user.id
@@ -1467,7 +1523,9 @@ async def points_shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = [
         [InlineKeyboardButton("👑 VIP 7 кун — 1000 балл", callback_data="buy_vip_7")],
-        [InlineKeyboardButton("👑 VIP 30 кун — 4000 балл", callback_data="buy_vip_30")]
+        [InlineKeyboardButton("👑 VIP 30 кун — 4000 балл", callback_data="buy_vip_30")],
+        [InlineKeyboardButton("💰 Балл сотиш", callback_data="sell_points")],
+        [InlineKeyboardButton("🛒 Балл сотиб олиш", callback_data="buy_points")]
     ]
 
     await update.message.reply_text(
@@ -2054,6 +2112,50 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn.close()
 
         await query.message.reply_text("👑 Табриклаймиз! Сиз 30 кунга VIP бўлдингиз.")
+
+    elif data == "sell_points":
+
+        context.user_data["step"] = "enter_sell_points"
+
+        await query.message.reply_text(
+            "💰 Нечта балл сотмоқчисиз?\n\nМасалан: 1000"
+        )
+
+    elif data == "sell_1000":
+
+        user_id = query.from_user.id
+
+        conn = get_connection()
+        c = conn.cursor()
+
+        c.execute("SELECT points FROM users WHERE telegram_id=%s", (user_id,))
+        row = c.fetchone()
+        points = row[0] if row else 0
+
+        if points < 1000:
+            await query.message.reply_text("❌ Сотиш учун 1000 балл керак.")
+            conn.close()
+            return
+
+        c.execute("""
+            UPDATE users
+            SET points = points - 1000
+            WHERE telegram_id=%s
+        """, (user_id,))
+
+        conn.commit()
+        conn.close()
+
+        await query.message.reply_text(
+            "✅ Сўров қабул қилинди.\n"
+            "Админ тез орада сиз билан боғланади."
+        )
+
+        # админга хабар
+        await context.bot.send_message(
+            chat_id=ADMIN_ID,
+            text=f"💰 Балл сотиш сўрови\n\nUser ID: {user_id}\n1000 балл = 10000 сўм"
+        )
     
     # ================= COMPLETE ORDER =================
     elif data.startswith("complete_"):
@@ -2132,6 +2234,192 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
+    elif data == "buy_points":
+
+        conn = get_connection()
+        c = conn.cursor()
+
+        c.execute("""
+        SELECT id, seller_id, points
+        FROM point_trades
+        WHERE status='open'
+        ORDER BY created_at DESC
+        LIMIT 5
+        """)
+
+        trades = c.fetchall()
+        conn.close()
+
+        if not trades:
+            await query.message.reply_text("❌ Ҳозир сотувда балл йўқ.")
+            return
+
+        for t in trades:
+
+            trade_id, seller_id, points = t
+
+            keyboard = [[
+                InlineKeyboardButton(
+                    "💰 Сотиб олиш",
+                    callback_data=f"buytrade_{trade_id}"
+                )
+            ]]
+
+            price = int((points/1000)*10000)
+
+            await query.message.reply_text(
+                f"💰 Балл сотуви\n\n"
+                f"{points} балл\n"
+                f"Тавсия нарх: {price} сўм",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+
+    elif data.startswith("buytrade_"):
+
+        trade_id = int(data.split("_")[1])
+        buyer_id = query.from_user.id
+
+        conn = get_connection()
+        c = conn.cursor()
+
+        c.execute("""
+        UPDATE point_trades
+        SET buyer_id=%s, status='waiting_payment'
+        WHERE id=%s AND status='open'
+        RETURNING seller_id, points
+        """,(buyer_id,trade_id))
+
+        row = c.fetchone()
+        conn.commit()
+        conn.close()
+
+        if not row:
+            await query.message.reply_text("❌ Савдо топилмади.")
+            return
+
+        seller_id, points = row
+
+        keyboard = [[
+            InlineKeyboardButton(
+                "💸 Пул тўладим",
+                callback_data=f"paid_{trade_id}"
+            )
+        ]]
+
+        await query.message.reply_text(
+            "💰 Сотувчига пул юборинг.\n\n"
+            "Пул юборгандан кейин тугмани босинг.",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+    elif data.startswith("paid_"):
+
+        trade_id = int(data.split("_")[1])
+
+        conn = get_connection()
+        c = conn.cursor()
+
+        c.execute("""
+        SELECT seller_id,buyer_id,points,status
+        FROM point_trades
+        WHERE id=%s
+        """,(trade_id,))
+
+        row = c.fetchone()
+
+        if not row:
+            await query.message.reply_text("❌ Савдо топилмади.")
+            conn.close()
+            return
+
+        seller_id,buyer_id,points,status = row
+
+        if status != "waiting_payment":
+            await query.message.reply_text("❌ Бу савдо ҳолати нотўғри.")
+            conn.close()
+            return
+            
+        conn.close()
+
+        keyboard = [[
+            InlineKeyboardButton(
+                "✅ Пул олдим",
+                callback_data=f"confirm_{trade_id}"
+            )
+        ]]
+
+        await context.bot.send_message(
+            chat_id=seller_id,
+            text=f"💰 Уста {points} балл учун пул юборганини айтмоқда.\n\nПулни олдингизми?",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+    elif data.startswith("confirm_"):
+
+        trade_id = int(data.split("_")[1])
+
+        conn = get_connection()
+        c = conn.cursor()
+
+        c.execute("""
+        SELECT seller_id,buyer_id,points,status
+        FROM point_trades
+        WHERE id=%s
+        """,(trade_id,))
+
+        row = c.fetchone()
+
+        if not row:
+            await query.message.reply_text("❌ Савдо топилмади.")
+            conn.close()
+            return
+
+        seller_id,buyer_id,points,status = row
+
+        if status != "waiting_payment":
+            await query.message.reply_text("❌ Бу савдо аллақачон якунланган.")
+            conn.close()
+            return
+
+        # 🔐 Балл текшириш
+        c.execute("SELECT points FROM users WHERE telegram_id=%s",(seller_id,))
+        row = c.fetchone()
+
+        seller_points = row[0] if row else 0
+
+        if seller_points < points:
+            await query.message.reply_text("❌ Сотувчининг балли етарли эмас.")
+            conn.close()
+            return
+        
+        c.execute("""
+        UPDATE users
+        SET points = points - %s
+        WHERE telegram_id=%s
+        """,(points,seller_id))
+
+        c.execute("""
+        UPDATE users
+        SET points = points + %s
+        WHERE telegram_id=%s
+        """,(points,buyer_id))
+
+        c.execute("""
+        UPDATE point_trades
+        SET status='completed'
+        WHERE id=%s
+        """,(trade_id,))
+
+        conn.commit()
+        conn.close()
+
+        await context.bot.send_message(
+            chat_id=buyer_id,
+            text=f"✅ Савдо тугади.\n\n{points} балл сизга ўтказилди."
+        )
+
+        await query.message.reply_text("✅ Савдо муваффақиятли якунланди.")
+    
     # ================= RATE =================
     elif data.startswith("rate_"):
         await start_rating(update, context)
@@ -3059,6 +3347,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
