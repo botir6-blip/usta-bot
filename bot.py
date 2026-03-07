@@ -279,18 +279,30 @@ def build_region_menu(service, language="uz_kr"):
 
     regions = REGIONS.get(language, REGIONS["uz_kr"])
 
-    # 🔥 МАНА ШУ ҚАТОР ЕТИШМАЯПТИ
     uz_service = map_service_to_uzkr(service)
 
     counts = get_region_counts(uz_service)
 
+    # 🔥 REGION + COUNT LIST
+    region_list = []
+
+    for region in regions.keys():
+
+        uz_region = map_region_to_uzkr(region)
+
+        count = counts.get(uz_region, 0)
+
+        # 0 та устали вилоятни чиқармаслик
+        if count > 0:
+            region_list.append((region, count))
+
+    # 🔥 ENG KO‘P USTADAN BOSHLAB SORT
+    region_list.sort(key=lambda x: x[1], reverse=True)
+
     keyboard = []
     row = []
 
-    for i, region in enumerate(regions.keys(), 1):
-
-        uz_region = map_region_to_uzkr(region)
-        count = counts.get(uz_region, 0)
+    for i, (region, count) in enumerate(region_list, 1):
 
         row.append(f"{region} ({count})")
 
@@ -302,6 +314,7 @@ def build_region_menu(service, language="uz_kr"):
         keyboard.append(row)
 
     back_text = "Орқага" if language == "uz_kr" else "Orqaga" if language == "uz_lt" else "Назад"
+
     keyboard.append([back_text])
 
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
@@ -364,14 +377,24 @@ def build_city_menu(region, service, language="uz_kr"):
 
     counts = get_district_counts(uz_region, uz_service)
 
+    # 🔥 CITY + COUNT LIST
+    city_list = []
+
+    for city in cities:
+        uz_city = map_district_to_uzkr(region, city)
+        count = counts.get(uz_city, 0)
+
+        # 🔥 0 та устали туманни чиқармаймиз
+        if count > 0:
+            city_list.append((city, count))
+
+    # 🔥 ENG KO‘P USTADAN BOSHLAB SORT
+    city_list.sort(key=lambda x: x[1], reverse=True)
+
     keyboard = []
     row = []
 
-    for i, city in enumerate(cities, 1):
-
-        uz_city = map_district_to_uzkr(region, city)
-
-        count = counts.get(uz_city, 0)
+    for i, (city, count) in enumerate(city_list, 1):
 
         row.append(f"{city} ({count})")
 
@@ -2852,6 +2875,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
