@@ -1007,7 +1007,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 context.user_data["step"] = "region"
                 await update.message.reply_text(
                     texts["choose_region"],
-                    build_region_menu(service, language)
+                    reply_markup=build_region_menu(context.user_data["service"], language)
                 )
                 return
 
@@ -1029,7 +1029,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 context.user_data["step"] = "region"
                 await update.message.reply_text(
                     texts["choose_region"],
-                    reply_markup=build_region_menu(language)
+                    reply_markup=build_region_menu(context.user_data["service"], language)
                 )
                 return
 
@@ -1582,7 +1582,10 @@ async def find_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["service"] = update.message.text
     context.user_data["step"] = "region"
 
-    await update.message.reply_text(texts["choose_region"], reply_markup=build_region_menu(language))
+    await update.message.reply_text(
+        texts["choose_region"],
+        reply_markup=build_region_menu(context.user_data["service"], language)
+    )
 
 async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -2849,6 +2852,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
