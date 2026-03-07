@@ -1589,13 +1589,11 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     district = context.user_data.get("district")
 
     # 🔥 mapping
-    orig_region = region
-    
     service = map_service_to_uzkr(service)
     region = map_region_to_uzkr(region)
 
     if district:
-        district = map_district_to_uzkr(orig_region, district)
+        district = map_district_to_uzkr(region, district)
         
     print("SERVICE:", service)
     print("REGION:", region)
@@ -2843,6 +2841,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
