@@ -354,14 +354,14 @@ def map_service_to_uzkr(selected_service):
     return selected_service
     
 # ===========================================
-def build_city_menu(region, language="uz_kr"):
+def build_city_menu(region, service, language="uz_kr"):
 
     regions_data = REGIONS.get(language, REGIONS["uz_kr"])
     cities = regions_data.get(region, [])
 
     uz_region = map_region_to_uzkr(region)
-    
-    uz_service = map_service_to_uzkr(context_service)
+    uz_service = map_service_to_uzkr(service)
+
     counts = get_district_counts(uz_region, uz_service)
 
     keyboard = []
@@ -386,7 +386,7 @@ def build_city_menu(region, language="uz_kr"):
     keyboard.append([back_text])
 
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-
+    
 # ================= TIL TANLASH =================
 def build_language_menu():
     keyboard = []
@@ -1007,7 +1007,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 context.user_data["step"] = "region"
                 await update.message.reply_text(
                     texts["choose_region"],
-                    reply_markup=build_region_menu(language)
+                    build_region_menu(service, language)
                 )
                 return
 
@@ -2849,6 +2849,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
