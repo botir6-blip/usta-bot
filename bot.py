@@ -1009,7 +1009,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
                 if text in regions:
 
-                    context.user_data["region"] = text
+                    context.user_data["region"] = map_region_to_uzkr(text)
                     context.user_data["step"] = "district"
 
                     await ask_region(update, context)
@@ -2843,6 +2843,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
