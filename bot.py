@@ -905,7 +905,7 @@ async def ask_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["step"] = "district"
 
     # 🔥 build_city_menu ни list қилиб оламиз
-    base_markup = build_city_menu(uz_region, language)
+    base_markup = build_city_menu(region, language)
     keyboard = [row[:] for row in base_markup.keyboard]
 
     # ➕ Вилоят бўйича қидириш қўшамиз
@@ -2838,6 +2838,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
