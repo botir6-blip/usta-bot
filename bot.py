@@ -889,31 +889,32 @@ async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def ask_region(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
     regions_data = REGIONS.get(language, REGIONS["uz_kr"])
 
-    region = update.message.text
+    region = context.user_data.get("region")
 
-    if region not in regions_data:
-        return
+    # uz_kr ни user тилига мап қилиш
+    display_region = region
 
-    # 🔥 region ni uz_kr formatga o'tkazamiz
-    uz_region = map_region_to_uzkr(region)
+    for lang in ["uz_lt", "ru"]:
+        if language == lang:
+            index = list(REGIONS["uz_kr"].keys()).index(region)
+            display_region = list(REGIONS[lang].keys())[index]
 
-    context.user_data["region"] = uz_region
-    context.user_data["step"] = "district"
-
-    # 🔥 build_city_menu ни list қилиб оламиз
-    base_markup = build_city_menu(region, language)
+    base_markup = build_city_menu(display_region, language)
     keyboard = [row[:] for row in base_markup.keyboard]
 
-    # ➕ Вилоят бўйича қидириш қўшамиз
     if context.user_data.get("flow") == "find":
         keyboard.insert(0, ["📍 Фақат вилоят бўйича қидириш"])
-    
-    await update.message.reply_text(texts["choose_district"], reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
 
+    await update.message.reply_text(
+        texts["choose_district"],
+        reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    )
+    
 async def write_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
 
@@ -1003,12 +1004,16 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
 
             if step == "region":
-                context.user_data["step"] = "service"
-                await update.message.reply_text(
-                    texts["choose_service"],
-                    reply_markup=build_service_menu(language)
-                )
-                return
+
+                regions = REGIONS.get(language, REGIONS["uz_kr"])
+
+                if text in regions:
+
+                    context.user_data["region"] = text
+                    context.user_data["step"] = "district"
+
+                    await ask_region(update, context)
+                    return
 
         if flow == "register":
 
@@ -2838,6 +2843,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
