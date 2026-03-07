@@ -320,7 +320,9 @@ async def choose_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if language:
 
         # 🔹 Контекстни тозалаймиз
-        context.user_data.clear()
+        context.user_data.pop("flow", None)
+        context.user_data.pop("step", None)
+        context.user_data.pop("page", None)
         context.user_data["language"] = language
 
         texts = get_texts(language)
@@ -747,7 +749,9 @@ def clean_text(text):
 async def start_register(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Tilni saqlab qolish
     language = context.user_data.get("language", "uz_kr")
-    context.user_data.clear()
+    context.user_data.pop("flow", None)
+    context.user_data.pop("step", None)
+    context.user_data.pop("page", None)
     context.user_data["language"] = language
     context.user_data["flow"] = "register"
     context.user_data["step"] = "phone"
@@ -943,7 +947,9 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
 
         # 👉 MAIN MENU
-        context.user_data.clear()
+        context.user_data.pop("flow", None)
+        context.user_data.pop("step", None)
+        context.user_data.pop("page", None)
         context.user_data["language"] = language
 
         conn = psycopg2.connect(os.getenv("DATABASE_URL"))
@@ -1182,9 +1188,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if text in ["Менинг профилим", "Mening profilim", "Мой профиль"]:
         await my_profile(update, context)
         return
-
-
-        
+       
 async def show_referral(update, context):
     user_id = update.effective_user.id
     bot_username = (await context.bot.get_me()).username
@@ -1261,6 +1265,26 @@ async def show_referral(update, context):
         ),
         reply_markup=reply_markup
     )
+
+    language = context.user_data.get("language", "uz_kr")
+    texts = get_texts(language)
+
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    c = conn.cursor()
+
+    c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE", (user_id,))
+    is_master = c.fetchone()
+
+    conn.close()
+
+    menu, mode = build_main_menu(texts, is_master, context.user_data.get("mode"))
+    context.user_data["mode"] = mode
+
+    # менюни қайта чиқарамиз
+    await update.message.reply_text(
+        texts["welcome"],
+        reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
+    )
     
 def is_user_master(user_id):
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
@@ -1314,7 +1338,9 @@ async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=ReplyKeyboardMarkup([row[:] for row in texts["master_menu"]], resize_keyboard=True)
         )
 
-        context.user_data.clear()   
+        context.user_data.pop("flow", None)
+        context.user_data.pop("step", None)
+        context.user_data.pop("page", None)   
 
 async def get_age(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
@@ -1424,7 +1450,9 @@ async def save_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def start_find(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Tilni saqlab qolish
     language = context.user_data.get("language", "uz_kr")
-    context.user_data.clear()
+    context.user_data.pop("flow", None)
+    context.user_data.pop("step", None)
+    context.user_data.pop("page", None)
     context.user_data["language"] = language
     context.user_data["flow"] = "find"
     context.user_data["step"] = "service"
@@ -2716,6 +2744,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
