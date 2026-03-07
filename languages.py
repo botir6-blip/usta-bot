@@ -17,15 +17,15 @@ UZ_KR = {
     # 🔹 MIJOZ MENU
     "customer_menu": [
         ["Уста топиш", "🔎 Код орқали қидириш"],
-        ["🎁 Таклиф қилиш", "Уста бўлиш"],
+        ["💰 Балларим", "🎁 Таклиф қилиш"],
         ["🌐 Тилни ўзгартириш"]
     ],
 
     # 🔹 USTA MENU
     "master_menu": [
         ["Менинг профилим", "📢 Бот янгиликлари"],
-        ["💰 Балларим", "🛒 Баллар дўкони"],
-        ["🎁 Таклиф қилиш", "🌐 Тилни ўзгартириш"]
+        ["💰 Балларим", "🎁 Таклиф қилиш"],
+        ["🌐 Тилни ўзгартириш"]
     ],
     
     "welcome": "Ассалому алайкум! Танланг:",
@@ -47,7 +47,7 @@ UZ_KR = {
     "backup_error": "❌ Backup вақтида хатолик юз берди:",
     "main_menu": [
         ["Уста топиш", "🔎 Код орқали қидириш"],
-        ["🎁 Таклиф қилиш", "Уста бўлиш"],
+        ["💰 Балларим", "🎁 Таклиф қилиш"],
         ["🌐 Тилни ўзгартириш"]
     ]
 }
@@ -57,14 +57,14 @@ UZ_LT = {
 
     "customer_menu": [
         ["Usta topish", "🔎 Kod orqali qidirish"],
-        ["🎁 Taklif qilish", "Usta bo'lish"],
+        ["💰 Ballarim", "🎁 Taklif qilish"],
         ["🌐 Tilni o'zgartirish"]
     ],
 
     "master_menu": [
         ["Mening profilim", "📢 Bot yangiliklari"],
-        ["💰 Ballarim", "🛒 Ballar do'koni"],
-        ["🎁 Taklif qilish", "🌐 Tilni o'zgartirish"]
+        ["💰 Ballarim", "🎁 Taklif qilish"],
+        ["🌐 Tilni o'zgartirish"]
     ],
 
     "welcome": "Assalomu alaykum! Tanlang:",
@@ -87,7 +87,7 @@ UZ_LT = {
     "backup_error": "❌ Backup vaqtida xatolik yuz berdi:",
     "main_menu": [
         ["Usta topish", "🔎 Kod orqali qidirish"],
-        ["🎁 Taklif qilish", "Usta bo'lish"],
+        ["💰 Ballarim", "🎁 Taklif qilish"],
         ["🌐 Tilni o'zgartirish"]
     ]
 }
@@ -97,14 +97,14 @@ RU = {
 
     "customer_menu": [
         ["Найти мастера", "🔎 Поиск по коду"],
-        ["🎁 Пригласить", "Стать мастером"],
+        ["💰 Мои баллы", "🎁 Пригласить"],
         ["🌐 Изменить язык"]
     ],
 
     "master_menu": [
         ["Мой профиль", "📢 Новости бота"],
-        ["💰 Мои баллы", "🛒 Магазин баллов"],
-        ["🎁 Пригласить", "🌐 Изменить язык"]
+        ["💰 Мои баллы", "🎁 Пригласить"],
+        ["🌐 Изменить язык"]
     ],
 
     "welcome": "Здравствуйте! Выберите:",
@@ -127,7 +127,7 @@ RU = {
     "backup_error": "❌ Ошибка при создании backup:",
     "main_menu": [
         ["Найти мастера", "🔎 Поиск по коду"],
-        ["🎁 Пригласить", "Стать мастером"],
+        ["💰 Мои баллы", "🎁 Пригласить"],
         ["🌐 Изменить язык"]
     ]
 }
