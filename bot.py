@@ -209,16 +209,18 @@ def get_service_counts():
     return dict(rows)
 
 
-def get_region_counts():
+def get_region_counts(service):
+
     conn = get_connection()
     c = conn.cursor()
 
     c.execute("""
         SELECT region, COUNT(*)
         FROM masters
-        WHERE is_active = TRUE
+        WHERE service = %s
+        AND is_active = TRUE
         GROUP BY region
-    """)
+    """, (service,))
 
     rows = c.fetchall()
     conn.close()
@@ -272,7 +274,7 @@ def build_service_menu(language="uz_kr"):
 
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     
-def build_region_menu(language="uz_kr"):
+def build_region_menu(service, language="uz_kr"):
 
     regions = REGIONS.get(language, REGIONS["uz_kr"])
     counts = get_region_counts()
@@ -1063,7 +1065,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 context.user_data["step"] = "region"
                 await update.message.reply_text(
                     texts["choose_region"],
-                    reply_markup=build_region_menu(language)
+                    reply_markup=build_region_menu(context.user_data["service"], language)
                 )
                 return
 
@@ -1095,7 +1097,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
                 await update.message.reply_text(
                     texts["choose_region"],
-                    reply_markup=build_region_menu(language)
+                    reply_markup=build_region_menu(context.user_data["service"], language)
                 )
                 return
 
@@ -2841,6 +2843,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
