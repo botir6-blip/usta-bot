@@ -1114,6 +1114,15 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         return
 
+    # ================= MAIN SIMPLE BUTTONS =================
+    if text in ["🪙 Танга", "🪙 Tanga", "🪙 Монеты", "💰 Балларим", "💰 Ballarim", "💰 Мои баллы"]:
+        await show_points(update, context)
+        return
+
+    if text in ["🏆 Топ тангалар", "🏆 Top tangalar", "🏆 Топ монет"]:
+        await show_top_coins(update, context)
+        return
+        
     # ================= REGISTER FLOW =================
 
     if flow == "register":
@@ -3483,6 +3492,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
