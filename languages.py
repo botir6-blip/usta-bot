@@ -44,9 +44,9 @@ UZ_KR = {
     "not_registered": "Сиз ҳали уста сифатида рўйхатдан ўтмагансиз.",
     "backup_error": "❌ Backup вақтида хатолик юз берди:",
     "main_menu": [
-        ["Уста топиш", "🔎 Код орқали қидириш"],
-        ["💰 Балларим", "🎁 Таклиф қилиш"],
-        ["Уста бўлиш", "🌐 Тилни ўзгартириш"]
+        ["🔎 Уста топиш", "🆔 Код орқали қидириш"],
+        ["🪙 Танга", "🎁 Таклиф қилиш"],
+        ["👨‍🔧 Уста бўлиш", "🌐 Тилни ўзгартириш"]
     ]
 }
 
@@ -84,9 +84,9 @@ UZ_LT = {
     "not_registered": "Siz hali usta sifatida ro'yxatdan o'tmagansiz.",
     "backup_error": "❌ Backup vaqtida xatolik yuz berdi:",
     "main_menu": [
-        ["Usta topish", "🔎 Kod orqali qidirish"],
-        ["💰 Ballarim", "🎁 Taklif qilish"],
-        ["Usta bo'lish", "🌐 Tilni o'zgartirish"]
+        ["🔎 Usta topish", "🆔 Kod orqali qidirish"],
+        ["🪙 Tanga", "🎁 Taklif qilish"],
+        ["👨‍🔧 Usta bo'lish", "🌐 Tilni o'zgartirish"]
     ]
 }
 
@@ -124,9 +124,9 @@ RU = {
     "not_registered": "Вы ещё не зарегистрированы как мастер.",
     "backup_error": "❌ Ошибка при создании backup:",
     "main_menu": [
-        ["Найти мастера", "🔎 Поиск по коду"],
-        ["💰 Мои баллы", "🎁 Пригласить"],
-        ["Стать мастером", "🌐 Изменить язык"]
+        ["🔎 Найти мастера", "🆔 Поиск по коду"],
+        ["🪙 Монеты", "🎁 Пригласить"],
+        ["👨‍🔧 Стать мастером", "🌐 Изменить язык"]
     ]
 }
 
