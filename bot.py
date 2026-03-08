@@ -2685,64 +2685,86 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
 # ================= PROFILE =================
 async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = update.effective_message   # ⭐ МУҲИМ ҚАТОР
-
-    language = context.user_data.get("language", "uz_kr")
-    texts = get_texts(language)
-
-    user = update.effective_user.id
+    message = update.effective_message
+    user_id = update.effective_user.id
 
     conn = get_connection()
     c = conn.cursor()
+
+    # 1) Асосий маълумот
     c.execute("""
-        SELECT 
-            m.name,
-            m.phone,
-            m.service,
-            m.region,
-            m.district,
-            m.age,
-            m.experience,
-            m.education,
-            m.skills,
-            m.code,
-            COUNT(DISTINCT o.id) as total_orders,
-            COALESCE(AVG(r.rating), 0) as avg_rating,
-            COUNT(DISTINCT r.id) as total_votes
-        FROM masters m
-        LEFT JOIN orders o ON m.id = o.master_id
-        LEFT JOIN ratings r ON m.id = r.master_id
-        WHERE m.telegram_id=%s
-          AND m.is_active=TRUE
-        GROUP BY 
-            m.name, m.phone, m.service, m.region, m.district,
-            m.age, m.experience, m.education, m.skills, m.code
-    """, (user,))
+        SELECT
+            id,
+            name,
+            phone,
+            service,
+            region,
+            district,
+            age,
+            experience,
+            education,
+            skills,
+            code,
+            service_description,
+            is_busy,
+            busy_until
+        FROM masters
+        WHERE telegram_id = %s AND is_active = TRUE
+    """, (user_id,))
     row = c.fetchone()
-    conn.close()
 
     if not row:
-
-        conn = get_connection()
-        c = conn.cursor()
-        c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE", (user,))
-        is_master = c.fetchone() is not None
         conn.close()
-
-        menu, mode = build_main_menu(texts, is_master, context.user_data.get("mode"))
-        context.user_data["mode"] = mode
-
-        await message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
+        await message.reply_text("❌ Профил топилмади.")
         return
 
-    name, phone, service, region, district, age, experience, education, skills, code, total_orders, avg_rating, total_votes = row
+    (
+        master_id,
+        name,
+        phone,
+        service,
+        region,
+        district,
+        age,
+        experience,
+        education,
+        skills,
+        code,
+        service_description,
+        is_busy,
+        busy_until
+    ) = row
+
+    # 2) Жами буюртма
+    c.execute("""
+        SELECT COUNT(*)
+        FROM orders
+        WHERE master_id = %s
+    """, (master_id,))
+    total_orders = c.fetchone()[0]
+
+    # 3) Рейтинг
+    c.execute("""
+        SELECT COALESCE(AVG(rating), 0), COUNT(*)
+        FROM ratings
+        WHERE master_id = %s
+    """, (master_id,))
+    avg_rating, total_votes = c.fetchone()
+
+    conn.close()
+
+    if is_busy and busy_until:
+        status_text = f"🔴 Банд ({busy_until})"
+    else:
+        status_text = "🟢 Бўш"
 
     profile_text = (
-        f"👷 {name}\n"
-        f"🆔 Код: {code}\n"
-        f"📞 {phone}\n"
-        f"🛠 {service}\n"
-        f"📍 {region} / {district}"
+        f"👷 {name or '-'}\n"
+        f"🆔 Код: {code or '-'}\n"
+        f"📞 {phone or '-'}\n"
+        f"🛠 {service or '-'}\n"
+        f"📍 {region or '-'} / {district or '-'}\n"
+        f"{status_text}"
     )
 
     if age:
@@ -2753,12 +2775,13 @@ async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
         profile_text += f"\n🎓 Маълумот: {education}"
     if skills:
         profile_text += f"\n🔧 Кўникмалар: {skills}"
+    if service_description:
+        profile_text += f"\n📝 Иш турлари: {service_description}"
 
-    # 🔥 СТАТИСТИКА ҚЎШАМИЗ
     profile_text += (
         f"\n\n📊 СТАТИСТИКА:\n"
         f"📞 Жами чақирилган: {total_orders}\n"
-        f"⭐ Ўртача рейтинг: {round(avg_rating,1)}\n"
+        f"⭐ Ўртача рейтинг: {round(float(avg_rating), 1)}\n"
         f"🗳 Жами баҳолар: {total_votes}"
     )
 
@@ -2768,8 +2791,11 @@ async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("❌ Рўйхатдан чиқиш", callback_data="delete_profile")]
     ]
 
-    await message.reply_text(profile_text, reply_markup=InlineKeyboardMarkup(keyboard))
-
+    await message.reply_text(
+        profile_text,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    
 # ================= DELETE =================
 async def unregister(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
@@ -3457,6 +3483,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
