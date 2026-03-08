@@ -110,19 +110,6 @@ def init_db():
     """)
 
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-
-    try:
-        c.execute("ALTER TABLE users ALTER COLUMN join_date TYPE TIMESTAMP USING join_date::timestamp")
-    except Exception as e:
-        print("join_date convert xato:", e)
-        conn.rollback()
-
-    try:
-        c.execute("ALTER TABLE users ALTER COLUMN last_active TYPE TIMESTAMP USING last_active::timestamp")
-    except Exception as e:
-        print("last_active convert xato:", e)
-        conn.rollback()
-
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0")
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by BIGINT")
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS language TEXT")
@@ -2106,7 +2093,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         ref_link = f"https://t.me/{bot_username}?start={user_id}"
 
-        await query.message.reply_text(f"🔗 Сизнинг таклиф линкингиз:\n\n{ref_link}\n\n" "👥 Ҳар бир қўшилган одам учун 100 балл оласиз!")
+        await query.message.reply_text(f"🔗 Сизнинг таклиф линкингиз:\n\n{ref_link}\n\n" "👥 Ҳар бир қўшилган одам учун 100 танга оласиз!")
         return
         
     # ================= ORDER =================
@@ -2760,7 +2747,7 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     c.execute("SELECT COUNT(*) FROM users WHERE last_active IS NOT NULL AND last_active >= NOW() - INTERVAL '24 HOURS'")
     today_users = c.fetchone()[0]
 
-    c.execute("SELECT COUNT(*) FROM masters")
+    c.execute("SELECT COUNT(*) FROM masters WHERE is_active=TRUE")
     total_masters = c.fetchone()[0]
 
     c.execute("SELECT COUNT(*) FROM ratings")
@@ -3052,7 +3039,8 @@ def build_main_menu(texts, is_master, mode=None):
     is_master = bool(is_master)
 
     if is_master:
-        menu = [row[:] for row in texts["master_menu"]]
+        menu = [row[:] for row in texts["customer_menu"]]
+        menu += [row[:] for row in texts["master_menu"]]
         mode = "master"
     else:
         menu = [row[:] for row in texts["customer_menu"]]
@@ -3582,6 +3570,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
