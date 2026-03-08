@@ -1367,16 +1367,6 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 🧭 MAIN MENU ACTIONS
     # =====================================================
     texts = get_texts(context.user_data.get("language", "uz_kr"))
-
-    if text == texts["switch_to_customer"]:
-        context.user_data["mode"] = "customer"
-        await start(update, context)
-        return
-
-    if text == texts["switch_to_master"]:
-        context.user_data["mode"] = "master"
-        await start(update, context)
-        return
         
     if text in ["Уста топиш", "Usta topish", "Найти мастера"]:
         await start_find(update, context)
@@ -2938,21 +2928,15 @@ def get_user_level(points):
         return "👤 START"
 
 # ================= MAIN MENU BUILDER =================
-def build_main_menu(texts, is_master, mode):
+def build_main_menu(texts, is_master, mode=None):
     is_master = bool(is_master)
 
-    if not is_master:
-        mode = "customer"
-    elif mode not in ["customer", "master"]:
-        mode = "master"
-
-    if mode == "master":
+    if is_master:
         menu = [row[:] for row in texts["master_menu"]]
-        menu.append([texts["switch_to_customer"]])
+        mode = "master"
     else:
         menu = [row[:] for row in texts["customer_menu"]]
-        if is_master:
-            menu.append([texts["switch_to_master"]])
+        mode = "customer"
 
     return menu, mode
     
@@ -3453,6 +3437,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
