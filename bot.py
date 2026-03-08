@@ -1163,7 +1163,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
         return
 
-    if text in ["💰 Балларим", "💰 Ballarim", "💰 Мои баллы"]:
+    if text in ["🪙 Танга", "🪙 Tanga", "🪙 Монеты", "💰 Балларим", "💰 Ballarim", "💰 Мои баллы"]:
         await show_points(update, context)
         return
     
@@ -1256,7 +1256,8 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             is_master = c.fetchone()
             conn.close()
 
-            menu = [row[:] for row in texts["master_menu"]] if is_master else [row[:] for row in texts["customer_menu"]]
+            menu, mode = build_main_menu(texts, is_master, context.user_data.get("mode"))
+            context.user_data["mode"] = mode
 
             await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
             return
@@ -1503,35 +1504,54 @@ async def show_referral(update, context):
 
 # ================= POINTS =================
 async def show_points(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
     user_id = update.effective_user.id
+    language = context.user_data.get("language", "uz_kr")
 
     conn = get_connection()
     c = conn.cursor()
 
-    c.execute("SELECT points FROM users WHERE telegram_id=%s",(user_id,))
+    c.execute("SELECT points FROM users WHERE telegram_id=%s", (user_id,))
     row = c.fetchone()
     points = row[0] if row else 0
 
-    c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE",(user_id,))
+    c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE", (user_id,))
     is_master = c.fetchone()
 
     conn.close()
 
+    if language == "uz_kr":
+        text = f"🪙 Сизнинг тангаларингиз: {points}"
+        vip7 = "👑 VIP 7 кун — 1000 танга"
+        vip30 = "👑 VIP 30 кун — 4000 танга"
+        buy_btn = "🛒 Танга сотиб олиш"
+        sell_btn = "📈 Танга сотиш"
+    elif language == "uz_lt":
+        text = f"🪙 Sizning tangalaringiz: {points}"
+        vip7 = "👑 VIP 7 kun — 1000 tanga"
+        vip30 = "👑 VIP 30 kun — 4000 tanga"
+        buy_btn = "🛒 Tanga sotib olish"
+        sell_btn = "📈 Tanga sotish"
+    else:
+        text = f"🪙 Ваши монеты: {points}"
+        vip7 = "👑 VIP 7 дней — 1000 монет"
+        vip30 = "👑 VIP 30 дней — 4000 монет"
+        buy_btn = "🛒 Купить монеты"
+        sell_btn = "📈 Продать монеты"
+
     if is_master:
         keyboard = [
-            [InlineKeyboardButton("👑 VIP 7 кун — 1000 балл", callback_data="buy_vip_7")],
-            [InlineKeyboardButton("👑 VIP 30 кун — 4000 балл", callback_data="buy_vip_30")],
-            [InlineKeyboardButton("🛒 Балл сотиб олиш", callback_data="buy_points")],
-            [InlineKeyboardButton("💰 Балл сотиш", callback_data="sell_points")]
+            [InlineKeyboardButton(vip7, callback_data="buy_vip_7")],
+            [InlineKeyboardButton(vip30, callback_data="buy_vip_30")],
+            [InlineKeyboardButton(buy_btn, callback_data="buy_points")],
+            [InlineKeyboardButton(sell_btn, callback_data="sell_points")]
         ]
     else:
         keyboard = [
-            [InlineKeyboardButton("💰 Балл сотиш", callback_data="sell_points")]
+            [InlineKeyboardButton(sell_btn, callback_data="sell_points")]
         ]
 
     await update.message.reply_text(
-        f"💰 Сизнинг балларингиз: {points}",
+        text,
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
     
@@ -1581,10 +1601,14 @@ async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
         language = context.user_data.get("language", "uz_kr")
         texts = get_texts(language)
 
+        context.user_data["mode"] = "master"
+        menu, mode = build_main_menu(texts, True, context.user_data.get("mode"))
+        context.user_data["mode"] = mode
+
         await update.message.reply_text(
             "✅ Сиз муваффақиятли рўйхатдан ўтдингиз!\n\n"
             "👤 Профилингизни 'Менинг профилим' орқали тўлдиришингиз мумкин.",
-            reply_markup=ReplyKeyboardMarkup([row[:] for row in texts["master_menu"]], resize_keyboard=True)
+            reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
         )
 
         context.user_data.pop("flow", None)
@@ -2667,10 +2691,11 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE", (update.effective_user.id,))
     is_master = c.fetchone()
 
-    menu = [row[:] for row in texts["master_menu"]] if is_master else [row[:] for row in texts["customer_menu"]]
+    menu, mode = build_main_menu(texts, is_master, context.user_data.get("mode"))
+    context.user_data["mode"] = mode
 
     await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
-
+    
 # ================= PROFILE =================
 async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.effective_message   # ⭐ МУҲИМ ҚАТОР
@@ -2893,12 +2918,12 @@ def get_user_level(points):
 
 # ================= MAIN MENU BUILDER =================
 def build_main_menu(texts, is_master, mode):
+    is_master = bool(is_master)
 
-    if is_master:
-        if not mode:
-            mode = "master"
-    else:
+    if not is_master:
         mode = "customer"
+    elif mode not in ["customer", "master"]:
+        mode = "master"
 
     if mode == "master":
         menu = [row[:] for row in texts["master_menu"]]
@@ -2907,6 +2932,7 @@ def build_main_menu(texts, is_master, mode):
         menu = [row[:] for row in texts["customer_menu"]]
         if is_master:
             menu.append([texts["switch_to_master"]])
+
     return menu, mode
     
 async def start_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -3406,6 +3432,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
