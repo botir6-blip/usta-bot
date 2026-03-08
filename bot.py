@@ -2815,85 +2815,101 @@ async def backup_database(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Bazani backup qilish"""
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
-    
+
     print(f"Backup called by user: {update.effective_user.id}, language: {language}")
-    
+
+    menu, mode = build_main_menu(texts, False, "customer")
+    context.user_data["mode"] = mode
+
     try:
         import json
         from datetime import datetime
-        
+
         conn = get_connection()
         c = conn.cursor()
-        
-        # Barcha ustalarni olish
+
         c.execute("""
         SELECT m.id, m.telegram_id, m.name, m.phone, m.service, 
                m.region, m.district,
                COUNT(r.rating) as rating_count,
                COALESCE(AVG(r.rating), 0)
-
         FROM masters m
         LEFT JOIN ratings r ON m.id = r.master_id
         GROUP BY m.id
         ORDER BY m.id
         """)
-        
+
         masters = []
         for row in c.fetchall():
             master = {
-                'id': row[0],
-                'telegram_id': row[1],
-                'name': row[2],
-                'phone': row[3],
-                'service': row[4],
-                'region': row[5],
-                'district': row[6],
-                'rating_count': row[7],
-                'avg_rating': float(row[8])
+                "id": row[0],
+                "telegram_id": row[1],
+                "name": row[2],
+                "phone": row[3],
+                "service": row[4],
+                "region": row[5],
+                "district": row[6],
+                "rating_count": row[7],
+                "avg_rating": float(row[8])
             }
             masters.append(master)
-        
-        # Reytinglarni olish
+
         ratings_data = {}
         c.execute("SELECT master_id, user_id, rating FROM ratings")
         for master_id, user_id, rating in c.fetchall():
             if master_id not in ratings_data:
                 ratings_data[master_id] = []
             ratings_data[master_id].append({
-                'user_id': user_id,
-                'rating': rating
+                "user_id": user_id,
+                "rating": rating
             })
-        
-        # JSON faylga saqlash
-        backup_data = {
-            'backup_date': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            'total_masters': len(masters),
-            'masters': masters,
-            'ratings': ratings_data
-        }
-        
-        filename = f"masters_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(backup_data, f, ensure_ascii=False, indent=2)
-        
+
         conn.close()
-        
-        # Tilga mos xabar
+
+        backup_data = {
+            "backup_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "total_masters": len(masters),
+            "masters": masters,
+            "ratings": ratings_data
+        }
+
+        filename = f"masters_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(backup_data, f, ensure_ascii=False, indent=2)
+
         if language == "uz_kr":
-            message = f"✅ Backup муваффаққиятли яратildi!\n📁 Файл: {filename}\n👤 Усталар: {len(masters)} та\n⭐ Рейтиглар: {sum(len(r) for r in ratings_data.values())} та"
+            message = (
+                f"✅ Backup муваффақиятли яратилди!\n"
+                f"📁 Файл: {filename}\n"
+                f"👤 Усталар: {len(masters)} та\n"
+                f"⭐ Рейтинглар: {sum(len(r) for r in ratings_data.values())} та"
+            )
         elif language == "uz_lt":
-            message = f"✅ Backup muvaffaqiyatli yaratildi!\n📁 Fayl: {filename}\n👤 Ustalar: {len(masters)} ta\n⭐ Reytinglar: {sum(len(r) for r in ratings_data.values())} ta"
-        else:  # ru
-            message = f"✅ Backup успешно создан!\n📁 Файл: {filename}\n👤 Мастеров: {len(masters)}\n⭐ Оценок: {sum(len(r) for r in ratings_data.values())}"
-        
-        await update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(texts["customer_menu"], resize_keyboard=True))
-        
+            message = (
+                f"✅ Backup muvaffaqiyatli yaratildi!\n"
+                f"📁 Fayl: {filename}\n"
+                f"👤 Ustalar: {len(masters)} ta\n"
+                f"⭐ Reytinglar: {sum(len(r) for r in ratings_data.values())} ta"
+            )
+        else:
+            message = (
+                f"✅ Backup успешно создан!\n"
+                f"📁 Файл: {filename}\n"
+                f"👤 Мастеров: {len(masters)}\n"
+                f"⭐ Оценок: {sum(len(r) for r in ratings_data.values())}"
+            )
+
+        await update.message.reply_text(
+            message,
+            reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
+        )
+
     except Exception as e:
         await update.message.reply_text(
             texts["backup_error"] + f" {str(e)}",
-            reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True)
+            reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
         )
-
+        
 # ================= DB HELPERS =================
 
 def can_rate(user_id, master_id):
@@ -3437,6 +3453,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
