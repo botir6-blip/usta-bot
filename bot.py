@@ -1368,15 +1368,18 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # =====================================================
     texts = get_texts(context.user_data.get("language", "uz_kr"))
         
-    if text in ["Уста топиш", "Usta topish", "Найти мастера"]:
+    if text in ["🔎 Уста топиш", "🔎 Usta topish", "🔎 Найти мастера",
+                "Уста топиш", "Usta topish", "Найти мастера"]:
         await start_find(update, context)
         return
-
-    if text in ["Уста бўлиш", "Usta bo'lish", "Стать мастером"]:
+                    
+    if text in ["👨‍🔧 Уста бўлиш", "👨‍🔧 Usta bo'lish", "👨‍🔧 Стать мастером",
+                "Уста бўлиш", "Usta bo'lish", "Стать мастером"]:
         await start_register(update, context)
         return
 
-    if text in ["🔎 Код орқали қидириш", "🔎 Kod orqali qidirish", "🔎 Поиск по коду"]:
+    if text in ["🆔 Код орқали қидириш", "🆔 Kod orqali qidirish", "🆔 Поиск по коду",
+                "🔎 Код орқали қидириш", "🔎 Kod orqali qidirish", "🔎 Поиск по коду"]:
         context.user_data["waiting_for_code"] = True
         await update.message.reply_text("🆔 Уста кодини киритинг (4 рақам):")
         return
@@ -1389,7 +1392,8 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await change_language(update, context)
         return
 
-    if text in ["Менинг профилим", "Mening profilim", "Мой профиль"]:
+    if text in ["👤 Менинг профилим", "👤 Mening profilim", "👤 Мой профиль",
+                "Менинг профилим", "Mening profilim", "Мой профиль"]:
         await my_profile(update, context)
         return
            
@@ -3437,6 +3441,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
