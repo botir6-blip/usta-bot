@@ -1610,38 +1610,6 @@ async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get("flow") == "find":
         await show_masters(update, context)
         return
-
-    # ===== REGISTER =====
-    if context.user_data.get("flow") == "register":
-        add_master(
-            telegram_id=update.effective_user.id,
-            name=context.user_data.get("name"),
-            phone=context.user_data.get("phone"),
-            service=context.user_data.get("service"),
-            region=context.user_data.get("region"),
-            district=context.user_data.get("district"),
-            age=None,
-            experience=None,
-            service_description=None
-        )
-
-        language = context.user_data.get("language", "uz_kr")
-        texts = get_texts(language)
-
-        context.user_data["mode"] = "master"
-        menu, mode = build_main_menu(texts, True, context.user_data.get("mode"))
-        context.user_data["mode"] = mode
-
-        await update.message.reply_text(
-            "✅ Сиз муваффақиятли рўйхатдан ўтдингиз!\n\n"
-            "👤 Қолган маълумотларни 'Менинг профилим' орқали тўлдиришингиз мумкин.",
-            reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
-        )
-
-        context.user_data.pop("flow", None)
-        context.user_data.pop("step", None)
-        context.user_data.pop("page", None)
-        return
         
 async def get_age(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
@@ -3489,6 +3457,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
