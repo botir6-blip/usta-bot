@@ -1033,12 +1033,12 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_points = row[0] if row else 0
 
         if points < 1000:
-            await update.message.reply_text("❌ Минимум 1000 балл сотиш мумкин.")
+            await update.message.reply_text("❌ Минимум 1000 танга сотиш мумкин.")
             conn.close()
             return
 
         if points > user_points:
-            await update.message.reply_text("❌ Сизда бунча балл йўқ.")
+            await update.message.reply_text("❌ Сизда бунча танга йўқ.")
             conn.close()
             return
 
@@ -1054,7 +1054,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn.close()
 
         await update.message.reply_text(
-            f"✅ {points} балл сотувга қўйилди."
+            f"✅ {points} танга сотувга қўйилди."
         )
 
         context.user_data["step"] = None
@@ -1400,6 +1400,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def show_referral(update, context):
     user_id = update.effective_user.id
     bot_username = (await context.bot.get_me()).username
+    language = context.user_data.get("language", "uz_kr")
 
     conn = get_connection()
     c = conn.cursor()
@@ -1411,9 +1412,11 @@ async def show_referral(update, context):
     c.execute("SELECT COUNT(*) FROM users WHERE referred_by=%s", (user_id,))
     referrals = c.fetchone()[0]
 
+    c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE", (user_id,))
+    is_master = c.fetchone()
+
     conn.close()
 
-    # 🎖 LEVEL + PROGRESS
     if points >= 10000:
         level = "💎 DIAMOND"
         next_level = "MAX"
@@ -1434,57 +1437,113 @@ async def show_referral(update, context):
         level = "👤 START"
         next_level = "🥉 BRONZE"
         remaining = 500 - points
-        
+
     ref_link = f"https://t.me/{bot_username}?start={user_id}"
 
-    share_text = (
-        f"🏠 Уйда иш чиқдими?\n\n"
-        f"👷 Мардикор\n"
-        f"🪓 Ер қазиш / ер ағдариш\n"
-        f"🧱 Қурилиш ишлари\n"
-        f"🛠 Таъмирчи\n"
-        f"🚰 Сантехник\n"
-        f"🔌 Электрик\n"
-        f"🧹 Хона тозалаш\n"
-        f"🚛 Юк ташиш\n\n"
-        f"Қидириб юриш шарт эмас!\n\n"
-        f"🎁 Қўшилганларга бонус бор!\n\n"
-        f"Ишончли устани шу ердан топинг 👇\n"
-        f"{ref_link}"
-    )
+    if language == "uz_kr":
+        share_text = (
+            f"🏠 Уйда иш чиқдими?\n\n"
+            f"👷 Мардикор\n"
+            f"🪓 Ер қазиш / ер ағдариш\n"
+            f"🧱 Қурилиш ишлари\n"
+            f"🛠 Таъмирчи\n"
+            f"🚰 Сантехник\n"
+            f"🔌 Электрик\n"
+            f"🧹 Хона тозалаш\n"
+            f"🚛 Юк ташиш\n\n"
+            f"Қидириб юриш шарт эмас!\n\n"
+            f"🎁 Қўшилганларга бонус бор!\n\n"
+            f"Ишончли устани шу ердан топинг 👇\n"
+            f"{ref_link}"
+        )
 
-    keyboard = [
-        [InlineKeyboardButton("📤 Дўстларга юбориш", switch_inline_query=share_text)]
-    ]
+        text = (
+            f"🎁 Дўст таклиф қилинг ва 100 танга олинг!\n\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"👥 Таклиф қилганлар: {referrals}\n"
+            f"🪙 Жами танга: {points}\n"
+            f"🎖 Даража: {level}\n"
+            f"━━━━━━━━━━━━━━━\n\n"
+            + (
+                f"🚀 {next_level} даражага чиқиш учун яна {remaining} танга керак!"
+                if remaining > 0
+                else "🏆 Табриклаймиз! Сиз энг юқори даражадасиз!"
+            )
+        )
+        send_btn = "📤 Дўстларга юбориш"
 
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    elif language == "uz_lt":
+        share_text = (
+            f"🏠 Uyda ish chiqdimi?\n\n"
+            f"👷 Mardikor\n"
+            f"🪓 Yer qazish / yer ag'darish\n"
+            f"🧱 Qurilish ishlari\n"
+            f"🛠 Ta'mirchi\n"
+            f"🚰 Santexnik\n"
+            f"🔌 Elektrik\n"
+            f"🧹 Xona tozalash\n"
+            f"🚛 Yuk tashish\n\n"
+            f"Qidirib yurish shart emas!\n\n"
+            f"🎁 Qo'shilganlarga bonus bor!\n\n"
+            f"Ishonchli ustani shu yerdan toping 👇\n"
+            f"{ref_link}"
+        )
+
+        text = (
+            f"🎁 Do'st taklif qiling va 100 tanga oling!\n\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"👥 Taklif qilganlar: {referrals}\n"
+            f"🪙 Jami tanga: {points}\n"
+            f"🎖 Daraja: {level}\n"
+            f"━━━━━━━━━━━━━━━\n\n"
+            + (
+                f"🚀 {next_level} darajaga chiqish uchun yana {remaining} tanga kerak!"
+                if remaining > 0
+                else "🏆 Tabriklaymiz! Siz eng yuqori darajadasiz!"
+            )
+        )
+        send_btn = "📤 Do'stlarga yuborish"
+
+    else:
+        share_text = (
+            f"🏠 Нужен мастер?\n\n"
+            f"👷 Разнорабочий\n"
+            f"🪓 Земляные работы\n"
+            f"🧱 Строительные работы\n"
+            f"🛠 Ремонт\n"
+            f"🚰 Сантехник\n"
+            f"🔌 Электрик\n"
+            f"🧹 Уборка\n"
+            f"🚛 Грузоперевозка\n\n"
+            f"Не нужно долго искать!\n\n"
+            f"🎁 За приглашённых есть бонус!\n\n"
+            f"Найдите надёжного мастера здесь 👇\n"
+            f"{ref_link}"
+        )
+
+        text = (
+            f"🎁 Приглашайте друзей и получайте 100 монет!\n\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"👥 Приглашено: {referrals}\n"
+            f"🪙 Всего монет: {points}\n"
+            f"🎖 Уровень: {level}\n"
+            f"━━━━━━━━━━━━━━━\n\n"
+            + (
+                f"🚀 До уровня {next_level} осталось ещё {remaining} монет!"
+                if remaining > 0
+                else "🏆 Поздравляем! У вас максимальный уровень!"
+            )
+        )
+        send_btn = "📤 Отправить друзьям"
+
+    keyboard = [[InlineKeyboardButton(send_btn, switch_inline_query=share_text)]]
 
     await update.message.reply_text(
-        f"🎁 Дўст таклиф қилинг ва 100 балл олинг!\n\n"
-        f"━━━━━━━━━━━━━━━\n"
-        f"👥 Таклиф қилганлар: {referrals}\n"
-        f"💎 Жами балл: {points}\n"
-        f"🎖 Даража: {level}\n"
-        f"━━━━━━━━━━━━━━━\n\n"
-        + (
-            f"🚀 {next_level} даражага чиқиш учун яна {remaining} балл керак!"
-            if remaining > 0
-            else "🏆 Табриклаймиз! Сиз энг юқори даражадасиз!"
-        ),
-        reply_markup=reply_markup
+        text,
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-    language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
-
-    conn = get_connection()
-    c = conn.cursor()
-
-    c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE", (user_id,))
-    is_master = c.fetchone()
-
-    conn.close()
-
     menu, mode = build_main_menu(texts, is_master, context.user_data.get("mode"))
     context.user_data["mode"] = mode
 
@@ -1492,7 +1551,7 @@ async def show_referral(update, context):
         texts["welcome"],
         reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
     )
-
+    
 # ================= POINTS =================
 async def show_points(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -2065,7 +2124,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         points = row[0] if row else 0
 
         if points < 1000:
-            await query.message.reply_text("❌ Баллар етарли эмас.")
+            await query.message.reply_text("❌ Тангалар етарли эмас.")
             conn.close()
             return
 
@@ -2106,7 +2165,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         points = row[0] if row else 0
 
         if points < 4000:
-            await query.message.reply_text("❌ Баллар етарли эмас.")
+            await query.message.reply_text("❌ Тангалар етарли эмас.")
             conn.close()
             return
 
@@ -2135,7 +2194,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["step"] = "enter_sell_points"
 
         await query.message.reply_text(
-            "💰 Нечта балл сотмоқчисиз?\n\nМасалан: 1000"
+            "💰 Нечта танга сотмоқчисиз?\n\nМасалан: 1000"
         )
 
     elif data == "sell_1000":
@@ -2150,7 +2209,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         points = row[0] if row else 0
 
         if points < 1000:
-            await query.message.reply_text("❌ Сотиш учун 1000 балл керак.")
+            await query.message.reply_text("❌ Сотиш учун 1000 танга керак.")
             conn.close()
             return
 
@@ -2171,7 +2230,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # админга хабар
         await context.bot.send_message(
             chat_id=ADMIN_ID,
-            text=f"💰 Балл сотиш сўрови\n\nUser ID: {user_id}\n1000 балл = 10000 сўм"
+            text=f"💰 Танга сотиш сўрови\n\nUser ID: {user_id}\n1000 танга = 10000 сўм"
         )
     
     # ================= COMPLETE ORDER =================
@@ -2257,7 +2316,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # ⭐ Фақат усталар сотиб олади
         if not is_user_master(user_id):
-            await query.message.reply_text("❌ Фақат усталар балл сотиб олиши мумкин.")
+            await query.message.reply_text("❌ Фақат усталар танга сотиб олиши мумкин.")
             return
 
         conn = get_connection()
@@ -2275,7 +2334,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn.close()
 
         if not trades:
-            await query.message.reply_text("❌ Ҳозир сотувда балл йўқ.")
+            await query.message.reply_text("❌ Ҳозир сотувда танга йўқ.")
             return
 
         for t in trades:
@@ -2292,8 +2351,8 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             price = int((points/1000)*10000)
 
             await query.message.reply_text(
-                f"💰 Балл сотуви\n\n"
-                f"{points} балл\n"
+                f"💰 Танга сотуви\n\n"
+                f"{points} танга\n"
                 f"Тавсия нарх: {price} сўм",
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
@@ -2335,7 +2394,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # ❌ ўз баллини сотиб олишни блоклаймиз
         if buyer_id == seller_id:
-            await query.message.reply_text("❌ Ўз баллингизни сотиб ололмайсиз.")
+            await query.message.reply_text("❌ Ўз тангангизни сотиб ололмайсиз.")
             conn.close()
             return
 
@@ -2419,7 +2478,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await context.bot.send_message(
             chat_id=seller_id,
-            text=f"💰 Уста {points} балл учун пул юборганини айтмоқда.\n\nПулни олдингизми?",
+            text=f"💰 Уста {points} танга учун пул юборганини айтмоқда.\n\nПулни олдингизми?",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
@@ -2450,7 +2509,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         seller_points = row[0] if row else 0
 
         if seller_points < points:
-            await query.message.reply_text("❌ Сотувчининг балли етарли эмас.")
+            await query.message.reply_text("❌ Сотувчининг тангаси етарли эмас.")
             conn.close()
             return
 
@@ -2489,7 +2548,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await context.bot.send_message(
             chat_id=buyer_id,
-            text=f"✅ Савдо тугади.\n\n{points} балл сизга ўтказилди."
+            text=f"✅ Савдо тугади.\n\n{points} танга сизга ўтказилди."
         )
 
         await query.message.reply_text("✅ Савдо муваффақиятли якунланди.")
@@ -3165,18 +3224,19 @@ async def show_news(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = (
             "📢 <b>БОТ ЯНГИЛИКЛАРИ</b>\n\n"
 
-            "🆕 <b>01.03.2026</b>\n"
-            "🔥 Катта янгиланиш!\n\n"
-            "🔄 Уста ва мижоз режими алмаштириш қўшилди.\n"
-            "📊 Тўлиқ 'Иш тугади' тизими жорий қилинди.\n"
-            "✅ Уста ишни якунласа — мижозга 300 балл берилади.\n"
-            "🎁 Реферал тизими такомиллаштирилди.\n"
-            "💎 1 та таклиф учун 100 балл жорий қилинди.\n"
-            "🏆 Балл даражалари кенгайтирилди (START / BRONZE / SILVER / GOLD / DIAMOND).\n"
-            "📈 Кейинги даражагача прогресс кўрсатилиши қўшилди.\n"
-            "🔗 Таклиф линкни осон юбориш имконияти қўшилди.\n\n"
-            "⚡ Бот янада қулай, адолатли ва профессионал бўлди!"
-            "\n\n"
+            "🆕 <b>08.03.2026</b>\n"
+            "🪙 Ботда янги <b>ТАНГА</b> тизими ишга тушди!\n\n"
+            "Энди фойдаланувчилар бот ичида танга йиғишлари мумкин.\n\n"
+            "🎁 Танга йиғиш усуллари:\n"
+            "• Дўстларни таклиф қилиш\n"
+            "• Ботдан фаол фойдаланиш\n\n"
+            "🚀 Келгусида ушбу тангаларни:\n"
+            "💰 Бот ичидаги ички биржа орқали сотиш\n"
+            "👑 VIP уста мақомини олиш\n"
+            "🎁 Турли бонус ва имтиёзларга алмаштириш\n\n"
+            "мумкин бўлади.\n\n"
+            "🏆 Энг кўп танга тўплаган фойдаланувчилар учун махсус бонуслар ҳам жорий қилинади.\n\n"
+            "⚡ Шунинг учун ҳозирдан танга йиғишни бошланг!\n\n"
 
             "🆕 <b>23.02.2026</b>\n"
             "🚀 Усталар учун катта янгилик!\n"
@@ -3188,7 +3248,7 @@ async def show_news(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             "🆕 <b>23.02.2026</b>\n"
             "🔥 Пайвандчи хизмати қўшилди\n\n"
-                
+
             "🆕 <b>15.02.2026</b>\n"
             "🚀 Уста топиш боти расман ишга тушди!\n"
             "🔎 Турли соҳа усталарини осон ва тез топиш мумкин.\n"
@@ -3200,18 +3260,19 @@ async def show_news(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = (
             "📢 <b>BOT YANGILIKLARI</b>\n\n"
 
-            "🆕 <b>01.03.2026</b>\n"
-            "🔥 Katta yangilanish!\n\n"
-            "🔄 Usta va mijoz rejimini almashtirish qo'shildi.\n"
-            "📊 To'liq 'Ish tugadi' tizimi joriy qilindi.\n"
-            "✅ Usta ishni yakunlasa — mijozga 300 ball beriladi.\n"
-            "🎁 Referal tizimi takomillashtirildi.\n"
-            "💎 1 ta taklif uchun 100 ball joriy qilindi.\n"
-            "🏆 Ball darajalari kengaytirildi (START / BRONZE / SILVER / GOLD / DIAMOND).\n"
-            "📈 Keyingi darajagacha progress ko'rsatish qo'shildi.\n"
-            "🔗 Taklif linkini oson yuborish imkoniyati qo'shildi.\n\n"
-            "⚡ Bot yanada qulay, adolatli va professional bo'ldi!"
-            "\n\n"
+            "🆕 <b>08.03.2026</b>\n"
+            "🪙 Botda yangi <b>TANGA</b> tizimi ishga tushdi!\n\n"
+            "Endi foydalanuvchilar bot ichida tanga yig'ishlari mumkin.\n\n"
+            "🎁 Tanga yig'ish usullari:\n"
+            "• Do'stlarni taklif qilish\n"
+            "• Botdan faol foydalanish\n\n"
+            "🚀 Kelgusida ushbu tangalarni:\n"
+            "💰 Bot ichidagi ichki birja orqali sotish\n"
+            "👑 VIP usta maqomini olish\n"
+            "🎁 Turli bonus va imtiyozlarga almashtirish\n\n"
+            "mumkin bo'ladi.\n\n"
+            "🏆 Eng ko'p tanga to'plagan foydalanuvchilar uchun maxsus bonuslar ham joriy qilinadi.\n\n"
+            "⚡ Shuning uchun hozirdan tanga yig'ishni boshlang!\n\n"
 
             "🆕 <b>23.02.2026</b>\n"
             "🚀 Ustalar uchun katta yangilik!\n"
@@ -3230,22 +3291,23 @@ async def show_news(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "📞 Bevosita qo'ng'iroq qilish imkoniyati mavjud.\n"
             "⭐ Ustalarni baholash tizimi joriy qilindi.\n\n"
         )
+
     else:
         text = (
             "📢 <b>НОВОСТИ БОТА</b>\n\n"
 
-            "🆕 <b>28.02–01.03.2026</b>\n"
-            "🔥 Крупное обновление!\n\n"
-            "🔄 Добавлено переключение режима мастер/клиент.\n"
-            "📊 Введена полноценная система 'Работа завершена'.\n"
-            "✅ После завершения работы клиент получает 300 баллов.\n"
-            "🎁 Улучшена реферальная система.\n"
-            "💎 За 1 приглашённого — 100 баллов.\n"
-            "🏆 Расширена система уровней (START / BRONZE / SILVER / GOLD / DIAMOND).\n"
-            "📈 Добавлен прогресс до следующего уровня.\n"
-            "🔗 Добавлена возможность быстрой отправки реферальной ссылки.\n\n"
-            "⚡ Бот стал ещё удобнее, справедливее и профессиональнее!"
-            "\n\n"
+            "🆕 <b>08.03.2026</b>\n"
+            "🪙 В боте появилась новая <b>система монет</b>!\n\n"
+            "Теперь пользователи могут накапливать монеты внутри бота.\n\n"
+            "🎁 Как получать монеты:\n"
+            "• Приглашать друзей\n"
+            "• Активно пользоваться ботом\n\n"
+            "🚀 В будущем эти монеты можно будет:\n"
+            "💰 Продавать через внутреннюю биржу бота\n"
+            "👑 Получать VIP статус мастера\n"
+            "🎁 Обменивать на различные бонусы и привилегии\n\n"
+            "🏆 Пользователи с наибольшим количеством монет будут получать специальные бонусы.\n\n"
+            "⚡ Начинайте собирать монеты уже сейчас!\n\n"
 
             "🆕 <b>23.02.2026</b>\n"
             "🚀 Важное обновление для мастеров!\n"
@@ -3275,73 +3337,95 @@ async def broadcast_news(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn = get_connection()
     c = conn.cursor()
 
-    # 👥 Барча фойдаланувчилар
-    c.execute("SELECT telegram_id FROM users")
+    c.execute("SELECT telegram_id, language FROM users")
     users = c.fetchall()
-
-    # 👷 Барча актив усталар
-    c.execute("SELECT telegram_id FROM masters WHERE is_active = TRUE")
-    masters = c.fetchall()
 
     conn.close()
 
-    # 🔥 Дубликатсиз бирлаштириш
-    all_ids = set()
-
-    for u in users:
-        all_ids.add(u[0])
-
-    for m in masters:
-        all_ids.add(m[0])
-
-    if not all_ids:
-        await update.message.reply_text("❌ Фойдаланувчилар топилмади.")
-        return
-
     sent = 0
-    failed = 0
 
-    for user_id in all_ids:
+    for user_id, language in users:
+
+        if language == "uz_kr":
+            text = (
+                "📢 <b>БОТ ЯНГИЛИКЛАРИ</b>\n\n"
+
+                "🪙 Ботда янги <b>ТАНГА</b> тизими ишга тушди!\n\n"
+                "Энди фойдаланувчилар бот ичида танга йиғишлари мумкин.\n\n"
+
+                "🎁 Танга йиғиш усуллари:\n"
+                "• Дўстларни таклиф қилиш\n"
+                "• Ботдан фаол фойдаланиш\n\n"
+
+                "🚀 Келгусида ушбу тангаларни:\n"
+                "💰 Бот ичидаги ички биржа орқали сотиш\n"
+                "👑 VIP уста мақомини олиш\n"
+                "🎁 Турли бонус ва имтиёзларга алмаштириш\n\n"
+
+                "мумкин бўлади.\n\n"
+
+                "🏆 Энг кўп танга тўплаган фойдаланувчилар учун махсус бонуслар ҳам жорий қилинади.\n\n"
+
+                "⚡ Шунинг учун ҳозирдан танга йиғишни бошланг!"
+            )
+
+        elif language == "uz_lt":
+            text = (
+                "📢 <b>BOT YANGILIKLARI</b>\n\n"
+
+                "🪙 Botda yangi <b>TANGA</b> tizimi ishga tushdi!\n\n"
+                "Endi foydalanuvchilar bot ichida tanga yig'ishlari mumkin.\n\n"
+
+                "🎁 Tanga yig'ish usullari:\n"
+                "• Do'stlarni taklif qilish\n"
+                "• Botdan faol foydalanish\n\n"
+
+                "🚀 Kelgusida ushbu tangalarni:\n"
+                "💰 Bot ichidagi ichki birja orqali sotish\n"
+                "👑 VIP usta maqomini olish\n"
+                "🎁 Turli bonus va imtiyozlarga almashtirish\n\n"
+
+                "mumkin bo'ladi.\n\n"
+
+                "🏆 Eng ko'p tanga to'plagan foydalanuvchilar uchun maxsus bonuslar ham joriy qilinadi.\n\n"
+
+                "⚡ Shuning uchun hozirdan tanga yig'ishni boshlang!"
+            )
+
+        else:
+            text = (
+                "📢 <b>НОВОСТИ БОТА</b>\n\n"
+
+                "🪙 В боте появилась новая <b>система монет</b>!\n\n"
+                "Теперь пользователи могут накапливать монеты внутри бота.\n\n"
+
+                "🎁 Как получать монеты:\n"
+                "• Приглашать друзей\n"
+                "• Активно пользоваться ботом\n\n"
+
+                "🚀 В будущем эти монеты можно будет:\n"
+                "💰 Продавать через внутреннюю биржу бота\n"
+                "👑 Получать VIP статус мастера\n"
+                "🎁 Обменивать на различные бонусы и привилегии\n\n"
+
+                "🏆 Пользователи с наибольшим количеством монет будут получать специальные бонусы.\n\n"
+
+                "⚡ Начинайте собирать монеты уже сейчас!"
+            )
 
         try:
-            # 🔹 Ҳар бир фойдаланувчининг тилини аниқлаймиз
-            conn = get_connection()
-            c = conn.cursor()
-
-            c.execute("SELECT telegram_id FROM users WHERE telegram_id = %s", (user_id,))
-            user_exists = c.fetchone()
-
-            conn.close()
-
-            # Агар users таблицада бўлмаса, default тил
-            language = "uz_kr"
-
-            # 🔹 show_news логикасини қайта ишлатамиз
-            if language == "uz_kr":
-                text = (
-                    "📢 <b>БОТ ЯНГИЛИКЛАРИ</b>\n\n"
-                    "🆕 <b>23.02.2026</b>\n"
-                    "🚀 Усталар учун катта янгилик!\n"
-                    "➕ Қўшимча хизмат турлари қўшилди.\n"
-                    "🔎 Код орқали қидириш имконияти.\n"
-                    "🟢🔴 Банд/Бўш ҳолат кўрсатиш.\n"
-                    "✏️ Профилни таҳрирлаш мумкин.\n\n"
-                    "🔥 Пайвандчи хизмати қўшилди.\n\n"
-                    "🚀 Бот расман ишга тушди ва доимий равишда ривожланмоқда!"
-                )
-            else:
-                text = "📢 Yangiliklar..."
-
-            await context.bot.send_message(chat_id=user_id, text=text, parse_mode="HTML")
-
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=text,
+                parse_mode="HTML"
+            )
             sent += 1
 
         except:
-            failed += 1
-            continue
+            pass
 
-    await update.message.reply_text(f"✅ Юборилди: {sent}\n❌ Юборилмади: {failed}")
-
+    await update.message.reply_text(f"✅ Янгилик {sent} та фойдаланувчига юборилди.")
+    
 async def activestats(update, context):
     if update.effective_user.id != ADMIN_ID:
         await update.message.reply_text("❌ Рухсат йўқ")
@@ -3441,6 +3525,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
