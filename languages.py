@@ -15,9 +15,9 @@ LANGUAGE_NAMES = {
 UZ_KR = {
 
     "customer_menu": [
-        ["🔎 Уста топиш", "🆔 Код орқали қидириш"],
+        [" Уста топиш", " Код орқали қидириш"],
         ["🪙 Танга", "🎁 Таклиф қилиш"],
-        ["👨‍🔧 Уста бўлиш", "🌐 Тилни ўзгартириш"]
+        [" Уста бўлиш", "🌐 Тилни ўзгартириш"]
     ],
 
     "master_menu": [
@@ -53,9 +53,9 @@ UZ_KR = {
 UZ_LT = {
 
     "customer_menu": [
-        ["🔎 Usta topish", "🆔 Kod orqali qidirish"],
+        [" Usta topish", " Kod orqali qidirish"],
         ["🪙 Tanga", "🎁 Taklif qilish"],
-        ["👨‍🔧 Usta bo'lish", "🌐 Tilni o'zgartirish"]
+        [" Usta bo'lish", "🌐 Tilni o'zgartirish"]
     ],
 
     "master_menu": [
@@ -92,9 +92,9 @@ UZ_LT = {
 RU = {
 
     "customer_menu": [
-        ["🔎 Найти мастера", "🆔 Поиск по коду"],
+        [" Найти мастера", " Поиск по коду"],
         ["🪙 Монеты", "🎁 Пригласить"],
-        ["👨‍🔧 Стать мастером", "🌐 Изменить язык"]
+        [" Стать мастером", "🌐 Изменить язык"]
     ],
 
    "master_menu": [
