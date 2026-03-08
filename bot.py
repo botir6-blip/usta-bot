@@ -110,6 +110,19 @@ def init_db():
     """)
 
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+
+    try:
+        c.execute("ALTER TABLE users ALTER COLUMN join_date TYPE TIMESTAMP USING join_date::timestamp")
+    except Exception as e:
+        print("join_date convert xato:", e)
+        conn.rollback()
+
+    try:
+        c.execute("ALTER TABLE users ALTER COLUMN last_active TYPE TIMESTAMP USING last_active::timestamp")
+    except Exception as e:
+        print("last_active convert xato:", e)
+        conn.rollback()
+
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0")
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by BIGINT")
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS language TEXT")
@@ -2733,10 +2746,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data["waiting_for_code"] = False
-    
-    message = update.effective_message   # ⭐ МАНА ШУ ЕТАРЛИ
-
-    import psycopg2, os
+    message = update.effective_message
 
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
@@ -2747,7 +2757,7 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     c.execute("SELECT COUNT(*) FROM users")
     total_users = c.fetchone()[0]
 
-    c.execute("SELECT COUNT(*) FROM users WHERE last_active >= NOW() - INTERVAL '24 HOURS'")
+    c.execute("SELECT COUNT(*) FROM users WHERE last_active IS NOT NULL AND last_active >= NOW() - INTERVAL '24 HOURS'")
     today_users = c.fetchone()[0]
 
     c.execute("SELECT COUNT(*) FROM masters")
@@ -2756,7 +2766,6 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     c.execute("SELECT COUNT(*) FROM ratings")
     total_ratings = c.fetchone()[0]
 
-    # 🔥 BU YERGA KO'CHIRILADI
     c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE", (update.effective_user.id,))
     is_master = c.fetchone()
 
@@ -2768,7 +2777,7 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"👥 Жами фойдаланувчилар: {total_users}\n"
             f"📅 Бугунги фаоллар: {today_users}\n"
             f"👷 Жами усталар: {total_masters}\n"
-            f"⭐ Жами бахолар: {total_ratings}\n"
+            f"⭐ Жами баҳолар: {total_ratings}\n"
         )
     elif language == "uz_lt":
         text = (
@@ -2791,7 +2800,6 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["mode"] = mode
 
     await message.reply_text(text)
-
     await message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
     
 # ================= PROFILE =================
@@ -3574,6 +3582,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
