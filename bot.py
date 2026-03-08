@@ -1546,16 +1546,7 @@ async def show_referral(update, context):
         text,
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
-
-    texts = get_texts(language)
-    menu, mode = build_main_menu(texts, is_master, context.user_data.get("mode"))
-    context.user_data["mode"] = mode
-
-    await update.message.reply_text(
-        texts["welcome"],
-        reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
-    )
-    
+       
 # ================= POINTS =================
 async def show_points(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -3035,23 +3026,11 @@ def get_user_level(points):
         return "👤 START"
 
 # ================= MAIN MENU BUILDER =================
-def build_main_menu(texts, is_master, mode):
-
+def build_main_menu(texts, is_master, mode=None):
     if is_master:
-        if not mode:
-            mode = "master"
+        return [row[:] for row in texts["master_menu"]], "master"
     else:
-        mode = "customer"
-
-    if mode == "master":
-        menu = list(texts["master_menu"])
-        menu.append([texts["switch_to_customer"]])
-    else:
-        menu = list(texts["customer_menu"])
-        if is_master:
-            menu.append([texts["switch_to_master"]])
-
-    return menu, mode
+        return [row[:] for row in texts["customer_menu"]], "customer"
     
 async def start_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -3575,6 +3554,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
