@@ -11,20 +11,22 @@ LANGUAGE_NAMES = {
     "uz_lt": "🌐 Tilni o'zgartirish",
     "ru": "🌐 Изменить язык"
 }
+
 # ================= УЗБЕК (КИРИЛЛ) =================
 UZ_KR = {
-
     "customer_menu": [
-        [" Уста топиш", " Код орқали қидириш"],
+        ["🔎 Уста топиш", "🆔 Код орқали қидириш"],
         ["🪙 Танга", "🎁 Таклиф қилиш"],
-        [" Уста бўлиш", "🌐 Тилни ўзгартириш"]
+        ["👨‍🔧 Уста бўлиш", "🌐 Тилни ўзгартириш"]
     ],
 
     "master_menu": [
         ["👤 Менинг профилим", "📢 Бот янгиликлари"],
-        ["🎁 Таклиф қилиш", "🌐 Тилни ўзгартириш"]
+        ["🔎 Уста топиш", "🆔 Код орқали қидириш"],
+        ["🪙 Танга", "🎁 Таклиф қилиш"],
+        ["🌐 Тилни ўзгартириш"]
     ],
-    
+
     "welcome": "Ассалому алайкум! Танланг:",
     "back": "Орқага",
     "choose_language": "Тилни танланг:",
@@ -36,9 +38,7 @@ UZ_KR = {
     "enter_age": "Ёшингизни киритинг:",
     "enter_experience": "Неча йиллик тажрибангиз бор?",
     "not_master": "Сиз уста эмассиз",
-    "switch_to_customer": "👤 Мижоз режимига ўтиш",
     "news_button": "📢 Бот янгиликлари",
-    "switch_to_master": "🛠 Уста режимига ўтиш",
     "unregistered_success": "❌ Сиз рўйхатдан чиқдингиз.",
     "not_registered": "Сиз ҳали уста сифатида рўйхатдан ўтмагансиз.",
     "backup_error": "❌ Backup вақтида хатолик юз берди:",
@@ -51,16 +51,17 @@ UZ_KR = {
 
 # ================= УЗБЕК (ЛОТИН) =================
 UZ_LT = {
-
     "customer_menu": [
-        [" Usta topish", " Kod orqali qidirish"],
+        ["🔎 Usta topish", "🆔 Kod orqali qidirish"],
         ["🪙 Tanga", "🎁 Taklif qilish"],
-        [" Usta bo'lish", "🌐 Tilni o'zgartirish"]
+        ["👨‍🔧 Usta bo'lish", "🌐 Tilni o'zgartirish"]
     ],
 
     "master_menu": [
         ["👤 Mening profilim", "📢 Bot yangiliklari"],
-        ["🎁 Taklif qilish", "🌐 Tilni o'zgartirish"]
+        ["🔎 Usta topish", "🆔 Kod orqali qidirish"],
+        ["🪙 Tanga", "🎁 Taklif qilish"],
+        ["🌐 Tilni o'zgartirish"]
     ],
 
     "welcome": "Assalomu alaykum! Tanlang:",
@@ -74,10 +75,7 @@ UZ_LT = {
     "enter_age": "Yoshingizni kiriting:",
     "enter_experience": "Necha yillik tajribangiz bor?",
     "not_master": "Siz usta emassiz",
-    "switch_to_customer": "👤 Mijoz rejimiga o'tish",
     "news_button": "📢 Bot yangiliklari",
-    "switch_to_master": "🛠 Usta rejimiga o'tish",
-
     "unregistered_success": "❌ Siz ro'yxatdan chiqdingiz.",
     "not_registered": "Siz hali usta sifatida ro'yxatdan o'tmagansiz.",
     "backup_error": "❌ Backup vaqtida xatolik yuz berdi:",
@@ -90,16 +88,17 @@ UZ_LT = {
 
 # ================= РУССКИЙ =================
 RU = {
-
     "customer_menu": [
-        [" Найти мастера", " Поиск по коду"],
+        ["🔎 Найти мастера", "🆔 Поиск по коду"],
         ["🪙 Монеты", "🎁 Пригласить"],
-        [" Стать мастером", "🌐 Изменить язык"]
+        ["👨‍🔧 Стать мастером", "🌐 Изменить язык"]
     ],
 
-   "master_menu": [
+    "master_menu": [
         ["👤 Мой профиль", "📢 Новости бота"],
-        ["🎁 Пригласить", "🌐 Изменить язык"]
+        ["🔎 Найти мастера", "🆔 Поиск по коду"],
+        ["🪙 Монеты", "🎁 Пригласить"],
+        ["🌐 Изменить язык"]
     ],
 
     "welcome": "Здравствуйте! Выберите:",
@@ -113,10 +112,7 @@ RU = {
     "enter_age": "Введите ваш возраст:",
     "enter_experience": "Сколько лет опыта?",
     "not_master": "Вы не мастер",
-    "switch_to_customer": "👤 Перейти в режим клиента",
     "news_button": "📢 Новости бота",
-    "switch_to_master": "🛠 Перейти в режим мастера",
-
     "unregistered_success": "❌ Вы вышли из списка мастеров.",
     "not_registered": "Вы ещё не зарегистрированы как мастер.",
     "backup_error": "❌ Ошибка при создании backup:",
