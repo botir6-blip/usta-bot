@@ -3035,16 +3035,21 @@ def get_user_level(points):
         return "👤 START"
 
 # ================= MAIN MENU BUILDER =================
-def build_main_menu(texts, is_master, mode=None):
-    is_master = bool(is_master)
+def build_main_menu(texts, is_master, mode):
 
     if is_master:
-        menu = [row[:] for row in texts["customer_menu"]]
-        menu += [row[:] for row in texts["master_menu"]]
-        mode = "master"
+        if not mode:
+            mode = "master"
     else:
-        menu = [row[:] for row in texts["customer_menu"]]
         mode = "customer"
+
+    if mode == "master":
+        menu = list(texts["master_menu"])
+        menu.append([texts["switch_to_customer"]])
+    else:
+        menu = list(texts["customer_menu"])
+        if is_master:
+            menu.append([texts["switch_to_master"]])
 
     return menu, mode
     
@@ -3570,6 +3575,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
