@@ -1287,10 +1287,8 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             is_master = c.fetchone()
             conn.close()
 
-            if is_master:
-                menu = texts["master_menu"]
-            else:
-                menu = texts["customer_menu"]
+            menu, mode = build_main_menu(texts, is_master, context.user_data.get("mode"))
+            context.user_data["mode"] = mode
 
             await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
             return
@@ -1496,7 +1494,6 @@ async def show_referral(update, context):
     menu, mode = build_main_menu(texts, is_master, context.user_data.get("mode"))
     context.user_data["mode"] = mode
 
-    # менюни қайта чиқарамиз
     await update.message.reply_text(
         texts["welcome"],
         reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
@@ -2688,13 +2685,12 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"⭐ Всего оценок: {total_ratings}\n"
         )
 
-    c.execute("SELECT 1 FROM masters WHERE telegram_id=%s AND is_active=TRUE", (update.effective_user.id,))
-    is_master = c.fetchone()
-
     menu, mode = build_main_menu(texts, is_master, context.user_data.get("mode"))
     context.user_data["mode"] = mode
 
-    await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
+    await message.reply_text(text)
+
+    await message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
     
 # ================= PROFILE =================
 async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -2743,6 +2739,7 @@ async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn.close()
 
         menu, mode = build_main_menu(texts, is_master, context.user_data.get("mode"))
+        context.user_data["mode"] = mode
 
         await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
         return
@@ -2786,19 +2783,27 @@ async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def unregister(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
     texts = get_texts(language)
-    
+
     user = update.effective_user.id
     print(f"Unregister called by user: {user}, language: {language}")
 
-    # delete_master funksiyasidan foydalanamiz
     success = delete_master(user)
     print(f"Delete master result: {success}")
-    
-    if success:
-        await update.message.reply_text(texts["unregistered_success"], reply_markup=ReplyKeyboardMarkup(texts["main_menu"], resize_keyboard=True))
-    else:
-        await update.message.reply_text(texts["not_registered"], reply_markup=ReplyKeyboardMarkup(texts["customer_menu"], resize_keyboard=True))
 
+    menu, mode = build_main_menu(texts, False, "customer")
+    context.user_data["mode"] = mode
+
+    if success:
+        await update.message.reply_text(
+            texts["unregistered_success"],
+            reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
+        )
+    else:
+        await update.message.reply_text(
+            texts["not_registered"],
+            reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
+        )
+        
 async def change_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Tilni o'zgartirish"""
     await update.message.reply_text(
@@ -3432,6 +3437,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
