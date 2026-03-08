@@ -1166,6 +1166,10 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if text in ["🪙 Танга", "🪙 Tanga", "🪙 Монеты", "💰 Балларим", "💰 Ballarim", "💰 Мои баллы"]:
         await show_points(update, context)
         return
+
+    if text in ["🏆 Топ тангалар", "🏆 Top tangalar", "🏆 Топ монет"]:
+        await show_top_coins(update, context)
+        return
     
     # =====================================================
     # 1️⃣ REGISTER FLOW
@@ -1604,6 +1608,51 @@ async def show_points(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text,
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
+
+async def show_top_coins(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    language = context.user_data.get("language", "uz_kr")
+
+    conn = get_connection()
+    c = conn.cursor()
+
+    c.execute("""
+        SELECT
+            COALESCE(NULLIF(first_name, ''), username, 'User') as display_name,
+            points
+        FROM users
+        WHERE COALESCE(points, 0) > 0
+        ORDER BY points DESC, created_at ASC
+        LIMIT 10
+    """)
+
+    rows = c.fetchall()
+    conn.close()
+
+    if language == "uz_kr":
+        title = "🏆 <b>ТОП 10 ТАНГА ЭГАЛАРИ</b>\n\n"
+        empty_text = "Ҳозирча рейтингда ҳеч ким йўқ."
+        suffix = "танга"
+    elif language == "uz_lt":
+        title = "🏆 <b>TOP 10 TANGA EGALARI</b>\n\n"
+        empty_text = "Hozircha reytingda hech kim yo'q."
+        suffix = "tanga"
+    else:
+        title = "🏆 <b>ТОП 10 ПО МОНЕТАМ</b>\n\n"
+        empty_text = "Пока в рейтинге никого нет."
+        suffix = "монет"
+
+    if not rows:
+        await update.message.reply_text(empty_text)
+        return
+
+    medals = ["🥇", "🥈", "🥉"]
+    text = title
+
+    for i, (name, points) in enumerate(rows, start=1):
+        icon = medals[i - 1] if i <= 3 else f"{i}."
+        text += f"{icon} {name} — {points} {suffix}\n"
+
+    await update.message.reply_text(text, parse_mode="HTML")
     
 def is_user_master(user_id):
     conn = get_connection()
@@ -3525,6 +3574,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
