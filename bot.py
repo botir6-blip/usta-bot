@@ -1360,13 +1360,15 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if text in ["📨 Буюртма қолдириш", "📨 Buyurtma qoldirish", "📨 Оставить заявку"]:
-        context.user_data["waiting_for_order"] = True
+        context.user_data["flow"] = "order"
+        context.user_data["step"] = "service"
+
         await update.message.reply_text(
-            "✏️ Муаммони қисқача ёзинг\n"
-            "(масалан: кран ишламай қолди)"
+            texts["choose_service"],
+            reply_markup=build_service_menu(language)
         )
         return
-        
+    
     if text in ["👤 Менинг профилим", "👤 Mening profilim", "👤 Мой профиль",
                 "Менинг профилим", "Mening profilim", "Мой профиль"]:
         await my_profile(update, context)
