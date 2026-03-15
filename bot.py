@@ -1201,10 +1201,36 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if step == "district":
             if text == "📍 Фақат вилоят бўйича қидириш":
                 context.user_data["district"] = None
+
+                if context.user_data.get("after_find_action") == "order":
+                    context.user_data["after_find_action"] = None
+                    context.user_data["waiting_for_order"] = True
+                    context.user_data["flow"] = None
+                    context.user_data["step"] = None
+
+                    await update.message.reply_text(
+                        "✏️ Муаммони қисқача ёзинг\n"
+                        "(масалан: кран ишламай қолди)"
+                    )
+                    return
+
                 await show_masters(update, context)
                 return
 
             await get_district(update, context)
+
+            if context.user_data.get("after_find_action") == "order":
+                context.user_data["after_find_action"] = None
+                context.user_data["waiting_for_order"] = True
+                context.user_data["flow"] = None
+                context.user_data["step"] = None
+
+                await update.message.reply_text(
+                    "✏️ Муаммони қисқача ёзинг\n"
+                    "(масалан: кран ишламай қолди)"
+                )
+                return
+
             return
 
     # ================= CODE SEARCH =================
@@ -1360,8 +1386,9 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if text in ["📨 Буюртма қолдириш", "📨 Buyurtma qoldirish", "📨 Оставить заявку"]:
-        context.user_data["flow"] = "order"
+        context.user_data["flow"] = "find"
         context.user_data["step"] = "service"
+        context.user_data["after_find_action"] = "order"
 
         await update.message.reply_text(
             texts["choose_service"],
