@@ -1489,8 +1489,8 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if text in ["🏆 Топ тангалар", "🏆 Top tangalar", "🏆 Топ монет"]:
-    await show_top_coins(update, context)
-    return
+        await show_top_coins(update, context)
+        return
 
     if text in ["🎁 Таклиф қилиш", "🎁 Taklif qilish", "🎁 Пригласить"]:
         await show_referral(update, context)
