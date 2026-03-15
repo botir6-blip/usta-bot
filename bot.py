@@ -1176,21 +1176,38 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if flow == "find":
 
         if step == "service":
-            services = SERVICES.get(language, SERVICES["uz_kr"])
-            if text in services:
-                context.user_data["service"] = map_service_to_uzkr(text)
-                context.user_data["step"] = "region"
+        services = SERVICES.get(language, SERVICES["uz_kr"])
+        if text in services:
+            context.user_data["service"] = map_service_to_uzkr(text)
+
+            if context.user_data.get("after_find_action") == "order":
+                context.user_data["step"] = "location"
+
+                location_button = KeyboardButton("📍 Локация юбориш", request_location=True)
+                back_button = KeyboardButton(texts["back"])
 
                 await update.message.reply_text(
-                    texts["choose_region"],
-                    reply_markup=build_region_menu(
-                        context.user_data["service"],
-                        language,
-                        hide_empty=True
+                    "📍 Илтимос, локациянгизни юборинг:",
+                    reply_markup=ReplyKeyboardMarkup(
+                        [[location_button], [back_button]],
+                        resize_keyboard=True,
+                        one_time_keyboard=True
                     )
                 )
                 return
 
+            context.user_data["step"] = "region"
+
+            await update.message.reply_text(
+                texts["choose_region"],
+                reply_markup=build_region_menu(
+                    context.user_data["service"],
+                    language,
+                    hide_empty=True
+                )
+            )
+            return
+        
         if step == "region":
             regions = REGIONS.get(language, REGIONS["uz_kr"])
             if text in regions:
@@ -1426,7 +1443,15 @@ async def location_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     district = data.get("address", {}).get("county")
 
-    await update.message.reply_text(f"📍 Аниқланган туман: {district}")
+    context.user_data["district"] = district
+    context.user_data["waiting_for_order"] = True
+    context.user_data["step"] = None
+    context.user_data["flow"] = None
+
+    await update.message.reply_text(
+        "✏️ Муаммони қисқача ёзинг\n"
+        "(масалан: кран ишламай қолди)"
+    )
            
 async def show_referral(update, context):
     user_id = update.effective_user.id
