@@ -1429,10 +1429,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
 async def location_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message:
-        return
-
-    if not update.message.location:
+    if not update.message or not update.message.location:
         return
 
     lat = update.message.location.latitude
@@ -1440,7 +1437,13 @@ async def location_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     url = f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json"
     headers = {"User-Agent": "usta-bot/1.0"}
-    data = requests.get(url, headers=headers).json()
+
+    try:
+        data = requests.get(url, headers=headers, timeout=10).json()
+    except Exception as e:
+        print("LOCATION ERROR:", e)
+        await update.message.reply_text("❌ Локацияни аниқлаб бўлмади.")
+        return
 
     address = data.get("address", {})
 
@@ -1463,12 +1466,23 @@ async def location_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     region = find_region(raw_region)
     district = find_district(region, raw_district)
 
+    print("RAW REGION:", raw_region)
+    print("RAW DISTRICT:", raw_district)
+    print("MATCHED REGION:", region)
+    print("MATCHED DISTRICT:", district)
+
+    if not region or not district:
+        await update.message.reply_text(
+            "❌ Локациядан туманни аниқлаб бўлмади.\n"
+            "Илтимос, вилоят ва туманни қўлда танланг."
+        )
+        return
+
     context.user_data["region"] = region
-    context.user_data["district"] = district
     context.user_data["district"] = district
     context.user_data["waiting_for_order"] = True
     context.user_data["step"] = None
-    context.user_data["flow"] = None
+    context.user_data["flow"] = "find"
 
     await update.message.reply_text(
         "✏️ Муаммони қисқача ёзинг\n"
