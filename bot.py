@@ -1,6 +1,7 @@
 import psycopg2
 import os
 import requests
+import csv
 from location_utils import find_region, find_district
 from services import SERVICES
 from regions import REGIONS
@@ -186,6 +187,54 @@ def init_db():
     except Exception as e:
         conn.rollback()
         print("INIT_DB ERROR:", e)
+
+    finally:
+        c.close()
+        conn.close()
+
+def import_quiz_if_empty():
+    conn = get_connection()
+    c = conn.cursor()
+
+    try:
+        # аввал неча та савол борлигини текширамиз
+        c.execute("SELECT COUNT(*) FROM quiz_questions")
+        count = c.fetchone()[0]
+
+        if count > 0:
+            print(f"quiz_questions аллақачон тўлган: {count} та")
+            conn.close()
+            return
+
+        print("quiz_questions бўш, CSV дан импорт бошланди...")
+
+        with open("quiz_questions_1000.csv", "r", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+
+            inserted = 0
+            for row in reader:
+                c.execute("""
+                    INSERT INTO quiz_questions
+                    (question, option_a, option_b, option_c, option_d, correct, difficulty, category)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    row["question"],
+                    row["option_a"],
+                    row["option_b"],
+                    row["option_c"],
+                    row["option_d"],
+                    int(row["correct"]),
+                    row["difficulty"],
+                    row["category"]
+                ))
+                inserted += 1
+
+        conn.commit()
+        print(f"quiz_questions импорт тугади: {inserted} та савол юкланди")
+
+    except Exception as e:
+        conn.rollback()
+        print("QUIZ IMPORT ERROR:", e)
 
     finally:
         c.close()
@@ -3783,6 +3832,7 @@ async def activestats(update, context):
 def main():
     print("PRO VERSION STARTING...")
     init_db()
+    import_quiz_if_empty()
     ensure_code_column()
 
     app = ApplicationBuilder().token(TOKEN).build()
