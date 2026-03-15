@@ -1488,6 +1488,10 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await start_game(update, context)
         return
 
+    if text in ["🏆 Топ тангалар", "🏆 Top tangalar", "🏆 Топ монет"]:
+    await show_top_coins(update, context)
+    return
+
     if text in ["🎁 Таклиф қилиш", "🎁 Taklif qilish", "🎁 Пригласить"]:
         await show_referral(update, context)
         return
@@ -3311,9 +3315,9 @@ def get_user_level(points):
 # ================= MAIN MENU BUILDER =================
 def build_main_menu(texts, is_master, user_id=None, language="uz_kr", mode=None):
     if is_master:
-        return [row[:] for row in texts["master_menu"]], "master"
-
-    menu = [row[:] for row in texts["customer_menu"]]
+        menu = [row[:] for row in texts["master_menu"]]
+    else:
+        menu = [row[:] for row in texts["customer_menu"]]
 
     if user_id:
         points, lifeline = get_user_stats(user_id)
@@ -3328,7 +3332,7 @@ def build_main_menu(texts, is_master, user_id=None, language="uz_kr", mode=None)
                     else:
                         row[i] = f"🎮 Игра (🆘 {lifeline})"
 
-    return menu, "customer"
+    return menu, "master" if is_master else "customer"
     
 async def show_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
