@@ -1176,37 +1176,37 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if flow == "find":
 
         if step == "service":
-        services = SERVICES.get(language, SERVICES["uz_kr"])
-        if text in services:
-            context.user_data["service"] = map_service_to_uzkr(text)
+            services = SERVICES.get(language, SERVICES["uz_kr"])
+            if text in services:
+                context.user_data["service"] = map_service_to_uzkr(text)
 
-            if context.user_data.get("after_find_action") == "order":
-                context.user_data["step"] = "location"
+                if context.user_data.get("after_find_action") == "order":
+                    context.user_data["step"] = "location"
 
-                location_button = KeyboardButton("📍 Локация юбориш", request_location=True)
-                back_button = KeyboardButton(texts["back"])
+                    location_button = KeyboardButton("📍 Локация юбориш", request_location=True)
+                    back_button = KeyboardButton(texts["back"])
+
+                    await update.message.reply_text(
+                        "📍 Илтимос, локациянгизни юборинг:",
+                        reply_markup=ReplyKeyboardMarkup(
+                            [[location_button], [back_button]],
+                            resize_keyboard=True,
+                            one_time_keyboard=True
+                        )
+                    )
+                    return
+
+                context.user_data["step"] = "region"
 
                 await update.message.reply_text(
-                    "📍 Илтимос, локациянгизни юборинг:",
-                    reply_markup=ReplyKeyboardMarkup(
-                        [[location_button], [back_button]],
-                        resize_keyboard=True,
-                        one_time_keyboard=True
+                    texts["choose_region"],
+                    reply_markup=build_region_menu(
+                        context.user_data["service"],
+                        language,
+                        hide_empty=True
                     )
                 )
                 return
-
-            context.user_data["step"] = "region"
-
-            await update.message.reply_text(
-                texts["choose_region"],
-                reply_markup=build_region_menu(
-                    context.user_data["service"],
-                    language,
-                    hide_empty=True
-                )
-            )
-            return
         
         if step == "region":
             regions = REGIONS.get(language, REGIONS["uz_kr"])
