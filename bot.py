@@ -1829,32 +1829,130 @@ async def start_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     language = context.user_data.get("language", "uz_kr")
 
-    points, lifeline = get_user_stats(user_id)
+    questions = get_mixed_quiz_questions()
+
+    if not questions or len(questions) < 10:
+        if language == "uz_kr":
+            await update.message.reply_text("❌ Базада етарли савол йўқ.")
+        elif language == "uz_lt":
+            await update.message.reply_text("❌ Bazada yetarli savol yo'q.")
+        else:
+            await update.message.reply_text("❌ В базе недостаточно вопросов.")
+        return
+
+    context.user_data["game_questions"] = questions
+    context.user_data["game_index"] = 0
+    context.user_data["game_score"] = 0
+    context.user_data["used_5050_current"] = False
+    context.user_data["visible_options"] = None
+
+    await send_quiz_question(update, context)
+
+async def send_quiz_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.callback_query:
+        target_message = update.callback_query.message
+        user_id = update.callback_query.from_user.id
+    else:
+        target_message = update.message
+        user_id = update.effective_user.id
+
+    language = context.user_data.get("language", "uz_kr")
+    questions = context.user_data.get("game_questions", [])
+    index = context.user_data.get("game_index", 0)
+
+    if index >= len(questions):
+        score = context.user_data.get("game_score", 0)
+        total_reward = score * 50
+
+        if language == "uz_kr":
+            text = (
+                f"🏁 Ўйин тугади!\n\n"
+                f"✅ Тўғри жавоблар: {score} / {len(questions)}\n"
+                f"🪙 Жами мукофот: {total_reward} танга"
+            )
+        elif language == "uz_lt":
+            text = (
+                f"🏁 O'yin tugadi!\n\n"
+                f"✅ To'g'ri javoblar: {score} / {len(questions)}\n"
+                f"🪙 Jami mukofot: {total_reward} tanga"
+            )
+        else:
+            text = (
+                f"🏁 Игра окончена!\n\n"
+                f"✅ Правильных ответов: {score} / {len(questions)}\n"
+                f"🪙 Общая награда: {total_reward} монет"
+            )
+
+        await target_message.reply_text(text)
+
+        texts = get_texts(language)
+        is_master = is_user_master(user_id)
+        menu, mode = build_main_menu(
+            texts,
+            is_master,
+            user_id=user_id,
+            language=language,
+            mode=context.user_data.get("mode")
+        )
+        context.user_data["mode"] = mode
+
+        await target_message.reply_text(
+            texts["welcome"],
+            reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
+        )
+        return
+
+    q = questions[index]
+    lifeline = get_user_lifeline(user_id)
+    option_letters = ["A", "B", "C", "D"]
 
     if language == "uz_kr":
-        text = (
-            "🎮 <b>Савол ўйини</b>\n\n"
-            f"🆘 Сизнинг 50/50: {lifeline}\n"
-            f"🪙 Сизнинг тангангиз: {points}\n\n"
-            "Тез кунда биринчи саволлар қўшилади."
-        )
+        diff_map = {"easy": "осон", "medium": "ўрта", "hard": "қийин"}
     elif language == "uz_lt":
-        text = (
-            "🎮 <b>Savol o'yini</b>\n\n"
-            f"🆘 Sizning 50/50: {lifeline}\n"
-            f"🪙 Sizning tangangiz: {points}\n\n"
-            "Tez kunda birinchi savollar qo'shiladi."
-        )
+        diff_map = {"easy": "oson", "medium": "o'rta", "hard": "qiyin"}
     else:
-        text = (
-            "🎮 <b>Игра вопросов</b>\n\n"
-            f"🆘 Ваши 50/50: {lifeline}\n"
-            f"🪙 Ваши монеты: {points}\n\n"
-            "Скоро будут добавлены первые вопросы."
+        diff_map = {"easy": "легкий", "medium": "средний", "hard": "сложный"}
+
+    visible_options = context.user_data.get("visible_options")
+    if visible_options is None:
+        visible_options = [0, 1, 2, 3]
+
+    text = (
+        f"❓ Савол {index + 1} / {len(questions)}\n"
+        f"📘 {q['category']} | {diff_map.get(q['difficulty'], q['difficulty'])}\n\n"
+        f"{q['question']}\n\n"
+    )
+
+    for i in visible_options:
+        text += f"{option_letters[i]}) {q['options'][i]}\n"
+
+    keyboard = []
+    row = []
+
+    for i in visible_options:
+        row.append(
+            InlineKeyboardButton(
+                option_letters[i],
+                callback_data=f"quiz_answer_{i}"
+            )
         )
+        if len(row) == 2:
+            keyboard.append(row)
+            row = []
 
-    await update.message.reply_text(text, parse_mode="HTML")
+    if row:
+        keyboard.append(row)
 
+    if lifeline > 0 and not context.user_data.get("used_5050_current", False):
+        keyboard.append([
+            InlineKeyboardButton(f"🆘 50/50 ({lifeline})", callback_data="quiz_5050")
+        ])
+
+    await target_message.reply_text(
+        text,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    
 async def show_top_coins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
     user_id = update.effective_user.id
@@ -2568,6 +2666,66 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat_id=ADMIN_ID,
             text=f"💰 Танга сотиш сўрови\n\nUser ID: {user_id}\n1000 танга = 10000 сўм"
         )
+
+    elif data == "quiz_5050":
+        user_id = query.from_user.id
+
+        if context.user_data.get("used_5050_current", False):
+            await query.message.reply_text("❌ Бу саволда 50/50 аллақачон ишлатилган.")
+            return
+
+        success = use_fifty_fifty(user_id)
+
+        if not success:
+            await query.message.reply_text("❌ Сизда 50/50 ёрдам қолмаган.")
+            return
+
+        questions = context.user_data.get("game_questions", [])
+        index = context.user_data.get("game_index", 0)
+
+        if index >= len(questions):
+            return
+
+        q = questions[index]
+        correct = q["correct"]
+
+        wrong_options = [i for i in [0, 1, 2, 3] if i != correct]
+        keep_wrong = random.choice(wrong_options)
+
+        context.user_data["visible_options"] = sorted([correct, keep_wrong])
+        context.user_data["used_5050_current"] = True
+
+        await query.message.reply_text("🆘 50/50 ишлатилди.")
+        await send_quiz_question(update, context)
+        return
+
+    elif data.startswith("quiz_answer_"):
+        selected = int(data.split("_")[-1])
+
+        questions = context.user_data.get("game_questions", [])
+        index = context.user_data.get("game_index", 0)
+
+        if index >= len(questions):
+            return
+
+        q = questions[index]
+        correct = q["correct"]
+        user_id = query.from_user.id
+
+        if selected == correct:
+            add_user_points(user_id, 50)
+            context.user_data["game_score"] = context.user_data.get("game_score", 0) + 1
+            await query.message.reply_text("✅ Тўғри! +50 танга")
+        else:
+            correct_text = q["options"][correct]
+            await query.message.reply_text(f"❌ Нотўғри. Тўғри жавоб: {correct_text}")
+
+        context.user_data["game_index"] = index + 1
+        context.user_data["used_5050_current"] = False
+        context.user_data["visible_options"] = None
+
+        await send_quiz_question(update, context)
+        return
     
     # ================= COMPLETE ORDER =================
     elif data.startswith("complete_"):
@@ -3351,6 +3509,103 @@ def get_user_stats(user_id):
         return row[0], row[1]
 
     return 0, 0
+
+def get_quiz_questions_by_difficulty(difficulty, limit):
+    conn = get_connection()
+    c = conn.cursor()
+
+    c.execute("""
+        SELECT
+            id,
+            question,
+            option_a,
+            option_b,
+            option_c,
+            option_d,
+            correct,
+            difficulty,
+            category
+        FROM quiz_questions
+        WHERE difficulty = %s
+        ORDER BY RANDOM()
+        LIMIT %s
+    """, (difficulty, limit))
+
+    rows = c.fetchall()
+    conn.close()
+
+    questions = []
+    for row in rows:
+        questions.append({
+            "id": row[0],
+            "question": row[1],
+            "options": [row[2], row[3], row[4], row[5]],
+            "correct": row[6],
+            "difficulty": row[7],
+            "category": row[8]
+        })
+
+    return questions
+
+
+def get_mixed_quiz_questions():
+    easy = get_quiz_questions_by_difficulty("easy", 3)
+    medium = get_quiz_questions_by_difficulty("medium", 4)
+    hard = get_quiz_questions_by_difficulty("hard", 3)
+
+    questions = easy + medium + hard
+    random.shuffle(questions)
+
+    return questions
+
+
+def get_user_lifeline(user_id):
+    conn = get_connection()
+    c = conn.cursor()
+
+    c.execute("""
+        SELECT COALESCE(lifeline_5050, 0)
+        FROM users
+        WHERE telegram_id=%s
+    """, (user_id,))
+
+    row = c.fetchone()
+    conn.close()
+
+    return row[0] if row else 0
+
+
+def use_fifty_fifty(user_id):
+    conn = get_connection()
+    c = conn.cursor()
+
+    c.execute("""
+        UPDATE users
+        SET lifeline_5050 = lifeline_5050 - 1
+        WHERE telegram_id=%s
+          AND COALESCE(lifeline_5050, 0) > 0
+        RETURNING lifeline_5050
+    """, (user_id,))
+
+    row = c.fetchone()
+    conn.commit()
+    conn.close()
+
+    return row is not None
+
+
+def add_user_points(user_id, amount):
+    conn = get_connection()
+    c = conn.cursor()
+
+    c.execute("""
+        UPDATE users
+        SET points = COALESCE(points, 0) + %s
+        WHERE telegram_id=%s
+    """, (amount, user_id))
+
+    conn.commit()
+    conn.close()
 
 def can_rate(user_id, master_id):
     conn = get_connection()
