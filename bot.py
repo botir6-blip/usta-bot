@@ -77,7 +77,8 @@ def init_db():
         code VARCHAR(4) UNIQUE
     )
     """)
-
+    print("masters table ok")
+    
     c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS vip BOOLEAN DEFAULT FALSE")
     c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS vip_until TIMESTAMP")
     c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS service_description VARCHAR(300)")
@@ -86,7 +87,8 @@ def init_db():
     c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE")
     c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0")
-       
+    print("masters alter ok")
+    
     # ====== BAHOLAR ======
     c.execute("""
     CREATE TABLE IF NOT EXISTS ratings (
@@ -112,12 +114,16 @@ def init_db():
         message_count INTEGER DEFAULT 0
     )
     """)
+    print("users table ok")
 
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0")
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by BIGINT")
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS language TEXT")
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS lifeline_5050 INTEGER DEFAULT 0")
+
+    conn.commit()
+    print("INIT_DB COMMIT OK")
     
     # ====== BUYURTMALAR ======
     c.execute("""
