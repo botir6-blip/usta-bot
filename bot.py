@@ -1263,6 +1263,22 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["waiting_for_code"] = False
         return
 
+    # ================= ORDER TEXT =================
+    if context.user_data.get("waiting_for_order"):
+        problem = text.strip()
+
+        if len(problem) < 5:
+            await update.message.reply_text("❌ Муаммони тўлиқроқ ёзинг.")
+            return
+
+        context.user_data["waiting_for_order"] = False
+        context.user_data["order_text"] = problem
+
+        await update.message.reply_text(
+            f"✅ Буюртмангиз қабул қилинди:\n\n📝 {problem}"
+        )
+        return
+    
     # ================= MAIN MENU =================
     if text in ["🔎 Уста топиш", "🔎 Usta topish", "🔎 Найти мастера",
                 "Уста топиш", "Usta topish", "Найти мастера"]:
@@ -1274,12 +1290,11 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await start_register(update, context)
         return
 
-    if text in ["🆔 Код орқали қидириш", "🆔 Kod orqali qidirish", "🆔 Поиск по коду",
-                "🔎 Код орқали қидириш", "🔎 Kod orqali qidirish", "🔎 Поиск по коду"]:
-        context.user_data["waiting_for_code"] = True
-        await update.message.reply_text("🆔 Уста кодини киритинг (4 рақам):")
+    if text in ["📨 Буюртма қолдириш", "📨 Buyurtma qoldirish", "📨 Оставить заявку"]:
+        context.user_data["waiting_for_order"] = True
+        await update.message.reply_text("📝 Муаммони ёзинг:")
         return
-
+        
     if text in ["👤 Менинг профилим", "👤 Mening profilim", "👤 Мой профиль",
                 "Менинг профилим", "Mening profilim", "Мой профиль"]:
         await my_profile(update, context)
