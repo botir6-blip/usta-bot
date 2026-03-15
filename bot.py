@@ -151,6 +151,22 @@ def init_db():
         c.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP")
         print("orders ok")
 
+        # ====== QUIZ QUESTIONS ======
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS quiz_questions(
+            id SERIAL PRIMARY KEY,
+            question TEXT,
+            option_a TEXT,
+            option_b TEXT,
+            option_c TEXT,
+            option_d TEXT,
+            correct INTEGER,
+            difficulty TEXT,
+            category TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+
         # ====== POINT TRADES ======
         c.execute("""
         CREATE TABLE IF NOT EXISTS point_trades(
