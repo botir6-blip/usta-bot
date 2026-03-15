@@ -117,7 +117,8 @@ def init_db():
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0")
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by BIGINT")
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS language TEXT")
-
+    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS lifeline_5050 INTEGER DEFAULT 0")
+    
     # ====== BUYURTMALAR ======
     c.execute("""
     CREATE TABLE IF NOT EXISTS orders(
@@ -578,7 +579,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
                     c.execute("""
                         UPDATE users
-                        SET points = COALESCE(points,0) + %s
+                        SET points = COALESCE(points,0) + %s,
+                            lifeline_5050 = COALESCE(lifeline_5050,0) + 1
                         WHERE telegram_id=%s
                     """, (bonus, ref_id))
 
