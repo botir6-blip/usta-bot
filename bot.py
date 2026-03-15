@@ -61,105 +61,119 @@ def init_db():
     conn = get_connection()
     c = conn.cursor()
 
-    # ====== USTALAR ======
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS masters(id SERIAL PRIMARY KEY,
-        telegram_id BIGINT UNIQUE,
-        name TEXT,
-        phone TEXT,
-        service TEXT,
-        region TEXT,
-        district TEXT,
-        age TEXT,
-        experience TEXT,
-        education TEXT,
-        skills TEXT,
-        code VARCHAR(4) UNIQUE
-    )
-    """)
-    print("masters table ok")
-    
-    c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS vip BOOLEAN DEFAULT FALSE")
-    c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS vip_until TIMESTAMP")
-    c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS service_description VARCHAR(300)")
-    c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS is_busy BOOLEAN DEFAULT FALSE")
-    c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS busy_until DATE")
-    c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE")
-    c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-    c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0")
-    print("masters alter ok")
-    
-    # ====== BAHOLAR ======
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS ratings (
-        id SERIAL PRIMARY KEY,
-        master_id INTEGER,
-        user_id BIGINT,
-        rating INTEGER
-    )
-    """)
-    c.execute("ALTER TABLE ratings ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-    c.execute("ALTER TABLE ratings ADD COLUMN IF NOT EXISTS comment TEXT")
-    c.execute("""CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_rating ON ratings(master_id, user_id)""")
+    try:
+        print("INIT_DB START")
 
-    # ====== FOYDALANUVCHILAR ======
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS users(
-        telegram_id BIGINT PRIMARY KEY,
-        username TEXT,
-        first_name TEXT,
-        last_name TEXT,
-        join_date TIMESTAMP,
-        last_active TIMESTAMP,
-        message_count INTEGER DEFAULT 0
-    )
-    """)
-    print("users table ok")
+        # ====== USTALAR ======
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS masters(
+            id SERIAL PRIMARY KEY,
+            telegram_id BIGINT UNIQUE,
+            name TEXT,
+            phone TEXT,
+            service TEXT,
+            region TEXT,
+            district TEXT,
+            age TEXT,
+            experience TEXT,
+            education TEXT,
+            skills TEXT,
+            code VARCHAR(4) UNIQUE
+        )
+        """)
+        print("masters table ok")
 
-    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0")
-    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by BIGINT")
-    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS language TEXT")
-    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS lifeline_5050 INTEGER DEFAULT 0")
+        c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS vip BOOLEAN DEFAULT FALSE")
+        c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS vip_until TIMESTAMP")
+        c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS service_description VARCHAR(300)")
+        c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS is_busy BOOLEAN DEFAULT FALSE")
+        c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS busy_until DATE")
+        c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE")
+        c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+        c.execute("ALTER TABLE masters ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0")
+        c.execute("ALTER TABLE masters ALTER COLUMN telegram_id TYPE BIGINT")
+        print("masters alter ok")
 
-    conn.commit()
-    print("INIT_DB COMMIT OK")
-    
-    # ====== BUYURTMALAR ======
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS orders(
-        id SERIAL PRIMARY KEY,
-        user_id BIGINT,
-        master_id INTEGER,
-        status TEXT DEFAULT 'new',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
+        # ====== BAHOLAR ======
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS ratings (
+            id SERIAL PRIMARY KEY,
+            master_id INTEGER,
+            user_id BIGINT,
+            rating INTEGER
+        )
+        """)
+        c.execute("ALTER TABLE ratings ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+        c.execute("ALTER TABLE ratings ADD COLUMN IF NOT EXISTS comment TEXT")
+        c.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_rating
+            ON ratings(master_id, user_id)
+        """)
+        print("ratings ok")
 
-    c.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS service TEXT")
-    c.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS region TEXT")
-    c.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS district TEXT")
-    c.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS problem TEXT")
-    c.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS accepted_at TIMESTAMP")
-    c.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP")
-    
-    c.execute("ALTER TABLE masters ALTER COLUMN telegram_id TYPE BIGINT")
-    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT")
-    
-    # ====== POINT TRADES ======
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS point_trades(
-        id SERIAL PRIMARY KEY,
-        seller_id BIGINT,
-        buyer_id BIGINT,
-        points INTEGER,
-        status TEXT DEFAULT 'open',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
+        # ====== FOYDALANUVCHILAR ======
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS users(
+            telegram_id BIGINT PRIMARY KEY,
+            username TEXT,
+            first_name TEXT,
+            last_name TEXT,
+            join_date TIMESTAMP,
+            last_active TIMESTAMP,
+            message_count INTEGER DEFAULT 0
+        )
+        """)
+        print("users table ok")
 
-    conn.commit()
-    conn.close()
+        c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+        c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0")
+        c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by BIGINT")
+        c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS language TEXT")
+        c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS lifeline_5050 INTEGER DEFAULT 0")
+        c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT")
+        print("users alter ok")
+
+        # ====== BUYURTMALAR ======
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS orders(
+            id SERIAL PRIMARY KEY,
+            user_id BIGINT,
+            master_id INTEGER,
+            status TEXT DEFAULT 'new',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+        c.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS service TEXT")
+        c.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS region TEXT")
+        c.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS district TEXT")
+        c.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS problem TEXT")
+        c.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS accepted_at TIMESTAMP")
+        c.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP")
+        print("orders ok")
+
+        # ====== POINT TRADES ======
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS point_trades(
+            id SERIAL PRIMARY KEY,
+            seller_id BIGINT,
+            buyer_id BIGINT,
+            points INTEGER,
+            status TEXT DEFAULT 'open',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+        print("point_trades ok")
+
+        conn.commit()
+        print("INIT_DB COMMIT OK")
+
+    except Exception as e:
+        conn.rollback()
+        print("INIT_DB ERROR:", e)
+
+    finally:
+        c.close()
+        conn.close()
 
 # ================= USTA QO‘SHISH =================
 def add_master(telegram_id, name, phone, service, region, district, age=None, experience=None, service_description=None):
