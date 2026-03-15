@@ -1317,6 +1317,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         service = context.user_data.get("service")
+        region = context.user_data.get("region")
         district = context.user_data.get("district")
         customer_name = update.effective_user.first_name or "Мижоз"
         customer_id = update.effective_user.id
@@ -1335,22 +1336,34 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             SELECT telegram_id, name, phone, vip
             FROM masters
             WHERE service=%s
+              AND region=%s
               AND district=%s
               AND is_active=TRUE
               AND telegram_id IS NOT NULL
-        """, (service, district))
+        """, (service, region, district))
 
         matched_masters = c.fetchall()
-        conn.close()
+
+        # Агар аниқ туманда топилмаса, вилоят бўйича қидирамиз
+        if not matched_masters:
+            c.execute("""
+                SELECT telegram_id, name, phone, vip
+                FROM masters
+                WHERE service=%s
+                  AND region=%s
+                  AND is_active=TRUE
+                  AND telegram_id IS NOT NULL
+            """, (service, region))
+            matched_masters = c.fetchall()
 
         context.user_data["waiting_for_order"] = False
 
         if not matched_masters:
             await update.message.reply_text(
-                "❌ Бу хизмат ва туманда ҳозирча фаол уста топилмади."
+                "❌ Бу хизмат ва вилоятда ҳозирча фаол уста топилмади."
             )
             return
-
+            
         order_message = f"""📢 <b>Янги буюртма</b>
 
     👤 Мижоз: {customer_name}
