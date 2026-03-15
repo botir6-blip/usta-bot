@@ -516,7 +516,13 @@ async def choose_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn.commit()
         conn.close()
 
-        menu, mode = build_main_menu(texts, is_master, context.user_data.get("mode"))
+        menu, mode = build_main_menu(
+            texts,
+            is_master,
+            user_id=update.effective_user.id,
+            language=language,
+            mode=context.user_data.get("mode")
+        )
         context.user_data["mode"] = mode
 
         await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
@@ -627,7 +633,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     is_master = c.fetchone() is not None
     conn.close()
 
-    menu, mode = build_main_menu(texts, is_master, context.user_data.get("mode"))
+    menu, mode = build_main_menu(
+        texts,
+        is_master,
+        user_id=user_id,
+        language=language,
+        mode=context.user_data.get("mode")
+    )
 
     context.user_data["mode"] = mode
         
@@ -1119,22 +1131,19 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         is_master = c.fetchone() is not None
         conn.close()
 
-        menu, mode = build_main_menu(texts, is_master, context.user_data.get("mode"))
+        menu, mode = build_main_menu(
+            texts,
+            is_master,
+            user_id=user_id,
+            language=language,
+            mode=context.user_data.get("mode")
+        )
         context.user_data["mode"] = mode
 
         await update.message.reply_text(
             texts["welcome"],
             reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
         )
-        return
-
-    # ================= MAIN SIMPLE BUTTONS =================
-    if text in ["🪙 Танга", "🪙 Tanga", "🪙 Монеты", "💰 Балларим", "💰 Ballarim", "💰 Мои баллы"]:
-        await show_points(update, context)
-        return
-
-    if text in ["🏆 Топ тангалар", "🏆 Top tangalar", "🏆 Топ монет"]:
-        await show_top_coins(update, context)
         return
 
     # ================= REGISTER FLOW =================
@@ -1475,6 +1484,10 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await my_profile(update, context)
         return
 
+    if text.startswith("🎮 Ўйин") or text.startswith("🎮 O'yin") or text.startswith("🎮 Игра"):
+        await start_game(update, context)
+        return
+
     if text in ["🎁 Таклиф қилиш", "🎁 Taklif qilish", "🎁 Пригласить"]:
         await show_referral(update, context)
         return
@@ -1743,11 +1756,50 @@ async def show_points(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
+async def start_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    language = context.user_data.get("language", "uz_kr")
+
+    points, lifeline = get_user_stats(user_id)
+
+    if language == "uz_kr":
+        text = (
+            "🎮 <b>Савол ўйини</b>\n\n"
+            f"🆘 Сизнинг 50/50: {lifeline}\n"
+            f"🪙 Сизнинг тангангиз: {points}\n\n"
+            "Тез кунда биринчи саволлар қўшилади."
+        )
+    elif language == "uz_lt":
+        text = (
+            "🎮 <b>Savol o'yini</b>\n\n"
+            f"🆘 Sizning 50/50: {lifeline}\n"
+            f"🪙 Sizning tangangiz: {points}\n\n"
+            "Tez kunda birinchi savollar qo'shiladi."
+        )
+    else:
+        text = (
+            "🎮 <b>Игра вопросов</b>\n\n"
+            f"🆘 Ваши 50/50: {lifeline}\n"
+            f"🪙 Ваши монеты: {points}\n\n"
+            "Скоро будут добавлены первые вопросы."
+        )
+
+    await update.message.reply_text(text, parse_mode="HTML")
+
 async def show_top_coins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = context.user_data.get("language", "uz_kr")
+    user_id = update.effective_user.id
 
     conn = get_connection()
     c = conn.cursor()
+
+    c.execute("""
+        SELECT COALESCE(points, 0)
+        FROM users
+        WHERE telegram_id = %s
+    """, (user_id,))
+    my_row = c.fetchone()
+    my_points = my_row[0] if my_row else 0
 
     c.execute("""
         SELECT
@@ -1764,23 +1816,26 @@ async def show_top_coins(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if language == "uz_kr":
         title = "🏆 <b>ТОП 10 ТАНГА ЭГАЛАРИ</b>\n\n"
+        my_text = f"🪙 Сизда: {my_points} танга\n\n"
         empty_text = "Ҳозирча рейтингда ҳеч ким йўқ."
         suffix = "танга"
     elif language == "uz_lt":
         title = "🏆 <b>TOP 10 TANGA EGALARI</b>\n\n"
+        my_text = f"🪙 Sizda: {my_points} tanga\n\n"
         empty_text = "Hozircha reytingda hech kim yo'q."
         suffix = "tanga"
     else:
         title = "🏆 <b>ТОП 10 ПО МОНЕТАМ</b>\n\n"
+        my_text = f"🪙 У вас: {my_points} монет\n\n"
         empty_text = "Пока в рейтинге никого нет."
         suffix = "монет"
 
     if not rows:
-        await update.message.reply_text(empty_text)
+        await update.message.reply_text(my_text + empty_text, parse_mode="HTML")
         return
 
     medals = ["🥇", "🥈", "🥉"]
-    text = title
+    text = title + my_text
 
     for i, (name, points) in enumerate(rows, start=1):
         icon = medals[i - 1] if i <= 3 else f"{i}."
@@ -2947,7 +3002,13 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"⭐ Всего оценок: {total_ratings}\n"
         )
 
-    menu, mode = build_main_menu(texts, is_master, context.user_data.get("mode"))
+    menu, mode = build_main_menu(
+        texts,
+        is_master,
+        user_id=update.effective_user.id,
+        language=language,
+        mode=context.user_data.get("mode")
+    )
     context.user_data["mode"] = mode
 
     await message.reply_text(text)
@@ -3077,7 +3138,13 @@ async def unregister(update: Update, context: ContextTypes.DEFAULT_TYPE):
     success = delete_master(user)
     print(f"Delete master result: {success}")
 
-    menu, mode = build_main_menu(texts, False, "customer")
+    menu, mode = build_main_menu(
+        texts,
+        False,
+        user_id=update.effective_user.id,
+        language=language,
+        mode="customer"
+    )
     context.user_data["mode"] = mode
 
     if success:
@@ -3198,6 +3265,23 @@ async def backup_database(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         
 # ================= DB HELPERS =================
+def get_user_stats(user_id):
+    conn = get_connection()
+    c = conn.cursor()
+
+    c.execute("""
+        SELECT COALESCE(points,0), COALESCE(lifeline_5050,0)
+        FROM users
+        WHERE telegram_id=%s
+    """, (user_id,))
+
+    row = c.fetchone()
+    conn.close()
+
+    if row:
+        return row[0], row[1]
+
+    return 0, 0
 
 def can_rate(user_id, master_id):
     conn = get_connection()
@@ -3225,33 +3309,27 @@ def get_user_level(points):
         return "👤 START"
 
 # ================= MAIN MENU BUILDER =================
-def build_main_menu(texts, is_master, mode=None):
+def build_main_menu(texts, is_master, user_id=None, language="uz_kr", mode=None):
     if is_master:
         return [row[:] for row in texts["master_menu"]], "master"
-    else:
-        return [row[:] for row in texts["customer_menu"]], "customer"
+
+    menu = [row[:] for row in texts["customer_menu"]]
+
+    if user_id:
+        points, lifeline = get_user_stats(user_id)
+
+        for row in menu:
+            for i, btn in enumerate(row):
+                if btn in ["🎮 Ўйин", "🎮 O'yin", "🎮 Игра"]:
+                    if language == "uz_kr":
+                        row[i] = f"🎮 Ўйин (🆘 {lifeline})"
+                    elif language == "uz_lt":
+                        row[i] = f"🎮 O'yin (🆘 {lifeline})"
+                    else:
+                        row[i] = f"🎮 Игра (🆘 {lifeline})"
+
+    return menu, "customer"
     
-async def start_rating(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-
-    data = query.data
-    mid = data.replace("rate_", "")
-
-    keyboard = [
-        [
-            InlineKeyboardButton("⭐", callback_data=f"setrate_{mid}_1"),
-            InlineKeyboardButton("⭐⭐", callback_data=f"setrate_{mid}_2"),
-            InlineKeyboardButton("⭐⭐⭐", callback_data=f"setrate_{mid}_3"),
-        ],
-        [
-            InlineKeyboardButton("⭐⭐⭐⭐", callback_data=f"setrate_{mid}_4"),
-            InlineKeyboardButton("⭐⭐⭐⭐⭐", callback_data=f"setrate_{mid}_5"),
-        ],
-    ]
-
-    await query.message.reply_text("Устага нечта юлдуз берасиз?", reply_markup=InlineKeyboardMarkup(keyboard))
-
 async def show_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     await update.message.reply_text(f"🆔 Сизнинг Telegram ID: {user_id}")
