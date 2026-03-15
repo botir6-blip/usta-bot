@@ -2154,6 +2154,44 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await query.message.reply_text(f"🔗 Сизнинг таклиф линкингиз:\n\n{ref_link}\n\n" "👥 Ҳар бир қўшилган одам учун 100 танга оласиз!")
         return
+
+    # ================= ACCEPT ORDER =================
+    elif data.startswith("accept_order_"):
+
+        customer_id = int(data.replace("accept_order_", ""))
+        master_tg_id = query.from_user.id
+
+        conn = get_connection()
+        c = conn.cursor()
+
+        c.execute("""
+            SELECT name, phone
+            FROM masters
+            WHERE telegram_id=%s AND is_active=TRUE
+        """, (master_tg_id,))
+        master = c.fetchone()
+
+        conn.close()
+
+        if not master:
+            await query.message.reply_text("❌ Уста профили топилмади.")
+            return
+
+        master_name, master_phone = master
+
+        await context.bot.send_message(
+            chat_id=customer_id,
+            text=(
+                f"✅ Уста буюртмани қабул қилди.\n\n"
+                f"👷 Уста: {master_name}\n"
+                f"📞 Телефон: +{master_phone}"
+            )
+        )
+
+        await query.message.reply_text(
+            "✅ Сиз буюртмани қабул қилдингиз.\nМижозга телефонингиз юборилди."
+        )
+        return
         
     # ================= ORDER =================
     elif data.startswith("order_"):
