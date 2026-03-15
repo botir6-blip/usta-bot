@@ -1,5 +1,6 @@
 import psycopg2
 import os
+import requests
 from services import SERVICES
 from regions import REGIONS
 from languages import LANGUAGES, get_texts, LANGUAGE_NAMES
@@ -1408,6 +1409,24 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if text in ["🌐 Тилни ўзгартириш", "🌐 Tilni o'zgartirish", "🌐 Изменить язык"]:
         await change_language(update, context)
         return
+
+async def location_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message:
+        return
+
+    if not update.message.location:
+        return
+
+    lat = update.message.location.latitude
+    lon = update.message.location.longitude
+
+    url = f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json"
+    headers = {"User-Agent": "usta-bot/1.0"}
+    data = requests.get(url, headers=headers).json()
+
+    district = data.get("address", {}).get("county")
+
+    await update.message.reply_text(f"📍 Аниқланган туман: {district}")
            
 async def show_referral(update, context):
     user_id = update.effective_user.id
@@ -3455,7 +3474,7 @@ async def broadcast_news(update: Update, context: ContextTypes.DEFAULT_TYPE):
             pass
 
     await update.message.reply_text(f"✅ Янгилик {sent} та фойдаланувчига юборилди.")
-    
+   
 async def activestats(update, context):
     if update.effective_user.id != ADMIN_ID:
         await update.message.reply_text("❌ Рухсат йўқ")
@@ -3549,6 +3568,9 @@ def main():
     # =========================
     #app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message), group=1)
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_router), group=1)
+
+    # 🔹 LOCATION ROUTER
+    app.add_handler(MessageHandler(filters.LOCATION, location_router), group=1)
 
     print("BOT IS RUNNING...")
     app.run_polling()
