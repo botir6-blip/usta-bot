@@ -1,6 +1,7 @@
 import psycopg2
 import os
 import requests
+from location_utils import find_region, find_district
 from services import SERVICES
 from regions import REGIONS
 from languages import LANGUAGES, get_texts, LANGUAGE_NAMES
@@ -1441,8 +1442,29 @@ async def location_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     headers = {"User-Agent": "usta-bot/1.0"}
     data = requests.get(url, headers=headers).json()
 
-    district = data.get("address", {}).get("county")
+    address = data.get("address", {})
 
+    raw_region = (
+        address.get("state")
+        or address.get("region")
+        or address.get("province")
+        or ""
+    )
+
+    raw_district = (
+        address.get("city")
+        or address.get("county")
+        or address.get("town")
+        or address.get("municipality")
+        or address.get("state_district")
+        or ""
+    )
+
+    region = find_region(raw_region)
+    district = find_district(region, raw_district)
+
+    context.user_data["region"] = region
+    context.user_data["district"] = district
     context.user_data["district"] = district
     context.user_data["waiting_for_order"] = True
     context.user_data["step"] = None
