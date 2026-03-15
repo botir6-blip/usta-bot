@@ -1322,7 +1322,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         customer_name = update.effective_user.first_name or "Мижоз"
         customer_id = update.effective_user.id
 
-        if not service or not district:
+        if not service or not region or not district:
             context.user_data["waiting_for_order"] = False
             await update.message.reply_text(
                 "❌ Аввал хизмат тури ва туманни танланг."
@@ -1359,15 +1359,28 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["waiting_for_order"] = False
 
         if not matched_masters:
+            conn.close()
             await update.message.reply_text(
                 "❌ Бу хизмат ва вилоятда ҳозирча фаол уста топилмади."
             )
             return
-            
+
+        # ✅ БИТТА УМУМИЙ БУЮРТМА ЯРАТАМИЗ
+        c.execute("""
+            INSERT INTO orders (user_id, status, created_at)
+            VALUES (%s, 'new', CURRENT_TIMESTAMP)
+            RETURNING id
+        """, (customer_id,))
+        order_id = c.fetchone()[0]
+
+        conn.commit()
+        conn.close()
+
         order_message = f"""📢 <b>Янги буюртма</b>
 
     👤 Мижоз: {customer_name}
     🛠 Хизмат: {service}
+    📍 Вилоят: {region}
     📍 Туман: {district}
     📝 Муаммо: {problem}
     """
@@ -1379,7 +1392,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 keyboard = [[
                     InlineKeyboardButton(
                         "✅ Қабул қилиш",
-                        callback_data=f"accept_order_{customer_id}"
+                        callback_data=f"accept_order_{order_id}"
                     )
                 ]]
 
@@ -2158,26 +2171,49 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ================= ACCEPT ORDER =================
     elif data.startswith("accept_order_"):
 
-        customer_id = int(data.replace("accept_order_", ""))
+        order_id = int(data.replace("accept_order_", ""))
         master_tg_id = query.from_user.id
 
         conn = get_connection()
         c = conn.cursor()
 
         c.execute("""
-            SELECT name, phone
+            SELECT id, name, phone
             FROM masters
             WHERE telegram_id=%s AND is_active=TRUE
         """, (master_tg_id,))
         master = c.fetchone()
 
-        conn.close()
-
         if not master:
+            conn.close()
             await query.message.reply_text("❌ Уста профили топилмади.")
             return
 
-        master_name, master_phone = master
+        master_id, master_name, master_phone = master
+
+        c.execute("""
+            UPDATE orders
+            SET master_id=%s,
+                status='accepted'
+            WHERE id=%s
+              AND status='new'
+              AND master_id IS NULL
+            RETURNING user_id
+        """, (master_id, order_id))
+
+        updated = c.fetchone()
+
+        if not updated:
+            conn.close()
+            await query.message.reply_text(
+                "❌ Бу буюртма аллақачон бошқа уста томонидан қабул қилинган."
+            )
+            return
+
+        customer_id = updated[0]
+
+        conn.commit()
+        conn.close()
 
         await context.bot.send_message(
             chat_id=customer_id,
