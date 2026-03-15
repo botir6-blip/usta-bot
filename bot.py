@@ -1271,11 +1271,80 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("❌ Муаммони тўлиқроқ ёзинг.")
             return
 
+        service = context.user_data.get("service")
+        district = context.user_data.get("district")
+        customer_name = update.effective_user.first_name or "Мижоз"
+        customer_id = update.effective_user.id
+
+        if not service or not district:
+            context.user_data["waiting_for_order"] = False
+            await update.message.reply_text(
+                "❌ Аввал хизмат тури ва туманни танланг."
+            )
+            return
+
+        conn = get_connection()
+        c = conn.cursor()
+
+        c.execute("""
+            SELECT telegram_id, name, phone, vip
+            FROM masters
+            WHERE service=%s
+              AND district=%s
+              AND is_active=TRUE
+              AND telegram_id IS NOT NULL
+        """, (service, district))
+
+        matched_masters = c.fetchall()
+        conn.close()
+
         context.user_data["waiting_for_order"] = False
-        context.user_data["order_text"] = problem
+
+        if not matched_masters:
+            await update.message.reply_text(
+                "❌ Бу хизмат ва туманда ҳозирча фаол уста топилмади."
+            )
+            return
+
+        order_message = f"""📢 <b>Янги буюртма</b>
+
+    👤 Мижоз: {customer_name}
+    🛠 Хизмат: {service}
+    📍 Туман: {district}
+    📝 Муаммо: {problem}
+    """
+
+        sent_count = 0
+
+        for master_user_id, master_name, master_phone, vip in matched_masters:
+            try:
+                keyboard = [[
+                    InlineKeyboardButton(
+                        "✅ Қабул қилиш",
+                        callback_data=f"accept_order_{customer_id}"
+                    )
+                ]]
+
+                await context.bot.send_message(
+                    chat_id=master_user_id,
+                    text=order_message,
+                    parse_mode="HTML",
+                    reply_markup=InlineKeyboardMarkup(keyboard)
+                )
+                sent_count += 1
+
+            except Exception as e:
+                print(f"Устага юборишда хатолик: {master_user_id} -> {e}")
+
+        if sent_count == 0:
+            await update.message.reply_text(
+                "❌ Усталар топилди, лекин уларга хабар юбориб бўлмади."
+            )
+            return
 
         await update.message.reply_text(
-            f"✅ Буюртмангиз қабул қилинди:\n\n📝 {problem}"
+            f"✅ Буюртмангиз қабул қилинди.\n\n"
+            f"📨 {sent_count} та устага юборилди."
         )
         return
     
@@ -1292,7 +1361,10 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if text in ["📨 Буюртма қолдириш", "📨 Buyurtma qoldirish", "📨 Оставить заявку"]:
         context.user_data["waiting_for_order"] = True
-        await update.message.reply_text("📝 Муаммони ёзинг:")
+        await update.message.reply_text(
+            "✏️ Муаммони қисқача ёзинг\n"
+            "(масалан: кран ишламай қолди)"
+        )
         return
         
     if text in ["👤 Менинг профилим", "👤 Mening profilim", "👤 Мой профиль",
