@@ -129,6 +129,13 @@ def init_db():
     )
     """)
 
+    c.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS service TEXT")
+    c.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS region TEXT")
+    c.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS district TEXT")
+    c.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS problem TEXT")
+    c.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS accepted_at TIMESTAMP")
+    c.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP")
+    
     c.execute("ALTER TABLE masters ALTER COLUMN telegram_id TYPE BIGINT")
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT")
     
@@ -1367,10 +1374,10 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # ✅ БИТТА УМУМИЙ БУЮРТМА ЯРАТАМИЗ
         c.execute("""
-            INSERT INTO orders (user_id, status, created_at)
-            VALUES (%s, 'new', CURRENT_TIMESTAMP)
+            INSERT INTO orders (user_id, status, created_at, service, region, district, problem)
+            VALUES (%s, 'new', CURRENT_TIMESTAMP, %s, %s, %s, %s)
             RETURNING id
-        """, (customer_id,))
+        """, (customer_id, service, region, district, problem))
         order_id = c.fetchone()[0]
 
         conn.commit()
@@ -2194,7 +2201,8 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         c.execute("""
             UPDATE orders
             SET master_id=%s,
-                status='accepted'
+                status='accepted',
+                accepted_at=CURRENT_TIMESTAMP
             WHERE id=%s
               AND status='new'
               AND master_id IS NULL
@@ -2427,7 +2435,8 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         c.execute("""
             UPDATE orders
-            SET status='completed'
+            SET status='completed',
+                completed_at=CURRENT_TIMESTAMP
             WHERE id=%s AND status!='completed'
             RETURNING id
         """, (order_id,))
