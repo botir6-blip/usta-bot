@@ -59,7 +59,46 @@ def clear_questions():
     conn.close()
 
     print("🗑 quiz_questions жадвали тозаланди")
-    
+
+def import_questions():
+    conn = get_connection()
+    c = conn.cursor()
+
+    try:
+        print("📥 CSV дан саволлар импорт бошланди...")
+
+        with open("telegram_questions_1000_uz.csv", "r", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+
+            inserted = 0
+            for row in reader:
+                c.execute("""
+                    INSERT INTO quiz_questions
+                    (question, option_a, option_b, option_c, option_d, correct, difficulty, category)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    row["question"],
+                    row["option_a"],
+                    row["option_b"],
+                    row["option_c"],
+                    row["option_d"],
+                    int(row["correct"]),
+                    row["difficulty"],
+                    row["category"]
+                ))
+                inserted += 1
+
+        conn.commit()
+        print(f"✅ Импорт тугади: {inserted} та савол юкланди")
+
+    except Exception as e:
+        conn.rollback()
+        print("❌ IMPORT ERROR:", e)
+
+    finally:
+        c.close()
+        conn.close()
+        
 def generate_unique_code(cursor):
     for _ in range(1000):
         code = str(random.randint(1000, 9999))
