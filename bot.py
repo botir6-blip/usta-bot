@@ -3617,15 +3617,40 @@ def get_quiz_questions_by_difficulty(difficulty, limit):
 
 
 def get_mixed_quiz_questions():
-    easy = get_quiz_questions_by_difficulty("easy", 3)
-    medium = get_quiz_questions_by_difficulty("medium", 4)
-    hard = get_quiz_questions_by_difficulty("hard", 3)
+    conn = get_connection()
+    c = conn.cursor()
 
-    questions = easy + medium + hard
-    random.shuffle(questions)
+    c.execute("""
+        SELECT
+            id,
+            question,
+            option_a,
+            option_b,
+            option_c,
+            option_d,
+            correct,
+            difficulty,
+            category
+        FROM quiz_questions
+        ORDER BY RANDOM()
+        LIMIT 10
+    """)
+
+    rows = c.fetchall()
+    conn.close()
+
+    questions = []
+    for row in rows:
+        questions.append({
+            "id": row[0],
+            "question": row[1],
+            "options": [row[2], row[3], row[4], row[5]],
+            "correct": row[6],
+            "difficulty": row[7],
+            "category": row[8]
+        })
 
     return questions
-
 
 def get_user_lifeline(user_id):
     conn = get_connection()
