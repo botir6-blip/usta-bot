@@ -48,6 +48,18 @@ def ensure_code_column():
 
 import random
 
+def clear_questions():
+    conn = get_connection()
+    c = conn.cursor()
+
+    c.execute("TRUNCATE TABLE quiz_questions RESTART IDENTITY")
+
+    conn.commit()
+    c.close()
+    conn.close()
+
+    print("🗑 quiz_questions жадвали тозаланди")
+    
 def generate_unique_code(cursor):
     for _ in range(1000):
         code = str(random.randint(1000, 9999))
