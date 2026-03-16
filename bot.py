@@ -72,6 +72,7 @@ def import_questions():
 
             inserted = 0
             for row in reader:
+
                 correct_raw = row["correct"].strip().upper()
 
                 correct_map = {
@@ -82,7 +83,7 @@ def import_questions():
                 }
 
                 if correct_raw not in correct_map:
-                    print(f"❌ Нотўғри correct қиймат: {correct_raw}")
+                    print("❌ нотўғри жавоб:", correct_raw)
                     continue
 
                 correct = correct_map[correct_raw]
@@ -90,7 +91,7 @@ def import_questions():
                 c.execute("""
                     INSERT INTO quiz_questions
                     (question, option_a, option_b, option_c, option_d, correct, difficulty, category)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
                 """, (
                     row["question"],
                     row["option_a"],
@@ -98,13 +99,14 @@ def import_questions():
                     row["option_c"],
                     row["option_d"],
                     correct,
-                    row["difficulty"],
-                    row["category"]
+                    "easy",
+                    "logic"
                 ))
+
                 inserted += 1
 
         conn.commit()
-        print(f"✅ Импорт тугади: {inserted} та савол юкланди")
+        print(f"✅ {inserted} та савол импорт қилинди")
 
     except Exception as e:
         conn.rollback()
