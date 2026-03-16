@@ -72,6 +72,21 @@ def import_questions():
 
             inserted = 0
             for row in reader:
+                correct_raw = row["correct"].strip().upper()
+
+                correct_map = {
+                    "A": 0,
+                    "B": 1,
+                    "C": 2,
+                    "D": 3
+                }
+
+                if correct_raw not in correct_map:
+                    print(f"❌ Нотўғри correct қиймат: {correct_raw}")
+                    continue
+
+                correct = correct_map[correct_raw]
+
                 c.execute("""
                     INSERT INTO quiz_questions
                     (question, option_a, option_b, option_c, option_d, correct, difficulty, category)
@@ -82,7 +97,7 @@ def import_questions():
                     row["option_b"],
                     row["option_c"],
                     row["option_d"],
-                    int(row["correct"]),
+                    correct,
                     row["difficulty"],
                     row["category"]
                 ))
