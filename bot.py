@@ -4087,8 +4087,9 @@ async def activestats(update, context):
 def main():
     print("PRO VERSION STARTING...")
     init_db()
-    import_quiz_if_empty()
     ensure_code_column()
+    clear_questions()
+    import_questions()
 
     app = ApplicationBuilder().token(TOKEN).build()
 
