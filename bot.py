@@ -265,40 +265,53 @@ def import_quiz_if_empty():
     c = conn.cursor()
 
     try:
-        # аввал неча та савол борлигини текширамиз
         c.execute("SELECT COUNT(*) FROM quiz_questions")
         count = c.fetchone()[0]
 
         if count > 0:
             print(f"quiz_questions аллақачон тўлган: {count} та")
-            conn.close()
             return
 
         print("quiz_questions бўш, CSV дан импорт бошланди...")
 
-        with open("quiz_questions_1000.csv", "r", encoding="utf-8-sig") as f:
+        with open("telegram_questions_1000_uz.csv", "r", encoding="utf-8-sig") as f:
             reader = csv.DictReader(f)
 
             inserted = 0
             for row in reader:
+                correct_raw = row["correct"].strip().upper()
+
+                correct_map = {
+                    "A": 0,
+                    "B": 1,
+                    "C": 2,
+                    "D": 3
+                }
+
+                if correct_raw not in correct_map:
+                    print("❌ нотўғри жавоб:", correct_raw)
+                    continue
+
+                correct = correct_map[correct_raw]
+
                 c.execute("""
                     INSERT INTO quiz_questions
                     (question, option_a, option_b, option_c, option_d, correct, difficulty, category)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
                 """, (
                     row["question"],
                     row["option_a"],
                     row["option_b"],
                     row["option_c"],
                     row["option_d"],
-                    int(row["correct"]),
-                    row["difficulty"],
-                    row["category"]
+                    correct,
+                    "easy",
+                    "logic"
                 ))
                 inserted += 1
 
         conn.commit()
-        print(f"quiz_questions импорт тугади: {inserted} та савол юкланди")
+        print(f"✅ quiz_questions импорт тугади: {inserted} та савол юкланди")
 
     except Exception as e:
         conn.rollback()
@@ -1331,7 +1344,13 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
             context.user_data["mode"] = "master"
-            menu, mode = build_main_menu(texts, True, "master")
+            menu, mode = build_main_menu(
+                texts,
+                True,
+                user_id=user_id,
+                language=language,
+                mode="master"
+            )
             context.user_data["mode"] = mode
 
             await update.message.reply_text(
@@ -1493,10 +1512,10 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         customer_name = update.effective_user.first_name or "Мижоз"
         customer_id = update.effective_user.id
 
-        if not service or not region or not district:
+        if not service or not region:
             context.user_data["waiting_for_order"] = False
             await update.message.reply_text(
-                "❌ Аввал хизмат тури ва туманни танланг."
+                "❌ Аввал хизмат тури ва вилоятни танланг."
             )
             return
 
@@ -4181,8 +4200,7 @@ def main():
     print("PRO VERSION STARTING...")
     init_db()
     ensure_code_column()
-    clear_questions()
-    import_questions()
+    import_quiz_if_empty()
 
     app = ApplicationBuilder().token(TOKEN).build()
 
@@ -4253,100 +4271,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
