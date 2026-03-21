@@ -1267,6 +1267,8 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data.pop("flow", None)
         context.user_data.pop("step", None)
         context.user_data.pop("waiting_for_code", None)
+        context.user_data.pop("after_find_action", None)
+        context.user_data.pop("waiting_for_order", None)
 
         conn = get_connection()
         c = conn.cursor()
@@ -1612,7 +1614,17 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ================= MAIN MENU =================
     if text in ["🔎 Уста топиш", "🔎 Usta topish", "🔎 Найти мастера",
                 "Уста топиш", "Usta topish", "Найти мастера"]:
-        await start_find(update, context)
+
+        context.user_data.pop("after_find_action", None)
+        context.user_data.pop("waiting_for_order", None)
+
+        context.user_data["flow"] = "find"
+        context.user_data["step"] = "service"
+
+        await update.message.reply_text(
+            texts["choose_service"],
+            reply_markup=build_service_menu(language, sort_by_count=True)
+        )
         return
 
     if text in ["👨‍🔧 Уста бўлиш", "👨‍🔧 Usta bo'lish", "👨‍🔧 Стать мастером",
