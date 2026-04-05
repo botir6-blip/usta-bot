@@ -2290,9 +2290,12 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     service = map_service_to_uzkr(service)
     region = map_region_to_uzkr(region)
 
-    if district:
+    # ✅ district ни хавфсиз тозалаймиз
+    if not district or str(district).lower() == "none":
+        district = None
+    else:
         district = map_district_to_uzkr(region, district)
-        
+
     print("SERVICE:", service)
     print("REGION:", region)
     print("DISTRICT:", district)
@@ -2320,8 +2323,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     line = "══════════════════════════"
 
-    # ⭐ VIP + NORMAL битта JOIN билан
-    query = """
+    base_query = """
     SELECT 
         m.id,
         m.name,
@@ -2344,13 +2346,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
       AND m.is_active = TRUE
     """
 
-    params = [service, region]
-
-    if district:
-        query += " AND m.district = %s"
-        params.append(district)
-    
-    query += """    
+    group_order = """
     GROUP BY 
         m.id,
         m.name,
@@ -2369,12 +2365,28 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         avg_rating DESC
     LIMIT %s OFFSET %s
     """
- 
+
+    params = [service, region]
+    query = base_query
+
+    # ✅ Фақат district ҳақиқатан танланган бўлса фильтр қўшамиз
+    if district is not None:
+        query += " AND m.district = %s"
+        params.append(district)
+
+    query += group_order
     params.extend([limit, offset])
 
     c.execute(query, params)
-    
     rows = c.fetchall()
+
+    # ✅ Агар туман бўйича топилмаса, вилоят бўйича қайта қидирамиз
+    if not rows and district is not None:
+        fallback_query = base_query + group_order
+        fallback_params = [service, region, limit, offset]
+
+        c.execute(fallback_query, fallback_params)
+        rows = c.fetchall()
 
     if not rows:
         conn.close()
@@ -2384,20 +2396,21 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     for mid, name, phone, service, dist, age, experience, vip, code, desc, is_busy, busy_until, avg_rating, votes in rows:
-        
+
         rating_text = (
-            f"{round(avg_rating,1)} ({votes})"
+            f"{round(avg_rating, 1)} ({votes})"
             if votes > 0 else "Рейтинг йўқ"
         )
-        
+
         print("DEBUG:", is_busy, busy_until)
-        
+
         badge = f"👑 VIP УСТА • 🆔 {code}" if vip else f"👷 УСТА • 🆔 {code}"
-       
+
         if is_busy and busy_until and busy_until >= today:
             status_text = f"🔴 Банд ({busy_until})"
         else:
             status_text = "🟢 Бўш"
+
         card = f"""
         {line}
         <b>{badge}</b>
@@ -2417,14 +2430,13 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         📞 <b>+{phone}</b>
         ⭐ {rating_text}
         """
-        # 🔥 Description алоҳида қўшилади
+
         if desc:
             short_desc = desc[:150]
             if len(desc) > 150:
                 short_desc += "..."
             card += f"\n📝 {short_desc}\n"
 
-        # 🔥 СЎНГГИ 3 ТА ИЗОҲ
         c.execute("""
             SELECT rating, comment
             FROM ratings
@@ -2441,17 +2453,19 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 card += f"⭐ {r} — {com}\n"
 
         card += f"\n{line}"
+
         keyboard = [[
             InlineKeyboardButton("📞 Қўнғироқ", callback_data=f"call_{phone}"),
             InlineKeyboardButton("✅ Чақирдим", callback_data=f"order_{mid}"),
             InlineKeyboardButton("⭐ Баҳо", callback_data=f"rate_{mid}")
         ]]
 
-        await message.reply_text(card, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
+        await message.reply_text(
+            card,
+            parse_mode="HTML",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
 
-    
-
-    # 🔁 Pagination
     nav = []
 
     if page > 0:
@@ -2467,7 +2481,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     conn.close()
-
+    
 async def call_master(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("CALL HANDLER ISHLADI")  # 👈
     query = update.callback_query
