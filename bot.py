@@ -15,6 +15,33 @@ def get_connection():
         os.getenv("DATABASE_URL"),
         sslmode="require"
     )
+
+
+def strip_count_label(value):
+    """Keyboardдаги 'Сантехник (14)' каби count қисмини олиб ташлайди."""
+    if value is None:
+        return None
+    return str(value).split(" (")[0].strip()
+
+
+def norm_lookup(value):
+    """SQL/DB таққослаш учун матнни хавфсиз нормализация қилади."""
+    return strip_count_label(value).lower() if value is not None else ""
+
+
+def make_reply_keyboard(menu):
+    """Telegram Webда тугмалар нотўғри кўринмаслиги учун keyboardни фақат string қиламиз."""
+    safe_menu = []
+    for row in menu or []:
+        safe_row = []
+        for btn in row or []:
+            if isinstance(btn, KeyboardButton):
+                safe_row.append(btn)
+            else:
+                safe_row.append(str(btn))
+        if safe_row:
+            safe_menu.append(safe_row)
+    return ReplyKeyboardMarkup(safe_menu, resize_keyboard=True)
     
 ADMIN_ID = 1970756498
 
@@ -392,13 +419,18 @@ def get_service_counts():
         SELECT service, COUNT(*)
         FROM masters
         WHERE is_active = TRUE
+          AND service IS NOT NULL
         GROUP BY service
     """)
 
     rows = c.fetchall()
     conn.close()
 
-    return dict(rows)
+    counts = {}
+    for name, count in rows:
+        counts[norm_lookup(name)] = counts.get(norm_lookup(name), 0) + count
+
+    return counts
 
 
 def get_region_counts(service):
@@ -409,15 +441,20 @@ def get_region_counts(service):
     c.execute("""
         SELECT region, COUNT(*)
         FROM masters
-        WHERE service = %s
+        WHERE LOWER(TRIM(service)) = LOWER(TRIM(%s))
         AND is_active = TRUE
+        AND region IS NOT NULL
         GROUP BY region
-    """, (service,))
+    """, (strip_count_label(service),))
 
     rows = c.fetchall()
     conn.close()
 
-    return dict(rows)
+    counts = {}
+    for name, count in rows:
+        counts[norm_lookup(name)] = counts.get(norm_lookup(name), 0) + count
+
+    return counts
 
 def get_district_counts(region, service):
 
@@ -427,16 +464,21 @@ def get_district_counts(region, service):
     c.execute("""
         SELECT district, COUNT(*)
         FROM masters
-        WHERE region = %s
-        AND service = %s
+        WHERE LOWER(TRIM(region)) = LOWER(TRIM(%s))
+        AND LOWER(TRIM(service)) = LOWER(TRIM(%s))
         AND is_active = TRUE
+        AND district IS NOT NULL
         GROUP BY district
-    """, (region, service))
+    """, (strip_count_label(region), strip_count_label(service)))
 
     rows = c.fetchall()
     conn.close()
 
-    return dict(rows)
+    counts = {}
+    for name, count in rows:
+        counts[norm_lookup(name)] = counts.get(norm_lookup(name), 0) + count
+
+    return counts
 
 def build_service_menu(language="uz_kr", sort_by_count=True):
 
@@ -447,7 +489,7 @@ def build_service_menu(language="uz_kr", sort_by_count=True):
 
     for service in services:
         uz_service = map_service_to_uzkr(service)
-        count = counts.get(uz_service, 0)
+        count = counts.get(norm_lookup(uz_service), 0)
 
         services_with_counts.append((service, count))
 
@@ -488,7 +530,7 @@ def build_region_menu(service, language="uz_kr", hide_empty=False):
 
         uz_region = map_region_to_uzkr(region)
 
-        count = counts.get(uz_region, 0)
+        count = counts.get(norm_lookup(uz_region), 0)
 
         # 🔥 фақат hide_empty бўлса яширади
         if hide_empty and count == 0:
@@ -520,6 +562,7 @@ def build_region_menu(service, language="uz_kr", hide_empty=False):
     
 # ================= MAPPING =================
 def map_region_to_uzkr(selected_region):
+    selected_region = strip_count_label(selected_region)
     # agar allaqachon uz kr bo‘lsa
     if selected_region in REGIONS["uz_kr"]:
         return selected_region
@@ -534,6 +577,7 @@ def map_region_to_uzkr(selected_region):
 
 
 def map_district_to_uzkr(selected_region, selected_district):
+    selected_district = strip_count_label(selected_district)
     uz_region = map_region_to_uzkr(selected_region)
 
     uz_districts = REGIONS["uz_kr"].get(uz_region, [])
@@ -552,6 +596,7 @@ def map_district_to_uzkr(selected_region, selected_district):
 
     return selected_district
 def map_service_to_uzkr(selected_service):
+    selected_service = strip_count_label(selected_service)
     uz_services = SERVICES["uz_kr"]
 
     if selected_service in uz_services:
@@ -581,7 +626,7 @@ def build_city_menu(region, service, language="uz_kr", hide_empty=False):
 
     for city in cities:
         uz_city = map_district_to_uzkr(region, city)
-        count = counts.get(uz_city, 0)
+        count = counts.get(norm_lookup(uz_city), 0)
 
         # 🔥 0 та устали туманни чиқармаймиз
         if hide_empty and count == 0:
@@ -671,7 +716,7 @@ async def choose_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         context.user_data["mode"] = mode
 
-        await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
+        await update.message.reply_text(texts["welcome"], reply_markup=make_reply_keyboard(menu))
 
     else:
         await update.message.reply_text("Илтимос, тилни танланг:", reply_markup=build_language_menu())
@@ -789,7 +834,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data["mode"] = mode
         
-    await update.message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
+    await update.message.reply_text(texts["welcome"], reply_markup=make_reply_keyboard(menu))
 
 async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -1290,7 +1335,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await update.message.reply_text(
             texts["welcome"],
-            reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
+            reply_markup=make_reply_keyboard(menu)
         )
         return
 
@@ -1358,7 +1403,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(
                 "✅ Сиз муваффақиятли рўйхатдан ўтдингиз!\n\n"
                 "👤 Қолган маълумотларни 'Менинг профилим' орқали тўлдиришингиз мумкин.",
-                reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
+                reply_markup=make_reply_keyboard(menu)
             )
 
             context.user_data.pop("flow", None)
@@ -1997,7 +2042,7 @@ async def send_quiz_question(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
         await target_message.reply_text(
             texts["welcome"],
-            reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
+            reply_markup=make_reply_keyboard(menu)
         )
         return
 
@@ -2341,8 +2386,8 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
         COUNT(r.rating) as votes
     FROM masters m
     LEFT JOIN ratings r ON m.id = r.master_id
-    WHERE m.service = %s
-      AND m.region = %s
+    WHERE LOWER(TRIM(m.service)) = LOWER(TRIM(%s))
+      AND LOWER(TRIM(m.region)) = LOWER(TRIM(%s))
       AND m.is_active = TRUE
     """
 
@@ -2371,7 +2416,7 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # ✅ Фақат district ҳақиқатан танланган бўлса фильтр қўшамиз
     if district is not None:
-        query += " AND m.district = %s"
+        query += " AND LOWER(TRIM(m.district)) = LOWER(TRIM(%s))"
         params.append(district)
 
     query += group_order
@@ -3352,7 +3397,7 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["mode"] = mode
 
     await message.reply_text(text)
-    await message.reply_text(texts["welcome"], reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True))
+    await message.reply_text(texts["welcome"], reply_markup=make_reply_keyboard(menu))
     
 # ================= PROFILE =================
 async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -3490,12 +3535,12 @@ async def unregister(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if success:
         await update.message.reply_text(
             texts["unregistered_success"],
-            reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
+            reply_markup=make_reply_keyboard(menu)
         )
     else:
         await update.message.reply_text(
             texts["not_registered"],
-            reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
+            reply_markup=make_reply_keyboard(menu)
         )
         
 async def change_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -3595,13 +3640,13 @@ async def backup_database(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await update.message.reply_text(
             message,
-            reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
+            reply_markup=make_reply_keyboard(menu)
         )
 
     except Exception as e:
         await update.message.reply_text(
             texts["backup_error"] + f" {str(e)}",
-            reply_markup=ReplyKeyboardMarkup(menu, resize_keyboard=True)
+            reply_markup=make_reply_keyboard(menu)
         )
         
 # ================= DB HELPERS =================
