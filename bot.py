@@ -1270,6 +1270,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if flow == "find":
             if step == "district":
+                context.user_data["page"] = 0
                 context.user_data["step"] = "region"
                 await update.message.reply_text(
                     texts["choose_region"],
@@ -1282,6 +1283,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
 
             if step == "region":
+                context.user_data["page"] = 0
                 context.user_data["step"] = "service"
                 await update.message.reply_text(
                     texts["choose_service"],
@@ -1361,6 +1363,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             regions = REGIONS.get(language, REGIONS["uz_kr"])
             if text in regions:
                 context.user_data["region"] = map_region_to_uzkr(text)
+                context.user_data["page"] = 0
                 context.user_data["step"] = "district"
                 await ask_region(update, context)
                 return
@@ -1417,6 +1420,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             services = SERVICES.get(language, SERVICES["uz_kr"])
             if text in services:
                 context.user_data["service"] = map_service_to_uzkr(text)
+                context.user_data["page"] = 0
 
                 if context.user_data.get("after_find_action") == "order":
                     context.user_data["step"] = "location"
@@ -1450,6 +1454,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             regions = REGIONS.get(language, REGIONS["uz_kr"])
             if text in regions:
                 context.user_data["region"] = map_region_to_uzkr(text)
+                context.user_data["page"] = 0
                 context.user_data["step"] = "district"
                 await ask_region(update, context)
                 return
@@ -1457,6 +1462,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if step == "district":
             if text == "📍 Фақат вилоят бўйича қидириш":
                 context.user_data["district"] = None
+                context.user_data["page"] = 0
 
                 if context.user_data.get("after_find_action") == "order":
                     context.user_data["after_find_action"] = None
@@ -2181,6 +2187,7 @@ async def get_district(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # ===== FIND =====
     if context.user_data.get("flow") == "find":
+        context.user_data["page"] = 0
         await show_masters(update, context)
         return
         
@@ -2345,7 +2352,17 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("REGION:", region)
     print("DISTRICT:", district)
 
-    page = context.user_data.get("page", 0)
+    # ✅ Саҳифа рақами эски қидирувдан қолиб кетса, натижа "топилмади" бўлиб қолмасин
+    try:
+        page = int(context.user_data.get("page", 0) or 0)
+    except (TypeError, ValueError):
+        page = 0
+
+    if page < 0:
+        page = 0
+
+    context.user_data["page"] = page
+
     limit = 5
     offset = page * limit
 
@@ -2424,6 +2441,16 @@ async def show_masters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     c.execute(query, params)
     rows = c.fetchall()
+
+    # ✅ Агар эски pagination page қолиб кетган бўлса, 1-саҳифадан қайта қидирамиз
+    # Масалан, аввал 2-саҳифада қолиб, кейин бошқа хизмат/ҳудуд танланса, offset сабаб натижа чиқмай қоларди.
+    if not rows and page > 0:
+        page = 0
+        offset = 0
+        context.user_data["page"] = 0
+        params[-1] = offset
+        c.execute(query, params)
+        rows = c.fetchall()
 
     # ✅ Агар туман бўйича топилмаса, вилоят бўйича қайта қидирамиз
     if not rows and district is not None:
